@@ -1,3 +1,4 @@
+import { withoutWatch } from './garmin.js'
 /* Backups that carry the photos and videos of custom exercises and of logged workouts.
  *
  * "Export backup (JSON)" stays what it always was: the state, with each exercise's small
@@ -66,7 +67,7 @@ export function sanitizeCustomMedia(state) {
  * fetchToStore). `missing` counts those that could not be had; the export goes ahead without them.
  */
 export async function exportBackupZip(S, { media = mediaStore, fetchOne = null, now } = {}) {
-  const entries = [{ name: BACKUP_JSON, blob: new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }) }]
+  const entries = [{ name: BACKUP_JSON, blob: new Blob([JSON.stringify(withoutWatch(S), null, 2)], { type: 'application/json' }) }]
   let missing = 0
   for (const f of referencedFiles(S)) {
     let rec = await media.get(f.hash)

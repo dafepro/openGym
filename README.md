@@ -258,6 +258,8 @@ The [documentation index](docs/README.md) sorts every guide by who it's for. The
 | Get a quick answer | [FAQ](docs/FAQ.md) |
 | Set up my own instance | [Self-hosting](docs/SELF_HOSTING.md) |
 | Use the Android or iPhone app | [Phone app](docs/MOBILE.md) |
+| Sync with Google Drive | [Drive sync](docs/GOOGLE_DRIVE.md) |
+| Connect the existing Uplift Garmin companion | [Garmin watch](docs/GARMIN.md) |
 | Bring my history from another app | [Importing data](docs/DATA_IMPORTS.md) |
 | Turn on the AI coach | [AI coach](docs/AI_COACH.md) |
 | Contribute code | [Contributing](CONTRIBUTING.md) |

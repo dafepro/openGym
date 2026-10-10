@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api, setRemoteAuth } from '../lib/api.js'
+import { withoutWatch } from '../lib/garmin.js'
 import { cloudContent } from '../lib/cloud-sync.js'
 import { localTZ } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
@@ -546,7 +547,15 @@ export const useStore = create((set, get) => {
     const theirs = readSaved()
     if (!theirs) return null
     const touched = JSON.stringify(prev?.active ?? null) !== JSON.stringify(S?.active ?? null)
+    // A received watch result may already have been acknowledged and removed from the watch.
+    // A stale tab cannot replace that active session with its old draft while retaining its receipt.
+    const watchAdvanced = theirs._watch?.receipts?.some(r => !prev?._watch?.receipts?.some(old => old.id === r.id))
+    if (touched && watchAdvanced) {
+      import('./useUI.js').then(({ useUI }) => useUI.getState().toast(t('Workout updated from watch. Try that change again.'))).catch(() => {})
+      return theirs
+    }
     const merged = joinTabs(S, theirs, touched)
+    if (theirs._watch) merged._watch = clone(theirs._watch)
     return sameCopy(merged, S) ? null : merged
   }
 
@@ -563,10 +572,16 @@ export const useStore = create((set, get) => {
     if (hasData(S)) keepAside(S, t('This device, before signing in'), staleUid).catch(() => {})
     return true
   }
-  const persist = (S, push = true, stamp = true) => {
-    if (refuseStale(S)) return
+  const persist = (S, push = true, stamp = true, watchWrite = false) => {
+    if (!watchWrite) {
+      const deviceWatch = get()?.S?._watch
+      delete S._watch
+      if (deviceWatch && deviceWatch.owner === (readOwner() || '')) S._watch = deviceWatch
+    }
+    if (refuseStale(S)) { if (watchWrite) throw new Error('Reload before receiving watch entries.'); return }
     const { base, owed } = metaOf()   // the copy being replaced; the new one stands where it stood
     const joined = joinSaved(S, get()?.S)
+    if (joined && watchWrite) throw new Error('Another tab changed this workout. Reload before receiving watch entries.')
     if (joined) S = joined
     // A join holds another tab's changes, which this copy then owes the server too.
     if (stamp || joined) S._ts = Math.max(Date.now(), (base?.ts || 0) + 1, Number(S._ts) || 0)
@@ -593,6 +608,7 @@ export const useStore = create((set, get) => {
       toldNoRoom = false
       if (storeLag) { storeLag = false; saveMarker(base) }   // the saved copy is this one again
     } catch (e) {
+      if (watchWrite) throw new Error('Watch entries remain queued: this device could not save them.')
       saved = false
       storeLag = true
       try { localStorage.removeItem(SYNC_KEY) } catch { /* nothing to take back */ }
@@ -718,7 +734,7 @@ export const useStore = create((set, get) => {
     // An older app's owed copy over the revision it read: the server stamps what that app changed
     // against the copy it holds, exactly as it would for that app (api/sync-stamps.js).
     const legacy = readLegacy()
-    const body = { state: S, stamped: !(legacy && legacy.owner === get().user?.id) }
+    const body = { state: withoutWatch(S), stamped: !(legacy && legacy.owner === get().user?.id) }
     if (asReplace != null) { body.baseRev = asReplace.rev; if (asReplace.wid) body.baseWid = asReplace.wid }
     else if (!force && base) { body.baseRev = base.rev; if (base.wid) body.baseWid = base.wid }
     try {
@@ -1338,6 +1354,21 @@ export const useStore = create((set, get) => {
     coachLocal: null,
     async setCoachLocal(patch) {
       set({ coachLocal: coachDeviceSettings(await saveCoachDevice(patch)) })
+    },
+
+    // A single synchronous localStorage write contains watch results and their receipts.
+    // Refuse stale tabs and quota errors before publishing the draft or acknowledging the relay.
+    commitWatch(mut) {
+      if (!get().ready || get().cloudSyncOwner() === null) throw new Error('Watch transfer is paused for this profile.')
+      const prev = get().S
+      const stored = localStorage.getItem(KEY)
+      if (stored && JSON.stringify(JSON.parse(stored).active) !== JSON.stringify(prev.active)) throw new Error('Another tab changed this workout. Reload before receiving watch entries.')
+      const S = clone(prev)
+      const result = mut(S)
+      S._ts = stampChange(prev, S, Date.now())
+      persist(S, true, true, true)
+      if (localStorage.getItem(KEY) !== JSON.stringify(get().S)) throw new Error('Watch transfer is waiting for a local save.')
+      return result
     },
 
     // Mutate a draft of S via producer fn, then persist + schedule sync. Every routine the change

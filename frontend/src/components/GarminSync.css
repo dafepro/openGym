@@ -1,0 +1,17 @@
+
+.watch-handoff { margin-top: 12px; border: 1px solid var(--line); border-radius: 14px; padding: 0 12px; }
+.watch-handoff summary { display: flex; align-items: center; gap: 8px; min-height: 48px; cursor: pointer; list-style: none; }
+.watch-handoff summary span { flex: 1; font-size: .82rem; }
+.watch-handoff summary svg:last-child { transition: transform .2s ease; }
+.watch-handoff[open] summary svg:last-child { transform: rotate(180deg); }
+.watch-handoff summary:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.watch-handoff > .btn { margin-bottom: 10px; }
+@media (prefers-reduced-motion: reduce) { .watch-handoff summary svg:last-child { transition: none; } }
+
+.garmin-guide > summary { display: flex; align-items: center; gap: 8px; min-height: 48px; cursor: pointer; list-style: none; }
+.garmin-guide > summary::-webkit-details-marker, .watch-handoff > summary::-webkit-details-marker { display: none; }
+.garmin-guide > summary span { flex: 1; }
+.garmin-guide > summary svg { transition: transform .2s ease; }
+.garmin-guide[open] > summary svg { transform: rotate(180deg); }
+.garmin-guide > summary:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .garmin-guide > summary svg { transition: none; } }

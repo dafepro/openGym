@@ -1,5 +1,12 @@
 {
   "devDependencies": {
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "wrangler": "^4.143.0"
+  },
+  "scripts": {
+    "build:worker": "npm --prefix frontend run build && node scripts/catalogue/stage-media.mjs frontend/dist",
+    "dev:worker": "WRANGLER_SEND_METRICS=false wrangler dev --local --port 8788",
+    "check:worker": "WRANGLER_SEND_METRICS=false wrangler deploy --dry-run --outdir worker-dist",
+    "test:worker": "cd frontend && ./node_modules/.bin/vitest run --root .. --config frontend/vite.config.js worker/relay.test.ts worker/index.test.ts"
   }
 }

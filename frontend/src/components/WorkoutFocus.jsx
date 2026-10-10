@@ -13,6 +13,7 @@ import { NumberField } from './ui.jsx'
 import Icon from './Icon.jsx'
 import Media from './Media.jsx'
 import FocusSetFields from './FocusSetFields.jsx'
+import { WatchHandoff } from './GarminSync.jsx'
 import FocusSwitch from './FocusSwitch.jsx'
 import './WorkoutFocus.css'
 
@@ -82,7 +83,7 @@ export default function WorkoutFocus({
   if (!entry) return null
 
   const ex = exOr(entry.id), mode = modeOf({ ...entry.target, id: entry.id })
-  const isPrepared = prepared?.sessionId === sessionKey && !!prepared?.entries?.includes(prepKey)
+  const isPrepared = entry._watchPhase === 'work' || entry._watchPhase === 'warmup' || entry._watchPhase !== 'setup' && prepared?.sessionId === sessionKey && !!prepared?.entries?.includes(prepKey)
   const phase = work ? 'working' : timer ? 'rest' : !row ? 'complete' : !isPrepared ? 'prep' : 'set'
   const readonly = !!work || !row
   const latest = lastFocusSet(A, tracked, timer)
@@ -127,10 +128,13 @@ export default function WorkoutFocus({
     onSelectEntry(previous.entryIdx); setPane(null)
     lastRecord.current = Date.now()
   }
-  const ready = () => useUI.setState(current => ({ focusPrepared: {
-    sessionId: sessionKey,
-    entries: [...new Set([...(current.focusPrepared?.sessionId === sessionKey ? current.focusPrepared.entries : []), prepKey])],
-  } }))
+  const ready = () => {
+    if (entry._watchPhase === 'setup') useStore.getState().update(s => { delete s.active.entries[entryIdx]._watchPhase })
+    useUI.setState(current => ({ focusPrepared: {
+      sessionId: sessionKey,
+      entries: [...new Set([...(current.focusPrepared?.sessionId === sessionKey ? current.focusPrepared.entries : []), prepKey])],
+    } }))
+  }
   const progress = ({ unitDone }) => { if (unitDone) onAdvanceUnit() }
   const record = () => {
     if (!validTarget(current) || useUI.getState().timer || Date.now() - lastRecord.current < 600) return
@@ -147,6 +151,7 @@ export default function WorkoutFocus({
   const skipWarmups = () => {
     if (!validTarget(current) || !isWarmupRow(row)) return
     lastRecord.current = Date.now()
+    useStore.getState().update(s => { if (s.active?.id === sessionKey) s.active.entries[entryIdx]._watchSkipWarmups = true })
     useUI.setState(ui => ({ focusPane: null, focusDetailsOpen: view === 'workout', focusSkippedWarmups: {
       sessionId: sessionKey,
       entries: [...new Set([...(ui.focusSkippedWarmups?.sessionId === sessionKey ? ui.focusSkippedWarmups.entries : []), focusEntryKey(A, entryIdx)])],
@@ -212,6 +217,7 @@ export default function WorkoutFocus({
               {(dropsOf(set).length > 0 || clustersOf(set).length > 0) && phase !== 'working' && <FocusSetFields target={current} {...edit} main={false} extras disabled={readonly} />}
               {!timer && !work && row && phase !== 'prep' && mode !== 'cardio' && !isWarmupRow(row) && <Disclosure name="effort" label={t('More')} icon="gauge" pane={pane} disclose={disclose}><FocusSetFields target={current} {...edit} main={false} effort disabled={readonly} /></Disclosure>}
               {lastFields}
+              <WatchHandoff />
             </>}
           </FocusSwitch>
         </div>

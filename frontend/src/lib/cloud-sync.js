@@ -5,7 +5,7 @@
  * therefore survive as separate heads and join on the next pass. */
 import { mergeStates } from './sync-merge.js'
 
-const LOCAL = new Set(['active', '_rev', '_wid', '_wids', '_unstamped', '_prior'])
+const LOCAL = new Set(['_watch', 'active', '_rev', '_wid', '_wids', '_unstamped', '_prior'])
 export function cloudState(state) {
   return Object.fromEntries(Object.entries(state || {}).filter(([key]) => !LOCAL.has(key)))
 }

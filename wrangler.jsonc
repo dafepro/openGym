@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "uplift",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-28",
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
+    "directory": "./frontend/dist",
+    "not_found_handling": "single-page-application",
+    "html_handling": "auto-trailing-slash",
+  },
+  "routes": [
+    {
+      "pattern": "uplift.quicktrack.cc",
+      "custom_domain": true,
+    },
+  ],
+  "vars": { "GARMIN_ENABLED": "true", "GARMIN_STORE_URL": "" },
+  "durable_objects": { "bindings": [{ "name": "GARMIN", "class_name": "GarminRelay" }] },
+  "migrations": [{ "tag": "garmin-v1", "new_sqlite_classes": ["GarminRelay"] }],
+  "ratelimits": [
+    { "name": "PAIR_LIMIT", "namespace_id": "824701", "simple": { "limit": 12, "period": 60 } },
+    { "name": "REQUEST_LIMIT", "namespace_id": "824702", "simple": { "limit": 120, "period": 60 } },
+  ],
+}

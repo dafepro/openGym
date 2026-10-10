@@ -1,5 +1,9 @@
 # Roadmap
 
+## Fork integration status
+
+This fork adds Focus, optional Google Drive snapshot sync, and compatibility with the owner’s existing Uplift Garmin companion. Frontend branding remains openGym. Rebranding and replacing the live `uplift.quicktrack.cc` site are deferred. Before a deployment, verify Google’s authorized origins and consent, pair the physical watch to the new phone adapter, and confirm working-set and phone-owned warm-up recovery. Static Cloudflare hosting supports local storage, Drive and the watch relay; Node account/Coach/media hosting remains separate. See [the integration decision](docs/decisions/001-uplift-watch-and-oauth.md).
+
 Where openGym is going, in the order it is likely to land. Each block is a GitHub milestone; the
 issues and pull requests attached to it are the plan, this file is the readable summary.
 

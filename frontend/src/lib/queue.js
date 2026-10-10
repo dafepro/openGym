@@ -42,8 +42,8 @@
 
 import { isoOf, weekKey, weekStartOf } from './format.js'
 
-const routineIdsOf = w => (Array.isArray(w.routineIds) ? w.routineIds : (w.routineId ? [w.routineId] : []))
-const nameParts = w => String(w.name || '').split(' + ')
+const routineIdsOf = w => w?.warmupOnly ? [] : (Array.isArray(w.routineIds) ? w.routineIds : (w.routineId ? [w.routineId] : []))
+const nameParts = w => w?.warmupOnly ? [] : String(w.name || '').split(' + ')
 
 // Tolerant reader: whole-state sync is last-writer-wins, so a half-written or older-shaped
 // queue can arrive from another client. A bad shape reads as "no queue" rather than taking

@@ -250,3 +250,10 @@ test('queue: a strict pass (the app\'s "Start new pass") ignores a same-named wo
   const after = { ...strict, workouts: [early, { ...early, start: 2000 }] };
   assert.equal(effectiveRoutineId(after, '2026-09-07'), 'r2');
 });
+
+test('warmup-only history does not advance the queue or fulfill a routine pin', () => {
+  const S = { ...base, queue: { ids: ['r1', 'r2'], since: 1000, startsOn: '2026-09-07', label: 'W1' },
+    workouts: [{ d: '2026-09-07', start: 2000, routineIds: ['r1'], name: 'Push', warmupOnly: true }] };
+  assert.equal(effectiveRoutineId(S, '2026-09-08'), 'r1');
+  assert.equal(pinState(S, 'r1'), 'open');
+});

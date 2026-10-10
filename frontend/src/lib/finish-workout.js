@@ -19,8 +19,8 @@ import { hasCompletedWork, isSideSet } from './workout-model.js'
 function finishedRow(set) {
   if (!set) return set
   const sideMarked = isSideSet(set) && (set.sides.L.weightOrigin != null || set.sides.R.weightOrigin != null)
-  if (set.planSec == null && set.weightOrigin == null && !sideMarked) return set
-  const { planSec, weightOrigin, ...rest } = set
+  if (set.planSec == null && set.weightOrigin == null && set._watchKey == null && !sideMarked) return set
+  const { planSec, weightOrigin, _watchKey, ...rest } = set
   if (sideMarked) {
     const side = ({ weightOrigin: _, ...kept }) => kept
     rest.sides = { ...rest.sides, L: side(rest.sides.L), R: side(rest.sides.R) }
@@ -98,7 +98,7 @@ export function buildCompletedWorkout(active, { end = Date.now(), prs = [], snap
       if (entry.notePin) completed.notePin = true
     }
     return completed
-  }).filter(entry => entry.sets.some(hasCompletedWork))
+  }).filter(entry => entry.sets.some(s => hasCompletedWork(s) || s.skipped === true))
   // An exercise left without a single set drops out above, and its partner is then a superset
   // of one. cleanupSg clears the tag it no longer shares with a neighbour; the entries are this
   // function's own copies, so the running session is left alone.

@@ -12,7 +12,15 @@ are not uploaded to Drive; their references travel with the data, but another
 device needs the existing media server or a ZIP backup to obtain those files.
 Keep exporting ZIP backups if you use personal media.
 
-## Configure Google
+## Reused Uplift OAuth project
+
+The owner-authorized public Uplift client ID is the default. No token or client secret is copied. `VITE_GOOGLE_DRIVE_CLIENT_ID` or Uplift's `VITE_GOOGLE_CLIENT_ID` can override it; the in-app setup field still works for another self-hosted project.
+
+The exact development/production origin must be authorized in that Google client. Existing authorization for `uplift.quicktrack.cc` can be reused if the fork is deployed there. `http://localhost:8080` may need adding in Google Cloud Console. That server-side configuration and live Google consent have not been verified here.
+
+Sharing the project does **not** merge original Uplift data. openGym only lists/compacts files with `opengymSync=snapshot` and validates its own envelope. The original Uplift graph and IndexedDB data remain untouched. Revoking the shared Google app permission affects both apps, so Disconnect only stops this fork's local authorization.
+
+## Configure a different Google project
 
 1. In [Google Cloud Console](https://console.cloud.google.com/), create/select your
    project and enable **Google Drive API**.

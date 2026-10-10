@@ -1,3 +1,4 @@
+import { driveClientId } from '../lib/drive-config.js'
 import { create } from 'zustand'
 import { useStore } from './useStore.js'
 import { DEMO } from '../lib/demo.js'
@@ -6,7 +7,7 @@ import { authorizeDrive, googleDriveProvider, validClientId } from '../lib/googl
 import { cloudContent, cloudError, syncSnapshots } from '../lib/cloud-sync.js'
 
 const KEY = 'gym_cloud_sync_v1'
-const BUILD_CLIENT = import.meta.env.VITE_GOOGLE_DRIVE_CLIENT_ID || ''
+const BUILD_CLIENT = driveClientId
 function readSettings() {
   try {
     const x = JSON.parse(localStorage.getItem(KEY))

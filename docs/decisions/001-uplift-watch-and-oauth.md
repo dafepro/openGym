@@ -1,0 +1,13 @@
+# 001 — Reuse Uplift OAuth and Garmin relay
+
+Accepted 2026-10-10. Rebranding is explicitly deferred. No live deployment authorized.
+
+Reuse the owner's public Google OAuth client ID with browser-only, memory-only access tokens. Keep the current `opengymSync=snapshot` Drive namespace and `opengym-sync` envelope. Never read, compact or overwrite the original Uplift `uplift=sync/profile` graph. Sharing an OAuth project is not data migration. Existing Uplift IndexedDB databases and credentials are left untouched; the fork uses separate keys and requires new consent/pairing.
+
+Adapt the existing Connect IQ v1 schema and expiring Cloudflare mailbox. Preserve Worker name `uplift`, GarminRelay binding/class, migration `garmin-v1`, rate-limit namespaces and domain as a deployment candidate; these identify infrastructure, not a frontend rebrand. Publish only `frontend/dist`. Static/Drive hosting does not implement openGym's Node account server, Coach, push or uploaded media service.
+
+Pairing credentials are device-local and excluded from history, exports, Drive and account-server uploads. A single durable localStorage state write stores watch results and receipts together. Quota/stale-tab failures withhold acknowledgment. The visible browser holds a Web Lock across bounded three-round exchanges. Duplicate event IDs do not replay timers. Cross-tab active edits that raced newly acknowledged results refresh the workout and ask the user to repeat the edit; they cannot replace an already acknowledged set with a stale draft.
+
+Watch session row identities are frozen on first handoff. Reordering, rebuilding or changing unsupported exercise semantics switches to phone use; outstanding operations enter a bounded review/export inbox. Explicit skipped rows remain distinguishable from unrecorded and zero-rep results. Fully skipped stations stay in history. A warm-up-only watch finish does not advance the program queue. Phone and watch share the live finish/progression commit boundary. The existing companion does not encode per-side, cardio, timed or intensifier rows, total/ambiguous dumbbell conventions, multiple bar weights or single-stack plate guidance; those sessions stay on phone.
+
+Watch readiness requires a recent acknowledgment of the actual current snapshot and relay revision, not just a successful phone upload. Saved-on-phone and Google Drive synchronization remain separate. A new pairing is required when replacing the original phone app; do not reuse old mailbox credentials, revisions or pending operations against a different workout schema. Physical-watch validation and owner deployment remain release checks.
