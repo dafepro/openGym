@@ -213,6 +213,17 @@ export const useUI = create((set, get) => ({
   setFlash: null,      // { idx, i, id }: the set row a copy or an undo just brought, flashed once
   focusOverlayOpen: false, // presentation only; set logging and timer ownership stay in the workout
   focusOverlayPrepared: null, // { sessionId, entries: [entry keys] }; one load check per exercise/session
+  focusOverlayView: 'live',
+  focusOverlayPane: null,
+  focusLastSet: null,
+  dismissFocus() {
+    const { focusOverlayPane, focusOverlayView, focusOverlayOpen } = get()
+    if (!focusOverlayOpen) return false
+    if (focusOverlayPane) set({ focusOverlayPane: null })
+    else if (focusOverlayView !== 'live') set({ focusOverlayView: 'live' })
+    else set({ focusOverlayOpen: false })
+    return true
+  },
   timer: null,         // rest countdown between sets — { left, total, endsAt, forIdx, ready?, paused?, kind? }
                        // kind: 'switch' for the short pause between the two sides of a timed set
                        // forIdx: index of the active entry whose set started the rest (undefined when unknown)

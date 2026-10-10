@@ -2241,4 +2241,9 @@ export default {
   'Your sports watch, calling you back.': 'Zegarek sportowy wzywa z powrotem.',
   'Coach wants you back on the bar.': 'Trener czeka przy sztandze.',
   'Gentle, for headphones or a quiet room.': 'Cichy, do słuchawek albo spokojnego pomieszczenia.',
+  'Live': 'Na żywo',
+  'Last set': 'Ostatnia seria',
+  'Skip rest': 'Pomiń odpoczynek',
+  'Total reps': 'Łączne powtórzenia',
+  'Stop': 'Zatrzymaj',
 }

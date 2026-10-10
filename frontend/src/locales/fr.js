@@ -2241,4 +2241,9 @@ export default {
   'Your sports watch, calling you back.': 'Ta montre de sport te rappelle.',
   'Coach wants you back on the bar.': 'Le coach te veut de retour à la barre.',
   'Gentle, for headphones or a quiet room.': 'Tout doux, pour un casque ou une pièce calme.',
+  'Live': 'En cours',
+  'Last set': 'Dernière série',
+  'Skip rest': 'Passer le repos',
+  'Total reps': 'Répétitions totales',
+  'Stop': 'Arrêter',
 }

@@ -917,7 +917,7 @@ const coveredTop = () => {
   return inset
 }
 
-function ActiveWorkout() {
+function ActiveWorkout({ hidden = false }) {
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
@@ -1665,6 +1665,10 @@ function ActiveWorkout() {
       }
     }, true)
     if (editing) return
+    const logged = useStore.getState().S.active?.entries[idx]?.sets[i]
+    if (logged && (side ? logged.sides?.[side]?.done : logged.done)) {
+      setUI({ focusLastSet: { sessionId: A.id ?? A.start, id: A.entries[idx].id, at: logged.at, side: side || null } })
+    }
     if (workoutDone) workoutCompleteSheet()
     else if (exJustDone && cardioEntry) useUI.getState().toast(t('Cardio logged'))
     else if (exJustDone && m === 'time') useUI.getState().toast(t('Hold logged'))
@@ -1813,7 +1817,7 @@ function ActiveWorkout() {
   }
   onKey.current = event => {
     // A sheet on top owns the keyboard (Escape closes it, Enter confirms in it).
-    if (useUI.getState().sheets.length || useUI.getState().focusOverlayOpen || event.target?.closest?.('.wf-dock')) return false
+    if (hidden || useUI.getState().sheets.length || useUI.getState().focusOverlayOpen || event.target?.closest?.('.wf-dock')) return false
     const action = workoutKeyAction(event, { tabbed: tabbed.current, rtl: document.documentElement.dir === 'rtl' })
     if (!action) return false
     event.preventDefault()
@@ -1909,7 +1913,7 @@ function ActiveWorkout() {
     }
   }, [])
 
-  return <WorkoutScrollAnchor enabled={collapseOn} collapsed={[...collapsed].join(',')}>
+  return <>{!hidden && <WorkoutScrollAnchor enabled={collapseOn} collapsed={[...collapsed].join(',')}>
     {/* In list mode the whole session scrolls under the header, so the header (name, clock,
         set counter, discard/finish, progress) stays pinned — the one thing you want in view
         while you are somewhere in the middle of a long stack. Cards mode never scrolls far. */}
@@ -2087,13 +2091,15 @@ function ActiveWorkout() {
       </button>
     })()}
     <div className="workout-end-spacer" />
-    {!editing && !A.backfill && A.entries.length > 0 && <WorkoutFocusDock
+  </WorkoutScrollAnchor>}
+    {!editing && !A.backfill && A.entries.length > 0 && <WorkoutFocusDock away={hidden}
       entryIdx={cur} unit={unit} onSelectEntry={selectFocusEntry} onAdvanceUnit={advanceFocusUnit}
+      controlsForEntry={blockProps}
       {...blockProps(cur)} onFinish={() => finishWorkoutSheet({ onDiscard: discardWorkout })} />}
-  </WorkoutScrollAnchor>
+  </>
 }
 
-export default function Workout() {
+export default function Workout({ hidden = false }) {
   const active = useStore(s => s.S.active)
-  return active ? <ActiveWorkout /> : <StartChooser />
+  return active ? <ActiveWorkout hidden={hidden} /> : <StartChooser />
 }

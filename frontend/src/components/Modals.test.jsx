@@ -70,8 +70,10 @@ async function setSheets(sheets) {
   await act(async () => { mocks.setSheets(sheets) })
 }
 
-async function popstate() {
-  await act(async () => { window.dispatchEvent(new dom.Event('popstate')) })
+async function popstate(state) {
+  const event = new dom.Event('popstate')
+  Object.defineProperty(event, 'state', { value: state })
+  await act(async () => { window.dispatchEvent(event) })
 }
 
 function mouse(target, type, clientY, clientX = 0) {
@@ -99,6 +101,22 @@ afterEach(async () => {
 })
 
 describe('Modals sheet history accounting', () => {
+  it('skips a moved-on sheet marker so Back does not land on an empty step', async () => {
+    await setSheets([sheet('finish')])
+    locationMock.href = 'https://opengym.test/#/home'
+    await setSheets([])
+    expect(historyMock.go).not.toHaveBeenCalled()
+    await popstate({ openGymSheet: true })
+    expect(historyMock.go).toHaveBeenCalledExactlyOnceWith(-1)
+    await popstate(null)
+    expect(historyMock.go).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves a focus marker to its workspace owner even if it inherited sheet state', async () => {
+    await popstate({ openGymSheet: true, openGymFocus: true })
+    expect(historyMock.go).not.toHaveBeenCalled()
+  })
+
   it('does not rewind a real page after back spends a locked FinishSummary entry', async () => {
     const confirm = sheet('confirm')
     const summary = sheet('summary', { locked: true })

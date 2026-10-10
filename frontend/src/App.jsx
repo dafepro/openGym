@@ -25,8 +25,8 @@ import Modals from './components/Modals.jsx'
 import Toast from './components/Toast.jsx'
 import SyncBanner from './components/SyncBanner.jsx'
 import RestTimer from './components/RestTimer.jsx'
-import { WorkoutFocusLauncher } from './components/WorkoutFocusDock.jsx'
 import TimerFlash from './components/TimerFlash.jsx'
+import useFocusHistory from './components/useFocusHistory.js'
 import { openDeviceLinkRedeem } from './components/Passkeys.jsx'
 import Login from './views/Login.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
@@ -82,6 +82,10 @@ function Shell() {
   useEffect(() => { setAlarmBuzzer(MOBILE && S.vibrate !== false && S.vibrateOnSilent ? buzzAsAlarm : null) }, [S.vibrate, S.vibrateOnSilent])
   const isGuest = useStore(s => s.isGuest())
   const needsMobileOnboarding = useStore(s => s.needsMobileOnboarding)
+  const focusOpen = useUI(s => s.focusOverlayOpen)
+  // The history owner outlives the workout dock: finishing a session can unmount
+  // that dock while its finish/summary sheet still owns the next history entry.
+  useFocusHistory(focusOpen, () => useUI.getState().dismissFocus())
   const langV = useLang()   // re-renders the whole shell when the language (pack) changes
   useEffect(() => { setNav(navigate) }, [navigate])
   const lastEditPath = useRef(loc.pathname)
@@ -188,9 +192,8 @@ function Shell() {
   // The first-launch card has no tabs either: they changed the route behind it.
   const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding
   useEffect(() => {
-    if (!inWorkout || !S.active) useUI.setState({ focusOverlayOpen: false })
-    if (!S.active) useUI.setState({ focusOverlayPrepared: null })
-  }, [inWorkout, !!S.active])
+    if (!S.active) useUI.setState({ focusOverlayOpen: false, focusOverlayPrepared: null, focusLastSet: null, focusOverlayView: 'live', focusOverlayPane: null })
+  }, [!!S.active])
 
   const authed = user || isGuest
   if (!ready && !authed) return (
@@ -205,17 +208,17 @@ function Shell() {
     <>
       {/* keyed on the route: a view that throws is contained, and switching tabs
           re-mounts the boundary, so the tab bar is always a way out */}
-      <div id="app" className="vfade" key={loc.pathname}>
-        <ErrorBoundary>
+      <div id="app">
+        <ErrorBoundary key={loc.pathname}>
           {!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
-            <Routes>
+            <div className="vfade" key={loc.pathname}><Routes>
               <Route path="/home" element={<Home />} />
               {/* Gym check-in — switched off in Settings, the route falls through to the
                   catch-all redirect below. */}
               {S.checkIn !== false && <Route path="/checkin" element={<CheckIn />} />}
               <Route path="/plan" element={<Plan />} />
               <Route path="/plan/r/:id" element={<RoutineEdit />} />
-              <Route path="/workout" element={<Workout />} />
+              <Route path="/workout" element={S.active ? null : <Workout />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/history" element={<History />} />
               <Route path="/library" element={<Library />} />
@@ -234,9 +237,12 @@ function Shell() {
               <Route path="/coach/setup" element={<CoachSetup />} />
               <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
               <Route path="*" element={<Navigate to="/home" replace />} />
-            </Routes>
+            </Routes></div>
           )}
         </ErrorBoundary>
+        {/* The live controller survives route changes so its timer callbacks and focus
+            workspace keep ownership when the workout is minimized onto another page. */}
+        {authed && !needsMobileOnboarding && S.active && <ErrorBoundary><Workout hidden={!inWorkout} /></ErrorBoundary>}
       </div>
       {/* Outside #app: the view's fade-in animates a transform, and a fixed element inside it
           would ride along with the page for the length of it. Decides for itself when to show —
@@ -244,10 +250,6 @@ function Shell() {
       <SyncBanner />
       {!noTabs && <TabBar onStart={startFlow} />}
       <RestTimer />
-      {authed && !needsMobileOnboarding && !inWorkout && <WorkoutFocusLauncher onOpen={() => {
-        useUI.setState({ focusOverlayOpen: true })
-        navigate('/workout')
-      }} />}
       <Modals />
       <Toast />
       <TimerFlash />

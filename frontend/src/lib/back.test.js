@@ -40,6 +40,14 @@ function harness() {
 }
 
 describe('makeBackHandler', () => {
+  it('lets the focus workspace consume Back before navigating or arming exit', () => {
+    const dismissFocus = () => true
+    const goBack = () => { throw new Error('must not navigate') }
+    const exit = () => { throw new Error('must not exit') }
+    const handler = makeBackHandler({ getSheets: () => [], closeSheet: () => {}, dismissFocus, goBack, exit, toast: () => {} })
+    expect(handler({ canGoBack: true })).toBe('focus')
+    expect(handler({ canGoBack: false })).toBe('focus')
+  })
   it('closes stacked sheets one press at a time', () => {
     const h = harness()
     h.setSheets([{ id: 'a' }, { id: 'b' }])

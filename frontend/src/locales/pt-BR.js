@@ -1401,6 +1401,11 @@ export const PT_BR_OVERRIDES = {
   'Your sports watch, calling you back.': 'Seu relógio esportivo chamando você de volta.',
   'Coach wants you back on the bar.': 'O coach quer você de volta na barra.',
   'Gentle, for headphones or a quiet room.': 'Suave, para fones de ouvido ou um lugar silencioso.',
+   'Live': 'Em andamento',
+  'Last set': 'Última série',
+  'Skip rest': 'Pular descanso',
+  'Total reps': 'Repetições totais',
+  'Stop': 'Parar',
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES }

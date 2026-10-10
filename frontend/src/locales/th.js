@@ -2252,4 +2252,9 @@ export default {
   'Your sports watch, calling you back.': 'นาฬิกาสปอร์ตเรียกคุณกลับมาแล้ว',
   'Coach wants you back on the bar.': 'โค้ชอยากให้คุณกลับมาที่บาร์',
   'Gentle, for headphones or a quiet room.': 'เบา ๆ สำหรับหูฟังหรือห้องที่เงียบ',
+  'Live': 'กำลังฝึก',
+  'Last set': 'เซ็ตล่าสุด',
+  'Skip rest': 'ข้ามพัก',
+  'Total reps': 'จำนวนครั้งทั้งหมด',
+  'Stop': 'หยุด',
 }

@@ -2241,4 +2241,9 @@ export default {
   'Your sports watch, calling you back.': '你的运动手表在叫你回来。',
   'Coach wants you back on the bar.': '教练等你回到杠铃前。',
   'Gentle, for headphones or a quiet room.': '轻柔，适合耳机或安静的房间。',
+  'Live': '当前',
+  'Last set': '上一组',
+  'Skip rest': '跳过休息',
+  'Total reps': '总次数',
+  'Stop': '停止',
 }

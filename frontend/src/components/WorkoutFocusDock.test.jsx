@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import WorkoutFocusDock from './WorkoutFocusDock.jsx'
+import useFocusHistory from './useFocusHistory.js'
 import Workout from '../views/Workout.jsx'
 import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -28,6 +29,7 @@ const changeActive = produce => {
 }
 const row = (entryIdx = 0, setIdx = 0) => useStore.getState().S.active.entries[entryIdx].sets[setIdx]
 const button = name => [...document.body.querySelectorAll('button')]
+  .filter(el => !el.closest('[inert]') && !el.closest('[aria-hidden="true"]'))
   .find(el => (el.getAttribute('aria-label') || el.textContent.trim()).toLowerCase() === name.toLowerCase())
 const tap = name => {
   const el = button(name)
@@ -36,6 +38,13 @@ const tap = name => {
   return el
 }
 const open = () => tap('Focus')
+const tapRow = prefix => {
+  const el = [...document.body.querySelectorAll('.wf-row-toggle')].find(el =>
+    !el.closest('[inert]') && el.getAttribute('aria-label').startsWith(prefix))
+  expect(el).toBeTruthy()
+  act(() => el.click())
+  return el
+}
 // The preparation action is intentionally separate from recording a set.
 const prepare = () => {
   if (!button('Start')) return
@@ -92,6 +101,8 @@ function mount(entries = [squat()], state = {}, strict = false) {
   }
   function Harness() {
     const active = useStore(s => s.S.active)
+    const open = useUI(s => s.focusOverlayOpen)
+    useFocusHistory(open, () => useUI.getState().dismissFocus())
     return <WorkoutFocusDock entryIdx={active.cur} unit={unitOf(supersetUnits(active.entries), active.cur)} {...calls} />
   }
   act(() => root.render(strict ? <React.StrictMode><Harness /></React.StrictMode> : <Harness />))
@@ -99,11 +110,13 @@ function mount(entries = [squat()], state = {}, strict = false) {
 
 beforeEach(() => {
   vi.useFakeTimers()
+  window.history.replaceState(null, '')
+  vi.spyOn(window.history, 'back').mockImplementation(() => {})
   localStorage.clear()
   originalStore = useStore.getState()
   useUI.getState().stopRest()
   useUI.getState().stopWork()
-  useUI.setState({ sheets: [], toastMsg: '', focusOverlayOpen: false, focusOverlayPrepared: null })
+  useUI.setState({ sheets: [], toastMsg: '', focusOverlayOpen: false, focusOverlayPrepared: null, focusOverlayView: 'live', focusOverlayPane: null, focusLastSet: null })
   host = document.createElement('div')
   host.id = 'app'
   document.body.appendChild(host)
@@ -115,18 +128,112 @@ afterEach(() => {
   host.remove()
   useUI.getState().stopRest()
   useUI.getState().stopWork()
-  useUI.setState({ sheets: [], toastMsg: '', focusOverlayOpen: false, focusOverlayPrepared: null })
+  useUI.setState({ sheets: [], toastMsg: '', focusOverlayOpen: false, focusOverlayPrepared: null, focusOverlayView: 'live', focusOverlayPane: null, focusLastSet: null })
   useStore.setState(originalStore)
   vi.clearAllTimers()
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 describe('the workout focus dock', () => {
+  it('keeps the current action while switching flat views and shows only three rail controls', () => {
+    mount(); open(); prepare()
+    const rail = document.querySelector('.wf-expanded-controls')
+    const action = button('Done')
+    expect([...rail.querySelectorAll('button')].map(b => b.textContent)).toEqual(['Workout', 'Done'])
+    tap('Workout')
+    expect(button('Live')).toBeTruthy()
+    expect(button('Done')).toBe(action)
+    expect(button('Back')).toBeUndefined()
+    expect(button('Close')).toBeUndefined()
+    tap('Live')
+    expect(button('Done')).toBe(action)
+    expect(row().done).toBe(false)
+  })
+
+  it('edits the next load during rest without shortening, restarting or recording anything', () => {
+    mount([squat([{ w: 95, r: 5, done: true, at: 1 }, { w: 95, r: 5, done: false }])])
+    act(() => useUI.getState().startRest(90, 0, { forSet: 0 }))
+    open()
+    const rest = clone(useUI.getState().timer)
+    const anchor = tapRow('Load')
+    tap('Increase load')
+    expect(row(0, 1)).toMatchObject({ w: 105, done: false })
+    expect(row().w).toBe(95)
+    expect(useUI.getState().timer).toEqual(rest)
+    expect(button('Pause')).toBeTruthy()
+    expect(document.querySelector('.wf-timer-strip').textContent).toContain('1:30')
+    tapRow('Load')
+    expect(anchor.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('corrects completed reps and optional effort on the previous row while rest continues', () => {
+    mount([squat([{ w: 95, r: 5, done: true, at: 1 }, { w: 95, r: 5, done: false }])], { effort: 'rir' })
+    act(() => useUI.getState().startRest(90, 0, { forSet: 0 }))
+    open(); tapRow('Last set')
+    const rest = clone(useUI.getState().timer)
+    tap('Increase reps'); tap('Increase RIR')
+    expect(row()).toMatchObject({ r: 6, rir: 0, done: true, at: 1 })
+    expect(row(0, 1)).toMatchObject({ r: 5, done: false })
+    expect(Object.hasOwn(row(0, 1), 'rir')).toBe(false)
+    expect(useUI.getState().timer).toEqual(rest)
+    expect(calls.onToggle).not.toHaveBeenCalled()
+  })
+
+  it('undoes the last log and its own rest without logging or unchecking another row', () => {
+    mount([squat([{ w: 95, r: 0, done: true, at: 1 }, { w: 95, r: 5, done: false }])])
+    act(() => useUI.getState().startRest(90, 0, { forSet: 0 }))
+    open(); tapRow('Last set'); tap('Undo')
+    expect(row()).toMatchObject({ r: 0, done: false })
+    expect(row(0, 1).done).toBe(false)
+    expect(useUI.getState().timer).toBeNull()
+    expect(calls.onToggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows Max, drop and burst instructions directly in Live with no More disclosure', () => {
+    mount([squat([{ w: 95, r: 5, max: true, type: 'dropset', drops: [{ w: 65, r: 8 }], done: false }])])
+    open(); prepare()
+    expect(document.querySelector('.wf-phase').textContent).toContain('Max: as many reps as you can')
+    expect(button('Increase drop 1 reps')).toBeTruthy()
+    tap('Increase drop 1 reps')
+    expect(row().drops[0].r).toBe(9)
+    expect(row().done).toBe(false)
+    act(() => changeActive(active => {
+      active.entries[0].sets[0] = { w: 95, r: 8, type: 'restpause', clusters: [{ r: 3, restSec: 15 }], done: false }
+    }))
+    expect(document.querySelector('.wf-phase').textContent).toContain('Total reps')
+    tap('Increase burst 1 reps')
+    expect(row()).toMatchObject({ r: 9, clusters: [{ r: 4, restSec: 15 }], done: false })
+  })
+
+  it('Back unwinds an inline editor, the Workout view and then the workspace', () => {
+    mount(); open(); tap('Details')
+    const pop = () => act(() => window.dispatchEvent(new PopStateEvent('popstate')))
+    pop()
+    expect(useUI.getState().focusOverlayPane).toBeNull()
+    expect(useUI.getState().focusOverlayOpen).toBe(true)
+    tap('Workout'); pop()
+    expect(useUI.getState().focusOverlayView).toBe('live')
+    expect(useUI.getState().focusOverlayOpen).toBe(true)
+    pop()
+    expect(useUI.getState().focusOverlayOpen).toBe(false)
+    expect(row().done).toBe(false)
+  })
+
+  it('keeps a captured last-set editor attached to its original row as another log arrives', () => {
+    mount([squat([{ w: 95, r: 5, done: true, at: 1 }, { w: 95, r: 5, done: false }])], { effort: 'rir' })
+    open(); tapRow('Last set')
+    act(() => changeActive(active => { active.entries[0].sets[1].done = true; active.entries[0].sets[1].at = 2 }))
+    tap('Increase RIR')
+    expect(row().rir).toBe(0)
+    expect(Object.hasOwn(row(0, 1), 'rir')).toBe(false)
+  })
+
   it('retains a launcher-opened overlay through StrictMode effect replay', () => {
     useUI.setState({ focusOverlayOpen: true })
     mount([squat()], {}, true)
     expect(useUI.getState().focusOverlayOpen).toBe(true)
-    expect(button('Close').getAttribute('aria-expanded')).toBe('true')
+    expect(button('Minimize').getAttribute('aria-expanded')).toBe('true')
     expect(host.inert).toBe(true)
     expect(row().done).toBe(false)
     expect(calls.onToggle).not.toHaveBeenCalled()
@@ -139,9 +246,9 @@ describe('the workout focus dock', () => {
     expect(anchor.getAttribute('aria-expanded')).toBe('false')
     open()
     expect(host.inert).toBe(true)
-    expect(button('Close')).toBe(anchor)
+    expect(button('Minimize')).toBe(anchor)
     expect(anchor.getAttribute('aria-expanded')).toBe('true')
-    tap('Close')
+    tap('Minimize')
     expect(host.inert).not.toBe(true)
     expect(button('Focus')).toBe(anchor)
     expect(row()).toEqual(before)
@@ -162,7 +269,7 @@ describe('the workout focus dock', () => {
     expect(button('Start')).toBeUndefined()
     expect(button('Done')).toBeTruthy()
     expect(row()).toEqual(before)
-    tap('Close')
+    tap('Minimize')
     open()
     expect(button('Done')).toBeTruthy()
     expect(row().w).toBe(checkedWeight)
@@ -235,10 +342,10 @@ describe('the workout focus dock', () => {
     expect(effort.value).toBe('')
     expect(Object.hasOwn(row(), 'rir')).toBe(false)
     expect(calls.onField).not.toHaveBeenCalled()
-    tap('Increase')
+    tap('Increase RIR')
     expect(row().rir).toBe(0)
     expect(effort.value).toBe('0')
-    tap('Decrease')
+    tap('Decrease RIR')
     expect(Object.hasOwn(row(), 'rir')).toBe(false)
     act(() => {
       Object.getOwnPropertyDescriptor(effort.constructor.prototype, 'value').set.call(effort, '2')
@@ -292,7 +399,7 @@ describe('the workout focus dock', () => {
     mount([squat([{ w: 95, r: 5, done: true }, { w: 95, r: 5, done: false }])])
     act(() => useUI.getState().startRest(60, 0, { forSet: 0 }))
     open()
-    tap('Skip')
+    tap('Skip rest')
     expect(useUI.getState().timer).toBeNull()
     expect(row(0, 1).done).toBe(false)
     expect(calls.onToggle).not.toHaveBeenCalled()
@@ -303,7 +410,7 @@ describe('the workout focus dock', () => {
     open()
     prepare()
     act(() => useUI.getState().startRest(60, 0))
-    tap('Skip')
+    tap('Skip rest')
     tap('Done')
     expect(useUI.getState().timer).toBeNull()
     expect(row().done).toBe(false)
@@ -320,7 +427,7 @@ describe('the workout focus dock', () => {
     open()
     act(() => vi.advanceTimersByTime(1000))
     expect(useUI.getState().timer.ready).toBe(true)
-    tap('Next')
+    tap('Next set')
     expect(useUI.getState().timer).toBeNull()
     expect(row(0, 1).done).toBe(false)
     expect(calls.onToggle).not.toHaveBeenCalled()
@@ -350,7 +457,7 @@ describe('the workout focus dock', () => {
     tap('More time')
     const adjustedEnd = useUI.getState().timer.endsAt
     expect(useUI.getState().timer).toMatchObject({ left: 75, forIdx: 0, forSet: 0 })
-    tap('Close')
+    tap('Minimize')
     act(() => vi.advanceTimersByTime(10_000))
     open()
     expect(useUI.getState().timer).toMatchObject({ left: 65, endsAt: adjustedEnd, forIdx: 0, forSet: 0 })
@@ -444,9 +551,10 @@ describe('the workout focus dock', () => {
     expect(calls.onToggle).toHaveBeenCalledTimes(1)
   })
 
-  it.each(['Details', 'Exercises', 'Load', 'More'])('toggles %s with the same anchored button', name => {
+  it.each(['Details', 'More'])('toggles %s with the same anchored button', name => {
     mount()
     open()
+    prepare()
     const anchor = button(name)
     expect(anchor).toBeTruthy()
     expect(anchor.getAttribute('aria-expanded')).toBe('false')
@@ -475,7 +583,7 @@ describe('the workout focus dock', () => {
     tap('Details')
     act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
     expect(button('Details').getAttribute('aria-expanded')).toBe('false')
-    expect(button('Close')).toBeTruthy()
+    expect(button('Minimize')).toBeTruthy()
     act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
     expect(button('Focus')).toBeTruthy()
     expect(row()).toMatchObject({ r: 5, done: false })
@@ -485,8 +593,8 @@ describe('the workout focus dock', () => {
   it('keeps keyboard focus inside its controls while the overlay is open', () => {
     mount()
     open()
-    const first = button('Decrease load')
-    const last = button('Close')
+    const first = button('Details')
+    const last = button('Minimize')
     expect(first).toBeTruthy()
     act(() => last.focus())
     act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })))
@@ -503,7 +611,7 @@ describe('the workout focus dock', () => {
     prepare()
     act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })))
     expect(useStore.getState().S.active.entries[0].sets.map(set => set.done)).toEqual([false, false])
-    tap('Close')
+    tap('Minimize')
     act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })))
     expect(useStore.getState().S.active.entries[0].sets.map(set => set.done)).toEqual([true, false])
     expect(useUI.getState().timer).toMatchObject({ forIdx: 0, forSet: 0 })
