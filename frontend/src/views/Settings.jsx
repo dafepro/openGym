@@ -39,6 +39,8 @@ import Icon from '../components/Icon.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
 import { showsConnection, showsLocalLine } from '../components/SyncBanner.jsx'
 import BackupFolderRow, { useBackupFolder, autoBackupSubtitle } from '../components/BackupFolderRow.jsx'
+import CloudSyncSection, { cloudStatusLine } from '../components/CloudSync.jsx'
+import { useCloudSync } from '../store/useCloudSync.js'
 import { ServerSyncSection, KeptChangesRows, leaveServer, connectServer, passkeySignIn } from '../components/ServerSync.jsx'
 import { passwordOn, PasswordRow, openPasswordSignIn, openPasswordRegister } from '../components/PasswordAuth.jsx'
 import { usePasskeys, PasskeysRow, DeviceLinkRow, openDeviceLinkRedeem } from '../components/Passkeys.jsx'
@@ -777,6 +779,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     </>,
 
     data: () => <>
+      <CloudSyncSection />
       <Section title={t('Back up')}>
         <Row icon="share" iconTint="var(--blue)" title={t('Export backup (JSON)')} subtitle={hasMedia ? t('Without photos and videos') : undefined} accessory="chevron" onClick={doExport} />
         {hasMedia && <Row icon="share" iconTint="var(--blue)" title={t('Export with photos & videos (.zip)')} accessory="chevron" onClick={doExportZip} />}
@@ -926,6 +929,7 @@ export default function Settings({ page = null, find = null, via = null }) {
 }
 
 function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
+  const cloud = useCloudSync()
   // The router's key for this history entry (what useLocation().key reads), taken once.
   const [key] = useState(() => window.history.state?.key || null)
   const [q, setQ] = useState(() => (key && lastQuery.key === key ? lastQuery.q : ''))
@@ -938,7 +942,7 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
       sub: sync && sync.status && sync.status !== 'ok' ? t('Sync needs a look') : MOBILE ? t('Synced with your server') : t('Account, devices and sync'),
     }
     : MOBILE ? { title: t('This phone'), sub: t('All data stays on this phone') }
-    : { title: t('Guest'), sub: t('Your data lives on this device. Sign in to sync.') }
+    : { title: t('Guest'), sub: cloud.connection ? 'Google Drive · ' + cloudStatusLine(cloud) : t('Your data lives on this device. Sign in to sync.') }
   const initial = user && !DEMO ? String(user.name || '?').trim().charAt(0).toUpperCase() : null
   return <div className="narrow">
     <div className="sp-nav">

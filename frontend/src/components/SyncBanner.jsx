@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
+import { useCloudSync } from '../store/useCloudSync.js'
+import { cloudConnectionView } from './CloudSync.jsx'
 import { DEMO } from '../lib/demo.js'
 import { t } from '../lib/i18n.js'
 import { connectionView, actionLabel, syncNowWithToast, pairAgain, connectServer, signInAgain, useOnline } from './ServerSync.jsx'
@@ -29,11 +31,14 @@ export const PENDING_GRACE_MS = 5000
 function useConnection() {
   const user = useStore(s => s.user)
   const sync = useStore(s => s.sync)
+  const cloud = useCloudSync()
   const guest = useStore(s => s.isGuest())
   const onboarding = useStore(s => s.needsMobileOnboarding)
   const online = useOnline()
   const [waited, setWaited] = useState(false)
-  const status = sync?.status
+  const driveView = cloudConnectionView(cloud)
+  const drive = !!cloud.connection && (driveView || sync?.status === 'local')
+  const status = drive ? (['syncing', 'connecting'].includes(cloud.status) ? 'pending' : cloud.status) : sync?.status
   useEffect(() => {
     setWaited(false)
     if (status !== 'pending') return
@@ -41,10 +46,10 @@ function useConnection() {
     return () => clearTimeout(tm)
   }, [status])
 
-  const view = connectionView(sync, { online })
+  const view = drive ? driveView : connectionView(sync, { online })
   // Signed out on the web, the sign-in screen is the whole app: it hears only that the server
   // ended the session, and that the changes are still here.
-  const show = !DEMO && !onboarding && !!view?.banner && (!!user || guest || status === 'auth') && (status !== 'pending' || waited)
+  const show = !DEMO && !onboarding && !!view?.banner && (!!user || guest || cloud.connection || status === 'auth') && (status !== 'pending' || waited)
   return { view, show, user, status }
 }
 
@@ -93,6 +98,7 @@ export default function SyncBanner() {
 
   if (!show) return null
   const act = {
+    drive: () => nav('/settings/data'),
     retry: () => { syncNowWithToast() },
     pair: pairAgain,
     connect: connectServer,

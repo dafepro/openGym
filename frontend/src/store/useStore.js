@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api, setRemoteAuth } from '../lib/api.js'
+import { cloudContent } from '../lib/cloud-sync.js'
 import { localTZ } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { registerCustom, healCustomEx } from '../lib/exercises.js'
@@ -1300,6 +1301,27 @@ export const useStore = create((set, get) => {
     S: S0,
     user: user0,
     ready: false,
+    // Cloud links belong to the device's current saved owner, never to S. A
+    // profile handover/adoption must finish before another backend reads it.
+    cloudSyncOwner() {
+      if (handedOver || adoptHold) return null
+      const owner = readOwner() || ''
+      if (get().user && get().user.id !== owner) return null
+      return owner
+    },
+    mergeCloudState(remote) {
+      if (get().cloudSyncOwner() === null) return
+      const local = get().S
+      const next = sanitizeAccent(Object.assign(clone(DEF), mergeStates(local, remote, { deterministic: true })))
+      next.active = carryActive(local, next)
+      if (refillIfComplete(next)) next.edited = { ...(next.edited || {}), queue: Math.max(Date.now(), highestStamp(next) + 1) }
+      if (cloudContent(next) !== cloudContent(local)) {
+        // The new entries may carry older clocks than the server base. Owed is
+        // durable: a reload or an in-flight server GET must still merge them.
+        if (readOwner()) { markOwed(true); setSync({ pending: true }) }
+        persist(next, true, false)
+      }
+    },
     // The connection as the screens show it — see statusOf above for every field.
     sync: sync0,
     /* Instance capabilities from GET /api/config. `config.coach` is present only when the owner
