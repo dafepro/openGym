@@ -159,3 +159,10 @@ by the Capawesome Team (Robin Genz), a Capacitor wrapper around Google's ML Kit,
 **Apache License 2.0**. openGym pins the `7.x` line to stay on Capacitor 7. The full license text is
 available at <https://www.apache.org/licenses/LICENSE-2.0> and in the package's own `LICENSE` file.
 The decoded string is what openGym keeps; the photo itself is never stored.
+
+## Uplift fork identity assets
+
+This fork is branded Uplift and powered by openGym. The Uplift icon is reused from the owner's
+original Uplift project's public assets. Barlow Condensed 600 is locally bundled under the SIL
+Open Font License; the full license is included in `frontend/public/fonts/OFL.txt`.
+The upstream notices and exercise-media license above are unchanged.

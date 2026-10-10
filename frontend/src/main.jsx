@@ -8,6 +8,7 @@ import { startGarminSync } from './store/useGarminSync.js'
 import { startCloudSync } from './store/useCloudSync.js'
 import { startNativeKeyboard } from './lib/native-keyboard.js'
 import './index.css'
+import './uplift-theme.css'
 
 // App.jsx restores per-route scroll itself; the browser's own attempt races it.
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'

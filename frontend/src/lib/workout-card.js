@@ -187,8 +187,9 @@ export function layoutWorkoutCard(model, { measure, rtl = false, width = CARD_WI
   }
 
   y += 64
-  const height = Math.max(MIN_HEIGHT, Math.round(y + 34 + PAD))
-  items.push({ kind: 'text', text: 'openGym', x: start, y: height - PAD, size: 34, weight: 700, color: 'acc' })
+  const height = Math.max(MIN_HEIGHT, Math.round(y + 72 + PAD))
+  items.push({ kind: 'text', text: 'Uplift', x: start, y: height - PAD - 38, size: 34, weight: 700, color: 'acc' })
+  items.push({ kind: 'text', text: t('Powered by {0}', 'openGym'), x: start, y: height - PAD, size: 24, weight: 400, color: 'label2' })
   return { width, height, rtl, items }
 }
 

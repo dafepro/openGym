@@ -55,14 +55,14 @@ async function precache() {
   if (!res.ok || res.redirected) throw new Error('precache: index.html ' + res.status + (res.redirected ? ' redirected' : ''))
   const html = await res.text()
   const refs = [...new Set([...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(m => m[1])
-    .filter(u => /\.(?:js|css|png|svg|webmanifest|json)(?:\?|$)/.test(u) && !/^(?:https?:)?\/\//.test(u)))]
+    .filter(u => /\.(?:js|css|woff2|png|svg|webmanifest|json)(?:\?|$)/.test(u) && !/^(?:https?:)?\/\//.test(u)))]
   // The scripts and the stylesheets ARE the app. Every sub-resource used to be best-effort, so an
   // install that got index.html and lost one chunk to a flaky connection still activated, still
   // swept the build this device came from, and the next offline open was a shell with no code:
   // a blank page. A chunk that will not cache fails the install instead, which keeps the working
   // build and its cache exactly where they are. Images, icons and the manifest stay best-effort —
   // a missing icon is not a broken app.
-  const code = refs.filter(u => /\.(?:js|css)(?:\?|$)/.test(u))
+  const code = refs.filter(u => /\.(?:js|css|woff2)(?:\?|$)/.test(u))
   // Fetched by hand rather than with `cache.add`, for the same reason index.html is: `add` takes
   // a REDIRECT for an answer, and an auth proxy in front answers every request with its login
   // page once the session there expires. A 200 of HTML stored under the main bundle's URL is
@@ -211,7 +211,7 @@ self.addEventListener('push', e => {
     // the previous notification with the same tag is closed by hand first.
     const tag = data.tag || 'opengym'
     try { for (const n of await self.registration.getNotifications({ tag })) n.close() } catch {}
-    await self.registration.showNotification(data.title || 'openGym', {
+    await self.registration.showNotification(data.title || 'Uplift', {
       body: data.body || '',
       icon: 'icon-512.png',
       badge: 'icon-180.png',

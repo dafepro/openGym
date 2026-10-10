@@ -1,4 +1,9 @@
 export default {
+  // Uplift identity and fork releases
+  "Powered by {0}": "基於 {0}",
+  "Releases": "版本",
+  "Releases are checked on github.com. The download is verified against its checksum before the installer opens.": "在 github.com 檢查版本。開啟安裝程式前會驗證下載檔案的校驗和。",
+
   // Garmin companion
   "Configure on phone. Unsupported workouts stay on phone. Unreceived entries stay queued on your watch.": "在手機上設定。不支援的訓練留在手機上。未收到的紀錄會繼續在手錶上排隊。",
   "Confirm pairing on watch": "在手錶上確認配對",

@@ -1,5 +1,10 @@
 // Hungarian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Uplift identity and fork releases
+  "Powered by {0}": "A {0} alapjain",
+  "Releases": "Kiadások",
+  "Releases are checked on github.com. The download is verified against its checksum before the installer opens.": "A kiadások ellenőrzése a github.com oldalon történik. A telepítő megnyitása előtt a letöltés ellenőrzőösszegét ellenőrizzük.",
+
   // Garmin companion
   "Configure on phone. Unsupported workouts stay on phone. Unreceived entries stay queued on your watch.": "Állítsd be a telefonon. A nem támogatott edzések a telefonon maradnak. Az át nem vett adatok az órán várakoznak.",
   "Confirm pairing on watch": "Erősítsd meg az órán",

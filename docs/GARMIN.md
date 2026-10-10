@@ -1,6 +1,6 @@
 # Garmin companion in openGym
 
-**Settings → Data & backup → Garmin watch** connects the existing Uplift Connect IQ app on the Forerunner 245 Music. Branding remains openGym; the watch app is still Uplift.
+**Settings → Data & backup → Garmin watch** connects the existing Uplift Connect IQ app on the Forerunner 245 Music. The phone and watch interfaces are both branded Uplift; the phone is powered by openGym.
 
 The existing companion targets `https://uplift.quicktrack.cc/api/garmin/`. The prepared Cloudflare config preserves the original Worker and relay resource identities. This branch has **not** replaced the live site. A watch cannot reach a laptop's localhost. Pairing is available locally for protocol testing; real-watch testing requires an owner-approved HTTPS deployment.
 

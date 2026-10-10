@@ -1,5 +1,10 @@
 // Bengali UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Uplift identity and fork releases
+  "Powered by {0}": "{0} দ্বারা চালিত",
+  "Releases": "রিলিজ",
+  "Releases are checked on github.com. The download is verified against its checksum before the installer opens.": "github.com-এ রিলিজ পরীক্ষা করা হয়। ইনস্টলার খোলার আগে ডাউনলোডের চেকসাম যাচাই করা হয়।",
+
   // Garmin companion
   "Configure on phone. Unsupported workouts stay on phone. Unreceived entries stay queued on your watch.": "ফোনে সেট আপ করুন। অসমর্থিত ওয়ার্কআউট ফোনেই থাকে। না পাওয়া রেকর্ড ঘড়িতে অপেক্ষা করে।",
   "Confirm pairing on watch": "ঘড়িতে সংযোগ নিশ্চিত করুন",

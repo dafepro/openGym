@@ -1,14 +1,14 @@
 // Update check — compares the installed version (__APP_VERSION__) against
-// the latest release tag on GitLab and optionally downloads + installs the APK.
+// the latest release tag on GitHub and optionally downloads + installs the APK.
 //
-// The GitLab releases API is public for this project, so no token is needed.
+// The GitHub releases API is public for this project, so no token is needed.
 // On Android (Capacitor), the APK asset is downloaded to the cache directory
 // and handed to the system installer via a content:// URI.
 
 import { MOBILE } from './mobile.js'
+import { RELEASES_PAGE } from './brand.js'
 
-const GITLAB_PROJECT_ID = 'DuarteSantos8%2Fopengym'
-const RELEASES_URL = `https://gitlab.com/api/v4/projects/${GITLAB_PROJECT_ID}/releases`
+const RELEASES_URL = 'https://api.github.com/repos/dafepro/openGym/releases'
 
 /**
  * Compares two semver strings (e.g. "1.2.11" vs "1.3.0").
@@ -33,14 +33,14 @@ function compareSemver(a, b) {
 }
 
 /**
- * Checks the GitLab releases API for a newer version.
+ * Checks the GitHub releases API for a newer version.
  * Returns { hasUpdate, latestVersion, apkUrl, hashUrl } or throws on network failure.
  *   - hasUpdate: true if the latest release tag is newer than the running build
  *   - latestVersion: the semver string of the latest release (without "v" prefix)
  *   - apkUrl: direct download URL of the first .apk asset, or null
  *   - hashUrl: direct download URL of the .apk.sha256 hash file, or null
  */
-// One request per app session: Settings is opened often, gitlab.com does not need to hear
+// One request per app session: Settings is opened often, github.com does not need to hear
 // about it every time. The promise is cached, a failure is not.
 let cached = null
 export function resetUpdateCheck() { cached = null }
@@ -49,25 +49,21 @@ export async function checkForUpdate() {
   return cached
 }
 async function fetchLatest() {
-  const res = await fetch(RELEASES_URL + '?per_page=1')
-  if (!res.ok) throw new Error(`GitLab API ${res.status}`)
+  const res = await fetch(RELEASES_URL + '?per_page=30', { headers: { Accept: 'application/vnd.github+json' } })
+  if (!res.ok) throw new Error(`GitHub API ${res.status}`)
   const releases = await res.json()
-  if (!releases.length) return { hasUpdate: false, latestVersion: __APP_VERSION__, apkUrl: null, hashUrl: null }
+  if (!Array.isArray(releases)) throw new Error('Invalid GitHub releases response')
+  const latest = releases.find(r => !r.draft && !r.prerelease && /^v?\d+\.\d+\.\d+(?:\+[^ ]+)?$/.test(r.tag_name))
+  if (!latest) return { hasUpdate: false, latestVersion: __APP_VERSION__, apkUrl: null, hashUrl: null }
 
-  const latest = releases[0]
   const latestVersion = latest.tag_name.replace(/^v/, '')
   const hasUpdate = compareSemver(latestVersion, __APP_VERSION__) > 0
 
-  // Find the APK asset among the release links (generic package links) or assets.sources
-  let apkUrl = null
-  let hashUrl = null
-  if (latest.assets?.links?.length) {
-    const apkLink = latest.assets.links.find(l => /\.apk$/i.test(l.url) || /\.apk$/i.test(l.direct_asset_url))
-    if (apkLink) apkUrl = apkLink.direct_asset_url || apkLink.url
-    // Look for a matching .sha256 hash file
-    const hashLink = latest.assets.links.find(l => /\.apk\.sha256$/i.test(l.url) || /\.apk\.sha256$/i.test(l.direct_asset_url) || /sha256/i.test(l.name))
-    if (hashLink) hashUrl = hashLink.direct_asset_url || hashLink.url
-  }
+  const assets = Array.isArray(latest.assets) ? latest.assets : []
+  const apk = assets.find(a => /\.apk$/i.test(a.name) && a.browser_download_url)
+  const hash = apk && assets.find(a => a.name === apk.name + '.sha256' && a.browser_download_url)
+  const apkUrl = apk?.browser_download_url || null
+  const hashUrl = hash?.browser_download_url || null
 
   return { hasUpdate, latestVersion, apkUrl, hashUrl }
 }
@@ -93,7 +89,7 @@ export async function sha256(buffer) {
 export async function downloadAndInstall(url, expectedHash = null, onProgress = null) {
   if (!MOBILE) {
     // On web, just open the release page
-    window.open('https://gitlab.com/DuarteSantos8/opengym/-/releases', '_blank', 'noopener')
+    window.open(RELEASES_PAGE, '_blank', 'noopener')
     return
   }
 

@@ -1,5 +1,10 @@
 // Thai UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Uplift identity and fork releases
+  "Powered by {0}": "ขับเคลื่อนโดย {0}",
+  "Releases": "รุ่นที่เผยแพร่",
+  "Releases are checked on github.com. The download is verified against its checksum before the installer opens.": "ตรวจสอบรุ่นบน github.com และตรวจสอบค่าตรวจสอบของไฟล์ที่ดาวน์โหลดก่อนเปิดโปรแกรมติดตั้ง",
+
   // Garmin companion
   "Configure on phone. Unsupported workouts stay on phone. Unreceived entries stay queued on your watch.": "ตั้งค่าบนโทรศัพท์ การออกกำลังกายที่ไม่รองรับจะอยู่บนโทรศัพท์ รายการที่ยังไม่ได้รับจะอยู่ในคิวของนาฬิกา",
   "Confirm pairing on watch": "ยืนยันการจับคู่บนนาฬิกา",

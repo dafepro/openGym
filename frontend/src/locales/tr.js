@@ -1,5 +1,10 @@
 // Turkish UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Uplift identity and fork releases
+  "Powered by {0}": "{0} altyapısıyla",
+  "Releases": "Sürümler",
+  "Releases are checked on github.com. The download is verified against its checksum before the installer opens.": "Sürümler github.com üzerinden kontrol edilir. Yükleyici açılmadan önce indirilen dosyanın sağlama toplamı doğrulanır.",
+
   // Garmin companion
   "Configure on phone. Unsupported workouts stay on phone. Unreceived entries stay queued on your watch.": "Telefonda ayarlayın. Desteklenmeyen antrenmanlar telefonda kalır. Alınmayan kayıtlar saatte sırada bekler.",
   "Confirm pairing on watch": "Saatte eşleştirmeyi onayla",

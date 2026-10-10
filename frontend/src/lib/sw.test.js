@@ -221,3 +221,29 @@ describe('sw.js re-registers a rotated push subscription with the page\'s device
     expect(await (await (await globalThis.caches.open(DEVICE_CACHE)).match(DEVICE_URL)).text()).toBe('dev1234abcd')
   })
 })
+
+describe('the Uplift display font survives offline reopen', () => {
+  const font = 'fonts/barlow-condensed-latin-600.woff2'
+  const withFont = '<html><link rel="preload" href="' + font + '" as="font"><script src="assets/main.js"></script></html>'
+  it('stores the preloaded local font together with the complete shell', async () => {
+    await loadSW()
+    globalThis.fetch = async url => String(url) === 'index.html'
+      ? { ok: true, text: async () => withFont }
+      : { ok: true, redirected: false, status: 200, font: String(url) === font }
+    await fire('install')
+    const cache = await globalThis.caches.open(CACHE)
+    expect(await cache.match(font)).toMatchObject({ font: true })
+    expect(await cache.match('index.html')).toBeTruthy()
+  })
+  it('keeps the previous offline build if the required font download fails', async () => {
+    await loadSW()
+    await previousBuild()
+    globalThis.fetch = async url => String(url) === 'index.html'
+      ? { ok: true, text: async () => withFont }
+      : { ok: String(url) !== font, status: String(url) === font ? 503 : 200 }
+    await expect(fire('install')).rejects.toThrow(font)
+    await fire('activate')
+    expect(await globalThis.caches.keys()).toContain('opengym-rt-oldbuild')
+    expect(await (await globalThis.caches.open(CACHE)).match('index.html')).toBeFalsy()
+  })
+})

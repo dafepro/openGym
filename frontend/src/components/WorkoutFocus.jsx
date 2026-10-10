@@ -187,7 +187,7 @@ export default function WorkoutFocus({
     {load && <div className="wf-plate"><strong>{t('Plate loading')}</strong><p>{load.barOnly ? t('Bar only') : load.kind === 'pairs' ? t('{0} per side', load.plates.map(fmtPlate).join(' + ') || '–') : t('Load {0}', load.plates.map(fmtPlate).join(' + ') || '–')}</p>{load.missing > 0 && <p className="wf-errors">{t('{0} short', fmtPlate(load.missing) + ' ' + S.unit)}</p>}</div>}
   </Disclosure>
 
-  return <section ref={pageRef} className="wf-page" data-testid="focus-view" data-phase={phase} aria-label={t('Focus')}>
+  return <section ref={pageRef} className="wf-page" data-testid="focus-view" data-phase={phase} data-warmup={isWarmupRow(row)} aria-label={t('Focus')}>
       <section id={id + '-panel'} className="wf-panel" aria-hidden={!!sheets.length} inert={!!sheets.length}>
         <header className="wf-header"><div><span className="wf-kicker">{kicker}</span><h2>{view === 'workout' ? A.name : work?.label || exerciseNameFor(ex)}</h2></div>
           {view === 'live' && <button type="button" className="wf-info-toggle" aria-label={t('Details')} aria-expanded={pane === 'info'} aria-controls={id + '-info'} onClick={() => disclose('info')}><Icon name={pane === 'info' ? 'chevronUp' : 'info'} /></button>}

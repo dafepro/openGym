@@ -1,8 +1,8 @@
 # Google Drive sync
 
 Google Drive is an optional destination in **Settings → Data & backup → Cloud sync**.
-It works in the browser and installed PWA, including guest mode. An openGym server
-account is optional. If you also sign in to your openGym server, the merged data
+It works in the browser and installed PWA, including guest mode. A Uplift server
+account is optional. If you also sign in to your Uplift server, the merged data
 continues to sync there using the existing server protocol.
 
 Completed workout history, routines, plans, working weights, notes, body weight,
@@ -18,7 +18,7 @@ The owner-authorized public Uplift client ID is the default. No token or client 
 
 The exact development/production origin must be authorized in that Google client. Existing authorization for `uplift.quicktrack.cc` can be reused if the fork is deployed there. `http://localhost:8080` may need adding in Google Cloud Console. That server-side configuration and live Google consent have not been verified here.
 
-Sharing the project does **not** merge original Uplift data. openGym only lists/compacts files with `opengymSync=snapshot` and validates its own envelope. The original Uplift graph and IndexedDB data remain untouched. Revoking the shared Google app permission affects both apps, so Disconnect only stops this fork's local authorization.
+Sharing the project does **not** merge original Uplift data. This Uplift fork only lists/compacts files with `opengymSync=snapshot` and validates its own envelope. The original Uplift graph and IndexedDB data remain untouched. Revoking the shared Google app permission affects both apps, so Disconnect only stops this fork's local authorization.
 
 ## Configure a different Google project
 

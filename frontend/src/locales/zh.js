@@ -1,5 +1,10 @@
 // Simplified Chinese UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Uplift identity and fork releases
+  "Powered by {0}": "基于 {0}",
+  "Releases": "版本",
+  "Releases are checked on github.com. The download is verified against its checksum before the installer opens.": "在 github.com 检查版本。打开安装程序前会校验下载文件的校验和。",
+
   // Garmin companion
   "Configure on phone. Unsupported workouts stay on phone. Unreceived entries stay queued on your watch.": "在手机上配置。不支持的训练留在手机上。未收到的记录会继续在手表上排队。",
   "Confirm pairing on watch": "在手表上确认配对",

@@ -57,7 +57,7 @@ export function WatchHandoff() {
 }
 function exportReviews(review) {
   const url = URL.createObjectURL(new Blob([JSON.stringify({ format: 'opengym-watch-review', entries: review }, null, 2)], { type: 'application/json' }))
-  const a = document.createElement('a'); a.href = url; a.download = 'opengym-watch-review.json'; a.click()
+  const a = document.createElement('a'); a.href = url; a.download = 'uplift-watch-review.json'; a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 export default function GarminSection() {

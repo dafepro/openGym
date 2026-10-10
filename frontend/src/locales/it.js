@@ -1,5 +1,10 @@
 // Italian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Uplift identity and fork releases
+  "Powered by {0}": "Realizzato con {0}",
+  "Releases": "Versioni",
+  "Releases are checked on github.com. The download is verified against its checksum before the installer opens.": "Le versioni vengono controllate su github.com. Il download viene verificato tramite la sua somma di controllo prima di aprire il programma di installazione.",
+
   // Garmin companion
   "Configure on phone. Unsupported workouts stay on phone. Unreceived entries stay queued on your watch.": "Configura sul telefono. Gli allenamenti non supportati restano lì. I dati non ricevuti restano in coda sull’orologio.",
   "Confirm pairing on watch": "Conferma sull’orologio",

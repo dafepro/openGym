@@ -1,8 +1,8 @@
 {
   "appId": "ch.duartesantos.opengym",
-  "appName": "openGym",
+  "appName": "Uplift",
   "webDir": "dist",
-  "backgroundColor": "#0c0e12",
+  "backgroundColor": "#101214",
   "android": {
     "allowMixedContent": true
   }

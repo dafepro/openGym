@@ -16,7 +16,7 @@ export default function WorkoutButtonFace({ state }) {
     const preference = window.matchMedia?.('(prefers-reduced-motion: reduce)')
     if (from === state || preference?.matches || !node?.animate) return
     const surface = node.querySelector('.wbf-surface')
-    const options = { duration: 420, easing: 'cubic-bezier(.22,.8,.3,1)' }
+    const options = { duration: 420, easing: 'cubic-bezier(.22,1,.36,1)' }
     const animations = [
       node.querySelector('.wbf-base').animate([{ backgroundColor: colors[from] }, { backgroundColor: colors[from] }], options),
       node.querySelector('.wbf-bloom').animate([{ clipPath: 'circle(0% at 50% 50%)', opacity: 1 }, { clipPath: 'circle(74% at 50% 50%)', opacity: 1 }], options),

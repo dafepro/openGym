@@ -1,5 +1,10 @@
 // Korean UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Uplift identity and fork releases
+  "Powered by {0}": "{0} 기반",
+  "Releases": "릴리스",
+  "Releases are checked on github.com. The download is verified against its checksum before the installer opens.": "github.com에서 릴리스를 확인합니다. 설치 프로그램을 열기 전에 다운로드의 체크섬을 검증합니다.",
+
   // Garmin companion
   "Configure on phone. Unsupported workouts stay on phone. Unreceived entries stay queued on your watch.": "휴대폰에서 설정하세요. 지원하지 않는 운동은 휴대폰에 남습니다. 수신되지 않은 기록은 시계에서 대기합니다.",
   "Confirm pairing on watch": "시계에서 페어링 확인",
