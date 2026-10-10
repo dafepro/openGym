@@ -5,7 +5,7 @@ import { effectiveRoutineIds, effectiveRoutines } from '../lib/history.js'
 import { todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import Icon from './Icon.jsx'
-import WorkoutTimerRing from './WorkoutTimerRing.jsx'
+import WorkoutButtonFace from './WorkoutButtonFace.jsx'
 import { useConnectionTrouble } from './SyncBanner.jsx'
 
 // Module scope, not TabBar's render body. Declared inside it, `Tab` was a new function on every
@@ -51,7 +51,7 @@ export default function TabBar({ onStart }) {
       {/* App navigation owns returning to a live workout. The ring signals its timer
           without replacing the tab name or moving the button. Past editing has no clock. */}
       <button className={'start' + (running ? (resting ? ' resting' : ' rec') : '') + (S.active && cur === 'workout' ? ' on' : '')} onClick={startWorkout}>
-        <span className="cir"><Icon name="play" />{running && resting && <WorkoutTimerRing />}</span>
+        <WorkoutButtonFace state={running ? (resting ? 'rest' : 'active') : 'ready'} />
         <span>{S.active ? (cur === 'workout' ? t('Workout') : S.active.editingWorkoutId ? t('Edit workout') : t('Resume')) : t('Start')}</span>
       </button>
       <Tab active={on('stats')} icon="chart" label={t('Stats')} onClick={() => nav('/stats')} />

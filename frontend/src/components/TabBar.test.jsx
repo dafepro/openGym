@@ -41,6 +41,67 @@ afterEach(() => {
 const tabs = () => [...host.querySelectorAll('#tabbar button')]
 
 describe('the tab bar across a store write', () => {
+  it('hands off color only on phase changes and keeps the face, glyph and timer through ticks and pause', () => {
+    vi.useFakeTimers()
+    const originalAnimate = Element.prototype.animate
+    const playing = []
+    Element.prototype.animate = vi.fn(() => { const animation = { cancel: vi.fn() }; playing.push(animation); return animation })
+    try {
+      act(() => root.render(<TabBar onStart={() => {}} />))
+      const start = tabs()[2], face = start.querySelector('.cir'), glyph = face.querySelector('.icn')
+      expect(Element.prototype.animate).not.toHaveBeenCalled() // no arrival flourish on reload
+      act(() => useStore.getState().update(s => { s.active = { id: 'motion', entries: [], cur: 0, start: Date.now() } }, false))
+      expect(face.dataset.state).toBe('active')
+      expect(Element.prototype.animate).toHaveBeenCalled()
+      const firstHandoff = [...playing]
+      act(() => useUI.getState().startRest(60, 0))
+      expect(face.dataset.state).toBe('rest')
+      firstHandoff.forEach(animation => expect(animation.cancel).toHaveBeenCalledOnce())
+      const calls = Element.prototype.animate.mock.calls.length
+      const ring = face.querySelector('.workout-timer-ring')
+      act(() => vi.advanceTimersByTime(10_000))
+      act(() => useUI.getState().pauseRest())
+      act(() => vi.advanceTimersByTime(10_000))
+      expect(Number(ring.querySelector('.wtr-arc').getAttribute('stroke-dashoffset'))).toBeCloseTo(100 * 50 / 60)
+      act(() => useUI.getState().resumeRest())
+      expect(Element.prototype.animate).toHaveBeenCalledTimes(calls)
+      expect(start.querySelector('.cir')).toBe(face)
+      expect(face.querySelector('.icn')).toBe(glyph)
+      expect(face.querySelector('.workout-timer-ring')).toBe(ring)
+      act(() => useUI.getState().stopRest())
+      expect(face.dataset.state).toBe('active')
+      expect(face.querySelector('.workout-timer-ring')).toBeNull()
+      expect(Element.prototype.animate.mock.calls.length).toBeGreaterThan(calls)
+      expect(tabs()[2]).toBe(start)
+    } finally {
+      if (originalAnimate) Element.prototype.animate = originalAnimate
+      else delete Element.prototype.animate
+      useUI.getState().stopRest(); vi.useRealTimers()
+    }
+  })
+
+  it('honors reduced motion while retaining the real rest ring and state colors', () => {
+    const originalAnimate = Element.prototype.animate
+    Element.prototype.animate = vi.fn()
+    const preference = { matches: true }
+    const media = vi.spyOn(window, 'matchMedia').mockReturnValue(preference)
+    try {
+      act(() => root.render(<TabBar onStart={() => {}} />))
+      act(() => useStore.getState().update(s => { s.active = { id: 'motion', entries: [], cur: 0, start: Date.now() } }, false))
+      const face = tabs()[2].querySelector('.cir')
+      expect(face.dataset.state).toBe('active')
+      act(() => useUI.getState().startRest(60, 0))
+      expect(face.dataset.state).toBe('rest')
+      expect(face.querySelector('.workout-timer-ring')).toBeTruthy()
+      expect(Element.prototype.animate).not.toHaveBeenCalled()
+    } finally {
+      media.mockRestore()
+      if (originalAnimate) Element.prototype.animate = originalAnimate
+      else delete Element.prototype.animate
+      useUI.getState().stopRest()
+    }
+  })
+
   it('keeps the very same buttons instead of rebuilding them every tick', () => {
     act(() => { root.render(<TabBar onStart={() => {}} />) })
     const before = tabs()
@@ -90,7 +151,7 @@ describe('the connection dot on Home', () => {
 // play button whether or not a session runs, and Exercises is the dumbbell (no more generic list).
 describe('the tab icons and labels', () => {
   const icon = el => el.querySelector('svg')?.getAttribute('data-icon')
-  const label = el => el.querySelector('span:last-child').textContent
+  const label = el => el.querySelector(':scope > span:last-child').textContent
   it('labels every tab and uses one icon per concept', () => {
     act(() => { root.render(<TabBar onStart={() => {}} />) })
     expect(tabs().map(icon)).toEqual(['house', 'calendar', 'play', 'chart', 'dumbbell'])

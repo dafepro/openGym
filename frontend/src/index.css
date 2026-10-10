@@ -421,22 +421,23 @@ h4.sec{
   background:var(--orange);box-shadow:0 0 0 2px var(--bg-el);pointer-events:none;
 }
 .iconbtn .tab-dot{top:5px;right:5px;box-shadow:0 0 0 2px var(--bg)}
-#tabbar button.start{margin-top:-24px}
+#tabbar button.start{margin-top:-24px;--workout-color:var(--acc)}
 #tabbar button.start .cir{
-  width:52px;height:52px;border-radius:50%;background:var(--acc);color:var(--on-acc);
-  display:flex;align-items:center;justify-content:center;position:relative;
-  box-shadow:0 6px 18px -4px color-mix(in srgb,var(--acc) 55%,transparent);
-  transition:transform var(--fast) var(--ease),background var(--med) var(--ease),color var(--fast),box-shadow var(--med) var(--ease);
+  width:52px;height:52px;border-radius:50%;color:var(--on-acc);
+  display:flex;align-items:center;justify-content:center;position:relative;isolation:isolate;
+  box-shadow:0 6px 18px -4px color-mix(in srgb,var(--workout-color) 55%,transparent);
+  transition:transform var(--fast) var(--ease),color 420ms var(--ease),box-shadow 420ms var(--ease);
 }
 #tabbar button.start:active .cir{transform:scale(.93)}
 #tabbar button.start .cir .icn{font-size:26px;--icon-stroke:2;color:inherit;opacity:1}
 #tabbar button.start span{color:var(--acc);font-weight:600}
+#tabbar button.start>span:last-child{transition:color 420ms var(--ease)}
 #tabbar button.start .cir{color:var(--on-acc)}
+#tabbar button.start.rec{--workout-color:var(--orange)}
 #tabbar button.start.rec>span{color:var(--orange)}
-#tabbar button.start.rec .cir{background:var(--orange);color:#000;box-shadow:0 6px 18px -4px color-mix(in srgb,var(--orange) 55%,transparent)}
-#tabbar button.start.rec .cir::after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid var(--orange);animation:workout-ping 1.9s var(--ease) infinite;pointer-events:none}
-@keyframes workout-ping{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.45);opacity:0}}
-#tabbar button.start.resting .cir{background:var(--blue);color:#fff;box-shadow:0 4px 24px -4px color-mix(in srgb,var(--blue) 45%,transparent)}
+#tabbar button.start.rec .cir{color:#000}
+#tabbar button.start.resting{--workout-color:var(--blue)}
+#tabbar button.start.resting .cir{color:#fff;box-shadow:0 4px 24px -4px color-mix(in srgb,var(--blue) 45%,transparent)}
 #tabbar button.start.resting>span{color:var(--blue)}
 #tabbar button.start.resting .cir{color:#fff}
 .workout-timer-ring{position:absolute;inset:-6px;width:64px;height:64px;overflow:visible;transform:rotate(-90deg);pointer-events:none}
@@ -445,7 +446,7 @@ h4.sec{
 .workout-timer-ring .wtr-arc{transition:stroke-dashoffset 1s linear}
 .workout-timer-ring .wtr-tip{stroke:var(--label);stroke-width:3.5;transition:stroke-dashoffset 1s linear}
 .workout-timer-ring[data-mode="paused"] circle{transition:none}
-@media(prefers-reduced-motion:reduce){#tabbar button.start.rec .cir::after{animation:none;opacity:0}.workout-timer-ring,.workout-timer-ring circle{animation:none;transition:none}}
+@media(prefers-reduced-motion:reduce){#tabbar button.start .cir,#tabbar button.start>span:last-child{transition-duration:140ms}.workout-timer-ring,.workout-timer-ring circle{animation:none;transition:none}}
 
 
 /* NOTE on every backdrop-filter pair in this file: the -webkit- line comes first and the

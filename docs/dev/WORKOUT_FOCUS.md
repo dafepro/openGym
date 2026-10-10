@@ -12,9 +12,15 @@ The app's bottom tabs stay visible on the workout page. Home, Plan, Stats and Ex
 leave the page without ending the session; the center Workout/Resume tab returns to it.
 The center tab turns blue only during a running or paused rest. A smooth ring shows
 actual rest progress and freezes while paused. Lifting, timed work and rest completion
-restore the original orange active-session pulse. An idle tab, historical editing and
+use an orange active-session halo. An idle tab, historical editing and
 backfill keep the normal appearance; the tab always keeps its Workout/Resume label.
-Reduced motion suppresses the pulse.
+Color changes use Halo handoff: the previous glow contracts while the next color
+blooms outward over 420ms. The colored surface settles over 540ms beneath a stationary
+play glyph. Rest progress arrives as the halo contracts; active orange breathes gently.
+Only phase changes trigger the handoff. Timer ticks, Pause/Resume and route changes
+retain the face and ring. Interrupted transitions cancel, and no animation callback
+changes workout state. Reduced motion uses a short color fade and a static halo;
+its progress ring keeps the actual countdown without motion interpolation.
 There is no top Minimize button, floating launcher, scrim or modal focus trap.
 
 The current action occupies one fixed position above the app tabs. It changes through
@@ -79,7 +85,7 @@ activation guards prevent Start→Done, rest→Done and superset double-tap acci
 Regression checks cover current-step logging, sides, intensifiers, optional effort,
 rest editing/undo, stale and duplicate taps, prep/rest calculations, keyboard phases,
 warm-up bypass and advancement, navigation timer/pause progress, active-session tab
-signals, persistent Finish access and cancellation, layout switching, Back/sheet ownership
+signals and phase-only color handoffs, reduced motion, persistent Finish access and cancellation, layout switching, Back/sheet ownership
 and timed holds across Home/Resume navigation.
 The older detailed Focus tests apply to historical/backfill workflows. Browser QA uses
 an isolated guest profile and checks phone/desktop layout, fixed tab positions,
