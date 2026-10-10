@@ -12,7 +12,9 @@ The app's bottom tabs stay visible on the workout page. Home, Plan, Stats and Ex
 leave the page without ending the session; the center Workout/Resume tab returns to it.
 The center tab turns blue only during a running or paused rest. A smooth ring shows
 actual rest progress and freezes while paused. Lifting, timed work and rest completion
-use the normal tab appearance; the tab always keeps its Workout/Resume label.
+restore the original orange active-session pulse. An idle tab, historical editing and
+backfill keep the normal appearance; the tab always keeps its Workout/Resume label.
+Reduced motion suppresses the pulse.
 There is no top Minimize button, floating launcher, scrim or modal focus trap.
 
 The current action occupies one fixed position above the app tabs. It changes through
@@ -20,13 +22,16 @@ load check → set entry → rest → the next pending set or completion. Timed 
 Start, Done and Stop with their existing elapsed-time semantics. Rest retains explicit
 adjustment and skip controls and never records a set. Skip rest is the primary action;
 Pause/Resume stays between the time adjustments in the same press position.
-Warm-up bypass, Pause/Resume, time adjustments, Stop, Undo, Add exercise and overview Finish
-are grouped directly above the primary action in the bottom thumb rail. The primary
-action and Workout/Live toggle keep their fixed positions when secondary actions change.
+Warm-up bypass, Pause/Resume, time adjustments, Stop and Undo are grouped directly
+above the primary action in the bottom thumb rail. Workout/Live, the current action
+and Finish occupy three fixed positions when secondary actions change.
 Workout/Live toggles the exercise overview from the same position, while the current
 action and timer remain available.
-Finish in the overview opens the existing finish confirmation. Completion offers
-Add exercise directly instead of pointing to a hidden button below the page.
+Finish stays visible at the right of the rail throughout preparation, sets, timed work,
+rest, disclosures, overview and completion. It opens the existing finish confirmation;
+opening or canceling it never logs a row or stops an active timer. Sheets retain their
+own action ownership. Completion makes Add exercise the main action while keeping
+the same Finish anchor, without duplicate Finish controls.
 
 Details, load, effort and last-set correction expand inline from their own buttons.
 Details grows below its fixed header anchor instead of recentering the whole page.
@@ -73,7 +78,9 @@ activation guards prevent Start→Done, rest→Done and superset double-tap acci
 
 Regression checks cover current-step logging, sides, intensifiers, optional effort,
 rest editing/undo, stale and duplicate taps, prep/rest calculations, keyboard phases,
-warm-up bypass and advancement, navigation timer/pause progress, layout switching, Back/sheet ownership and timed holds across Home/Resume navigation.
+warm-up bypass and advancement, navigation timer/pause progress, active-session tab
+signals, persistent Finish access and cancellation, layout switching, Back/sheet ownership
+and timed holds across Home/Resume navigation.
 The older detailed Focus tests apply to historical/backfill workflows. Browser QA uses
 an isolated guest profile and checks phone/desktop layout, fixed tab positions,
 inline disclosure anchoring, rest correction and Back navigation. Physical phone

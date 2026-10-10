@@ -49,6 +49,36 @@ afterEach(() => {
 })
 
 describe('the focus workspace across routes', () => {
+  it.each(['prep', 'working', 'rest'])('opens Finish from %s without ending or recording the session, and can cancel', async phase => {
+    await act(async () => root.render(<App />))
+    const dock = document.querySelector('.wf-page')
+    if (phase !== 'prep') {
+      await tap(dock, 'Start')
+      act(() => vi.advanceTimersByTime(2000))
+      if (phase === 'rest') await tap(dock, 'Done')
+    }
+    expect(dock.dataset.phase).toBe(phase)
+    const active = structuredClone(useStore.getState().S.active)
+    const workouts = structuredClone(useStore.getState().S.workouts)
+    const work = useUI.getState().work
+    const rest = useUI.getState().timer
+    const finish = dock.querySelector('.wf-finish')
+    await tap(dock, 'Finish workout')
+    expect([...document.querySelectorAll('h3')].some(el => el.textContent === (phase === 'rest' ? 'Finish early?' : 'Nothing logged yet'))).toBe(true)
+    expect(document.body.textContent).toContain('Finish and save')
+    expect(useStore.getState().S.active).toEqual(active)
+    expect(useStore.getState().S.workouts).toEqual(workouts)
+    expect(useUI.getState().work).toBe(work)
+    expect(useUI.getState().timer).toBe(rest)
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(dock.querySelector('.wf-finish')).toBe(finish)
+    expect(dock.dataset.phase).toBe(phase)
+    expect(useStore.getState().S.active).toEqual(active)
+    expect(useUI.getState().work).toBe(work)
+    expect(useUI.getState().timer).toBe(rest)
+  })
+
   it('keeps bottom navigation usable and preserves a timed hold through Home and Resume', async () => {
     await act(async () => root.render(<App />))
     const dock = document.querySelector('.wf-page')

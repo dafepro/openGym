@@ -50,7 +50,7 @@ export default function TabBar({ onStart }) {
       <Tab active={on('plan')} icon="calendar" label={t('Plan')} onClick={() => nav('/plan')} />
       {/* App navigation owns returning to a live workout. The ring signals its timer
           without replacing the tab name or moving the button. Past editing has no clock. */}
-      <button className={'start' + (running && resting ? ' resting' : '') + (S.active && cur === 'workout' ? ' on' : '')} onClick={startWorkout}>
+      <button className={'start' + (running ? (resting ? ' resting' : ' rec') : '') + (S.active && cur === 'workout' ? ' on' : '')} onClick={startWorkout}>
         <span className="cir"><Icon name="play" />{running && resting && <WorkoutTimerRing />}</span>
         <span>{S.active ? (cur === 'workout' ? t('Workout') : S.active.editingWorkoutId ? t('Edit workout') : t('Resume')) : t('Start')}</span>
       </button>

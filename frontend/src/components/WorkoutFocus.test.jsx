@@ -98,6 +98,7 @@ function mount(entries = [squat()], state = {}, strict = false) {
       }, { idx, i, id: active.entries[idx].id })
     }),
     onFinish: vi.fn(),
+    onAddExercise: vi.fn(),
   }
   function Harness() {
     const active = useStore(s => s.S.active)
@@ -140,7 +141,7 @@ describe('the workout focus layout', () => {
     mount(); open(); prepare()
     const rail = document.querySelector('.wf-actions')
     const action = button('Done')
-    expect([...rail.querySelectorAll('button')].map(b => b.textContent)).toEqual(['Workout', 'Done'])
+    expect([...rail.querySelectorAll('button')].map(b => b.textContent)).toEqual(['Workout', 'Done', 'Finish'])
     tap('Workout')
     expect(button('Live')).toBeTruthy()
     expect(button('Done')).toBe(action)
@@ -149,6 +150,35 @@ describe('the workout focus layout', () => {
     tap('Live')
     expect(button('Done')).toBe(action)
     expect(row().done).toBe(false)
+  })
+
+  it('keeps one Finish control in the same rail slot across phases, views and disclosures', () => {
+    mount([squat([{ w: 95, r: 5, done: false }, { w: 95, r: 5, done: false }])])
+    const finish = button('Finish workout')
+    const expectFinish = () => {
+      expect(button('Finish workout')).toBe(finish)
+      expect(finish.closest('.wf-actions')).toBeTruthy()
+      expect(document.querySelectorAll('.wf-finish')).toHaveLength(1)
+      const before = clone(useStore.getState().S.active)
+      tap('Finish workout')
+      expect(useStore.getState().S.active).toEqual(before)
+    }
+    expectFinish() // preparation
+    prepare(); expectFinish() // set entry
+    tap('Details'); expectFinish(); tap('Details')
+    tap('Workout'); expectFinish(); tap('Live')
+    act(() => useUI.getState().startRest(90, 0, { forSet: 0 }))
+    const rest = clone(useUI.getState().timer)
+    expectFinish()
+    expect(useUI.getState().timer).toEqual(rest)
+    tap('Pause'); expectFinish(); tap('Skip rest')
+    act(() => changeActive(active => active.entries[0].sets.forEach(set => { set.done = true })))
+    expectFinish() // completion has Add exercise, with Finish still at the same anchor
+    expect(document.querySelector('.wf-primary').textContent).toBe('Add exercise')
+    tap('Add exercise')
+    expect(calls.onAddExercise).toHaveBeenCalledOnce()
+    expect(calls.onFinish).toHaveBeenCalledTimes(7)
+    expect(calls.onToggle).not.toHaveBeenCalled()
   })
 
   it('edits the next load during rest without shortening, restarting or recording anything', () => {
@@ -603,7 +633,7 @@ describe('the workout focus layout', () => {
     expect(row(0, 0).done).toBe(true)
     expect(row(0, 1).done).toBe(false)
     expect(row(0, 2).done).toBe(true)
-    expect(button('Finish')).toBeTruthy()
+    expect(button('Finish workout')).toBeTruthy()
   })
 
   it('advances through the real workout controller and finishes after work sets with warm-ups unrecorded', () => {

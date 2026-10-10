@@ -431,8 +431,11 @@ h4.sec{
 #tabbar button.start:active .cir{transform:scale(.93)}
 #tabbar button.start .cir .icn{font-size:26px;--icon-stroke:2;color:inherit;opacity:1}
 #tabbar button.start span{color:var(--acc);font-weight:600}
-#tabbar button.start .tab-time{font-variant-numeric:tabular-nums}
 #tabbar button.start .cir{color:var(--on-acc)}
+#tabbar button.start.rec>span{color:var(--orange)}
+#tabbar button.start.rec .cir{background:var(--orange);color:#000;box-shadow:0 6px 18px -4px color-mix(in srgb,var(--orange) 55%,transparent)}
+#tabbar button.start.rec .cir::after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid var(--orange);animation:workout-ping 1.9s var(--ease) infinite;pointer-events:none}
+@keyframes workout-ping{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.45);opacity:0}}
 #tabbar button.start.resting .cir{background:var(--blue);color:#fff;box-shadow:0 4px 24px -4px color-mix(in srgb,var(--blue) 45%,transparent)}
 #tabbar button.start.resting>span{color:var(--blue)}
 #tabbar button.start.resting .cir{color:#fff}
@@ -442,7 +445,7 @@ h4.sec{
 .workout-timer-ring .wtr-arc{transition:stroke-dashoffset 1s linear}
 .workout-timer-ring .wtr-tip{stroke:var(--label);stroke-width:3.5;transition:stroke-dashoffset 1s linear}
 .workout-timer-ring[data-mode="paused"] circle{transition:none}
-@media(prefers-reduced-motion:reduce){.workout-timer-ring,.workout-timer-ring circle{animation:none;transition:none}}
+@media(prefers-reduced-motion:reduce){#tabbar button.start.rec .cir::after{animation:none;opacity:0}.workout-timer-ring,.workout-timer-ring circle{animation:none;transition:none}}
 
 
 /* NOTE on every backdrop-filter pair in this file: the -webkit- line comes first and the

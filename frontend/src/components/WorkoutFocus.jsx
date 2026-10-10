@@ -161,7 +161,7 @@ export default function WorkoutFocus({
   const canSkipWarmups = !work && isWarmupRow(row) && entry.sets.some(s => !isWarmupRow(s) && !s.done)
   const primary = phase === 'rest' ? { label: t(timer.ready ? 'Next set' : 'Skip rest'), icon: timer.ready ? 'play' : 'skipForward', run: leaveRest } :
     phase === 'working' ? { label: t('Done'), icon: 'check', run: finishTimed } :
-    phase === 'complete' ? { label: allDone ? t('Finish') : t('Next'), icon: allDone ? 'flag' : 'arrowRight', run: allDone ? onFinish : onAdvanceUnit } :
+    phase === 'complete' ? { label: allDone ? t('Add exercise') : t('Next'), icon: allDone ? 'plus' : 'arrowRight', run: allDone ? onAddExercise : onAdvanceUnit, disabled: allDone && !onAddExercise } :
     phase === 'prep' || mode === 'time' ? { label: t('Start'), icon: 'play', run: start } : { label: t('Done'), icon: 'check', run: record }
   actionRef.current = primary.run
   const restSec = focusRest(A, entryIdx, setIdx, S.restSec)
@@ -218,12 +218,10 @@ export default function WorkoutFocus({
         {view === 'workout' && <div className="wf-live-context">{exerciseNameFor(ex)} · {row ? t('Set {0}', setIdx + 1) + ' / ' + entry.sets.length : t('Completed')}</div>}
       </section>
       <div className="wf-actions" aria-hidden={!!sheets.length} inert={!!sheets.length}>
-        {(canSkipWarmups || pane === 'last' && previousTarget || phase === 'working' || phase === 'complete' && allDone && onAddExercise || view === 'workout' && primary.run !== onFinish) && <div className="wf-secondary-actions">
+        {(canSkipWarmups || pane === 'last' && previousTarget || phase === 'working') && <div className="wf-secondary-actions">
           {pane === 'last' && previousTarget && <button type="button" disabled={!previousValid || !!work} onClick={undoLast}><Icon name="undo" />{t('Undo')}</button>}
           {canSkipWarmups && <button type="button" onClick={skipWarmups}><Icon name="skipForward" />{t('Skip warm-ups')}</button>}
           {phase === 'working' && <button type="button" onClick={() => useUI.getState().abandonWork()}><Icon name="stop" />{t('Stop')}</button>}
-          {phase === 'complete' && allDone && onAddExercise && <button type="button" onClick={onAddExercise}><Icon name="plus" />{t('Add exercise')}</button>}
-          {view === 'workout' && primary.run !== onFinish && <button type="button" onClick={onFinish}><Icon name="flag" />{t('Finish workout')}</button>}
         </div>}
         {phase === 'rest' && <div className="wf-secondary-actions wf-rest-adjust">
           <button type="button" aria-label={t('Less time')} disabled={timer.ready} onClick={() => useUI.getState().addRest(-15)}>−15s</button>
@@ -231,7 +229,8 @@ export default function WorkoutFocus({
           <button type="button" aria-label={t('More time')} disabled={!timer.ready && timer.left >= REST_MAX} onClick={() => useUI.getState().addRest(15)}>+15s</button>
         </div>}
         <button type="button" className="wf-view-toggle" aria-label={t(view === 'workout' ? 'Live' : 'Workout')} aria-expanded={view === 'workout'} aria-controls={id + '-panel'} onClick={() => useUI.setState({ focusView: view === 'workout' ? 'live' : 'workout', focusPane: null, focusDetailsOpen: view !== 'workout' })}><Icon name={view === 'workout' ? 'target' : 'list'} /><span>{t(view === 'workout' ? 'Live' : 'Workout')}</span></button>
-        <button type="button" className="wf-primary" onClick={primary.run}><Icon name={primary.icon} />{primary.label}</button>
+        <button type="button" className="wf-primary" disabled={primary.disabled} onClick={primary.run}><Icon name={primary.icon} /><span>{primary.label}</span></button>
+        <button type="button" className="wf-finish" aria-label={t('Finish workout')} onClick={onFinish}><Icon name="flag" /><span>{t('Finish')}</span></button>
       </div>
     </section>
 }
