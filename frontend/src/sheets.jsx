@@ -3163,17 +3163,21 @@ export const supersetSheet = (meta, onSave) => ui().openSheet(close => <Superset
    by tapping "+ Drop"/"+ Burst", which appends with the same suggested-next-value math. */
 
 // Shown when the last exercise's last set is checked — finish, or keep going.
-function WorkoutComplete({ close }) {
+function WorkoutComplete({ close, onContinue }) {
   return <div style={{ textAlign: 'center', padding: '8px 0' }}>
     <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="checkCircle" /></div>
-    <h3 style={{ margin: '8px 0' }}>{t("That's the whole workout!")}</h3>
-    <div className="muted small" style={{ marginBottom: 16 }}>{t('All exercises done. Nice work! Finish up, or add another one if you’ve got more in you.')}</div>
+    <h3 style={{ margin: '8px 0' }}>{t(onContinue ? 'Completed' : "That's the whole workout!")}</h3>
+    {!onContinue && <div className="muted small" style={{ marginBottom: 16 }}>{t('All exercises done. Nice work! Finish up, or add another one if you’ve got more in you.')}</div>}
     <Button variant="primary" icon="flag" onClick={() => { close(); finishWorkout() }}>{t('Finish workout')}</Button>
     <div style={{ height: 8 }} />
-    <Button onClick={() => { close(); useUI.getState().toast(t('Keep going: tap “+ Add exercise” below')) }}>{t('Continue workout')}</Button>
+    <Button icon={onContinue ? 'plus' : undefined} onClick={() => {
+      close()
+      if (onContinue) onContinue()
+      else useUI.getState().toast(t('Keep going: tap “+ Add exercise” below'))
+    }}>{t(onContinue ? 'Add exercise' : 'Continue workout')}</Button>
   </div>
 }
-export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComplete close={close} />, { kind: 'center' })
+export const workoutCompleteSheet = ({ onContinue } = {}) => ui().openSheet(close => <WorkoutComplete close={close} onContinue={onContinue} />, { kind: 'center' })
 
 export function saveWorkoutEdits(onExit = () => nav('/history')) {
   // A save decision left open after the editor already closed (a second prompt from a route

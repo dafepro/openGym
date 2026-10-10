@@ -3,7 +3,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import WorkoutFocusDock from './WorkoutFocusDock.jsx'
+import WorkoutFocus from './WorkoutFocus.jsx'
 import useFocusHistory from './useFocusHistory.js'
 import Workout from '../views/Workout.jsx'
 import { DEF, useStore } from '../store/useStore.js'
@@ -37,7 +37,7 @@ const tap = name => {
   act(() => el.click())
   return el
 }
-const open = () => tap('Focus')
+const open = () => expect(document.querySelector('.wf-page')).toBeTruthy()
 const tapRow = prefix => {
   const el = [...document.body.querySelectorAll('.wf-row-toggle')].find(el =>
     !el.closest('[inert]') && el.getAttribute('aria-label').startsWith(prefix))
@@ -101,9 +101,9 @@ function mount(entries = [squat()], state = {}, strict = false) {
   }
   function Harness() {
     const active = useStore(s => s.S.active)
-    const open = useUI(s => s.focusOverlayOpen)
+    const open = useUI(s => s.focusDetailsOpen)
     useFocusHistory(open, () => useUI.getState().dismissFocus())
-    return <WorkoutFocusDock entryIdx={active.cur} unit={unitOf(supersetUnits(active.entries), active.cur)} {...calls} />
+    return <WorkoutFocus entryIdx={active.cur} unit={unitOf(supersetUnits(active.entries), active.cur)} {...calls} />
   }
   act(() => root.render(strict ? <React.StrictMode><Harness /></React.StrictMode> : <Harness />))
 }
@@ -116,7 +116,7 @@ beforeEach(() => {
   originalStore = useStore.getState()
   useUI.getState().stopRest()
   useUI.getState().stopWork()
-  useUI.setState({ sheets: [], toastMsg: '', focusOverlayOpen: false, focusOverlayPrepared: null, focusOverlayView: 'live', focusOverlayPane: null, focusLastSet: null })
+  useUI.setState({ sheets: [], toastMsg: '', focusDetailsOpen: false, focusPrepared: null, focusView: 'live', focusPane: null, focusLastSet: null })
   host = document.createElement('div')
   host.id = 'app'
   document.body.appendChild(host)
@@ -128,17 +128,17 @@ afterEach(() => {
   host.remove()
   useUI.getState().stopRest()
   useUI.getState().stopWork()
-  useUI.setState({ sheets: [], toastMsg: '', focusOverlayOpen: false, focusOverlayPrepared: null, focusOverlayView: 'live', focusOverlayPane: null, focusLastSet: null })
+  useUI.setState({ sheets: [], toastMsg: '', focusDetailsOpen: false, focusPrepared: null, focusView: 'live', focusPane: null, focusLastSet: null })
   useStore.setState(originalStore)
   vi.clearAllTimers()
   vi.useRealTimers()
   vi.restoreAllMocks()
 })
 
-describe('the workout focus dock', () => {
+describe('the workout focus layout', () => {
   it('keeps the current action while switching flat views and shows only three rail controls', () => {
     mount(); open(); prepare()
-    const rail = document.querySelector('.wf-expanded-controls')
+    const rail = document.querySelector('.wf-actions')
     const action = button('Done')
     expect([...rail.querySelectorAll('button')].map(b => b.textContent)).toEqual(['Workout', 'Done'])
     tap('Workout')
@@ -206,17 +206,16 @@ describe('the workout focus dock', () => {
     expect(row()).toMatchObject({ r: 9, clusters: [{ r: 4, restSec: 15 }], done: false })
   })
 
-  it('Back unwinds an inline editor, the Workout view and then the workspace', () => {
-    mount(); open(); tap('Details')
+  it('Back closes details or the overview while keeping the focus page available', () => {
+    mount(); tap('Details')
     const pop = () => act(() => window.dispatchEvent(new PopStateEvent('popstate')))
     pop()
-    expect(useUI.getState().focusOverlayPane).toBeNull()
-    expect(useUI.getState().focusOverlayOpen).toBe(true)
+    expect(useUI.getState().focusPane).toBeNull()
+    expect(useUI.getState().focusDetailsOpen).toBe(false)
     tap('Workout'); pop()
-    expect(useUI.getState().focusOverlayView).toBe('live')
-    expect(useUI.getState().focusOverlayOpen).toBe(true)
-    pop()
-    expect(useUI.getState().focusOverlayOpen).toBe(false)
+    expect(useUI.getState().focusView).toBe('live')
+    expect(useUI.getState().focusDetailsOpen).toBe(false)
+    expect(document.querySelector('.wf-page')).toBeTruthy()
     expect(row().done).toBe(false)
   })
 
@@ -229,31 +228,14 @@ describe('the workout focus dock', () => {
     expect(Object.hasOwn(row(0, 1), 'rir')).toBe(false)
   })
 
-  it('retains a launcher-opened overlay through StrictMode effect replay', () => {
-    useUI.setState({ focusOverlayOpen: true })
+  it('renders a page in StrictMode without a floating launcher or a modal focus trap', () => {
     mount([squat()], {}, true)
-    expect(useUI.getState().focusOverlayOpen).toBe(true)
-    expect(button('Minimize').getAttribute('aria-expanded')).toBe('true')
-    expect(host.inert).toBe(true)
-    expect(row().done).toBe(false)
-    expect(calls.onToggle).not.toHaveBeenCalled()
-  })
-
-  it('opens and closes at the same button without recording or editing a set', () => {
-    mount()
-    const before = clone(row())
-    const anchor = button('Focus')
-    expect(anchor.getAttribute('aria-expanded')).toBe('false')
-    open()
-    expect(host.inert).toBe(true)
-    expect(button('Minimize')).toBe(anchor)
-    expect(anchor.getAttribute('aria-expanded')).toBe('true')
-    tap('Minimize')
+    expect(document.querySelector('.wf-page')).toBeTruthy()
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(button('Minimize')).toBeUndefined()
+    expect(button('Focus')).toBeUndefined()
     expect(host.inert).not.toBe(true)
-    expect(button('Focus')).toBe(anchor)
-    expect(row()).toEqual(before)
-    expect(calls.onToggle).not.toHaveBeenCalled()
-    expect(calls.onField).not.toHaveBeenCalled()
+    expect(row().done).toBe(false)
   })
 
   it('keeps the load check acknowledged across route remounts and starts it again for a new session', () => {
@@ -265,12 +247,10 @@ describe('the workout focus dock', () => {
     const checkedWeight = before.w
     expect(button('Done')).toBeTruthy()
     act(() => root.render(null))
-    act(() => root.render(<WorkoutFocusDock entryIdx={0} unit={[0]} {...calls} />))
+    act(() => root.render(<WorkoutFocus entryIdx={0} unit={[0]} {...calls} />))
     expect(button('Start')).toBeUndefined()
     expect(button('Done')).toBeTruthy()
     expect(row()).toEqual(before)
-    tap('Minimize')
-    open()
     expect(button('Done')).toBeTruthy()
     expect(row().w).toBe(checkedWeight)
     expect(calls.onToggle).not.toHaveBeenCalled()
@@ -337,6 +317,7 @@ describe('the workout focus dock', () => {
   it('keeps optional RIR unrecorded until explicitly entered, preserving zero and clearing the key', () => {
     mount([squat()], { effort: 'rir' })
     open()
+    prepare()
     tap('More')
     const effort = document.querySelector('input[aria-label="RIR"]')
     expect(effort.value).toBe('')
@@ -364,6 +345,7 @@ describe('the workout focus dock', () => {
   it('edits the failure flag without recording and ignores a stale edit on completed work', () => {
     mount([squat()], { effort: 'none' })
     open()
+    prepare()
     tap('More')
     const failure = tap('Taken to failure')
     expect(row()).toMatchObject({ failure: true, done: false })
@@ -457,9 +439,9 @@ describe('the workout focus dock', () => {
     tap('More time')
     const adjustedEnd = useUI.getState().timer.endsAt
     expect(useUI.getState().timer).toMatchObject({ left: 75, forIdx: 0, forSet: 0 })
-    tap('Minimize')
+    tap('Workout')
     act(() => vi.advanceTimersByTime(10_000))
-    open()
+    tap('Live')
     expect(useUI.getState().timer).toMatchObject({ left: 65, endsAt: adjustedEnd, forIdx: 0, forSet: 0 })
     tap('Less time')
     expect(useUI.getState().timer.left).toBe(50)
@@ -508,7 +490,7 @@ describe('the workout focus dock', () => {
 
   it('rejects a rapid Done bounce when the superset partner becomes current', () => {
     mount([{ ...squat(), sg: 'paired' }, { ...squat(), id: '0292', sg: 'paired' }])
-    act(() => useUI.setState({ focusOverlayPrepared: { sessionId: 'dock-test', entries: ['0:0043', '1:0292'] } }))
+    act(() => useUI.setState({ focusPrepared: { sessionId: 'dock-test', entries: ['0:0043', '1:0292'] } }))
     open()
     tap('Done')
     expect(useStore.getState().S.active.cur).toBe(1)
@@ -577,43 +559,38 @@ describe('the workout focus dock', () => {
     expect(calls.onToggle).not.toHaveBeenCalled()
   })
 
-  it('closes a disclosure first and the overlay second with Escape, preserving set data', () => {
-    mount()
-    open()
-    tap('Details')
+  it('closes a disclosure with Escape while keeping the base focus layout', () => {
+    mount(); tap('Details')
     act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
     expect(button('Details').getAttribute('aria-expanded')).toBe('false')
-    expect(button('Minimize')).toBeTruthy()
-    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
-    expect(button('Focus')).toBeTruthy()
+    expect(document.querySelector('.wf-page')).toBeTruthy()
+    expect(useUI.getState().focusDetailsOpen).toBe(false)
     expect(row()).toMatchObject({ r: 5, done: false })
-    expect(calls.onToggle).not.toHaveBeenCalled()
   })
 
-  it('keeps keyboard focus inside its controls while the overlay is open', () => {
+  it('lets Tab reach app navigation instead of trapping it inside Focus', () => {
     mount()
-    open()
-    const first = button('Details')
-    const last = button('Minimize')
-    expect(first).toBeTruthy()
-    act(() => last.focus())
-    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })))
-    expect(document.activeElement).toBe(first)
-    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true })))
-    expect(document.activeElement).toBe(last)
-    expect(calls.onToggle).not.toHaveBeenCalled()
+    const tab = document.createElement('button'); tab.textContent = 'Home'; host.append(tab)
+    act(() => tab.focus())
+    const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
+    act(() => document.dispatchEvent(event))
+    expect(event.defaultPrevented).toBe(false)
+    expect(document.activeElement).toBe(tab)
+    tab.remove()
   })
 
-  it('gives an open overlay the keyboard and restores the workout shortcut when it closes', () => {
+  it('gives the current phase the blank-space shortcut without bypassing prep or rest', () => {
     mount([squat([{ w: 95, r: 5, done: false }, { w: 95, r: 5, done: false }])])
+    changeActive(active => { active.workoutView = 'focus' })
     act(() => root.render(<MemoryRouter initialEntries={['/workout']}><Workout /></MemoryRouter>))
-    open()
-    prepare()
-    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })))
+    const space = () => act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })))
+    space()
     expect(useStore.getState().S.active.entries[0].sets.map(set => set.done)).toEqual([false, false])
-    tap('Minimize')
-    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })))
+    act(() => vi.advanceTimersByTime(601))
+    space()
     expect(useStore.getState().S.active.entries[0].sets.map(set => set.done)).toEqual([true, false])
-    expect(useUI.getState().timer).toMatchObject({ forIdx: 0, forSet: 0 })
+    space()
+    expect(useUI.getState().timer).toMatchObject({ paused: true, forIdx: 0, forSet: 0 })
+    expect(useStore.getState().S.active.entries[0].sets[1].done).toBe(false)
   })
 })

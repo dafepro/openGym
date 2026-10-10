@@ -82,9 +82,9 @@ function Shell() {
   useEffect(() => { setAlarmBuzzer(MOBILE && S.vibrate !== false && S.vibrateOnSilent ? buzzAsAlarm : null) }, [S.vibrate, S.vibrateOnSilent])
   const isGuest = useStore(s => s.isGuest())
   const needsMobileOnboarding = useStore(s => s.needsMobileOnboarding)
-  const focusOpen = useUI(s => s.focusOverlayOpen)
-  // The history owner outlives the workout dock: finishing a session can unmount
-  // that dock while its finish/summary sheet still owns the next history entry.
+  const focusOpen = useUI(s => s.focusDetailsOpen)
+  // The history owner outlives the focus layout: finishing a session can unmount
+  // that layout while its finish/summary sheet still owns the next history entry.
   useFocusHistory(focusOpen, () => useUI.getState().dismissFocus())
   const langV = useLang()   // re-renders the whole shell when the language (pack) changes
   useEffect(() => { setNav(navigate) }, [navigate])
@@ -180,19 +180,14 @@ function Shell() {
   }, [loc.pathname, navType])
   // bound to the workout, not to the route — checking Stats mid-session keeps the screen on
   useWakeLock(!!S.active && !S.active.editingWorkoutId && S.keepAwake !== false)
-  // A running workout has the whole screen (v1.3.11): no tab bar, and the rest bar docks to the
-  // bottom edge in its place. Its header's ⌄ goes back to the app, where the tab bar's Resume
-  // brings it back.
   const inWorkout = loc.pathname === '/workout' && !!S.active
+  // Navigation remains in the same place throughout a workout; Coach owns its composer.
+  const noTabs = loc.pathname === '/coach' || needsMobileOnboarding
   useEffect(() => {
-    document.body.classList.toggle('no-tabbar', inWorkout)
-    return () => document.body.classList.remove('no-tabbar')
+    if (!inWorkout) useUI.setState({ focusDetailsOpen: false, focusView: 'live', focusPane: null })
   }, [inWorkout])
-  // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
-  // The first-launch card has no tabs either: they changed the route behind it.
-  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding
   useEffect(() => {
-    if (!S.active) useUI.setState({ focusOverlayOpen: false, focusOverlayPrepared: null, focusLastSet: null, focusOverlayView: 'live', focusOverlayPane: null })
+    if (!S.active) useUI.setState({ focusDetailsOpen: false, focusPrepared: null, focusLastSet: null, focusView: 'live', focusPane: null })
   }, [!!S.active])
 
   const authed = user || isGuest

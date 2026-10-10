@@ -45,7 +45,7 @@ import { canMoveActiveWorkoutUnit, moveActiveWorkoutUnit, canMoveActiveWorkoutEn
 import { nextOpenSet, workoutKeyAction } from '../lib/workout-keys.js'
 import { MUSCLE_NAME } from '../lib/muscles.js'
 import FocusView from './FocusView.jsx'
-import WorkoutFocusDock from '../components/WorkoutFocusDock.jsx'
+import WorkoutFocus from '../components/WorkoutFocus.jsx'
 import { withMeaning, historyAs, dbLoadFor, entryDbLoad, bellsIn, ownedWeightsFor, stepOwned } from '../lib/dumbbells.js'
 
 // How long after a key starts a hold the same key is not yet its "Done" (#133). A USB button
@@ -946,6 +946,10 @@ function ActiveWorkout({ hidden = false }) {
   const workoutView = ['list', 'compact', 'focus'].includes(requestedView) ? requestedView : 'cards'
   const listMode = workoutView === 'list' || workoutView === 'compact'
   const focusMode = workoutView === 'focus'
+  const defaultReturnView = ['cards', 'list', 'compact'].includes(S.workoutView) ? S.workoutView : 'cards'
+  const previousLayout = useRef(focusMode ? defaultReturnView : workoutView)
+  if (!focusMode) previousLayout.current = workoutView
+  const immersiveFocus = focusMode && !editing && !A.backfill && A.entries.length > 0
   const dense = workoutView === 'compact'
   // A superset's heading: its own name and rest between rounds when it has them (#292).
   const ssTitle = u => {
@@ -1343,7 +1347,10 @@ function ActiveWorkout({ hidden = false }) {
   // The header ⋮ re-lays-out the running session without touching the saved default
   // (Settings → During a workout → Workout view). It writes s.active.workoutView, which the
   // render above prefers over S.workoutView.
-  const setWorkoutView = v => update(s => { if (s.active) s.active.workoutView = v })
+  const setWorkoutView = v => {
+    setUI({ focusDetailsOpen: false, focusPane: null, focusView: 'live' })
+    update(s => { if (s.active) s.active.workoutView = v })
+  }
   const LAYOUT_LABEL = {
     cards: t('Cards'),
     list: t('List'),
@@ -1669,7 +1676,7 @@ function ActiveWorkout({ hidden = false }) {
     if (logged && (side ? logged.sides?.[side]?.done : logged.done)) {
       setUI({ focusLastSet: { sessionId: A.id ?? A.start, id: A.entries[idx].id, at: logged.at, side: side || null } })
     }
-    if (workoutDone) workoutCompleteSheet()
+    if (workoutDone) workoutCompleteSheet({ onContinue: immersiveFocus ? addExercise : undefined })
     else if (exJustDone && cardioEntry) useUI.getState().toast(t('Cardio logged'))
     else if (exJustDone && m === 'time') useUI.getState().toast(t('Hold logged'))
 
@@ -1817,7 +1824,7 @@ function ActiveWorkout({ hidden = false }) {
   }
   onKey.current = event => {
     // A sheet on top owns the keyboard (Escape closes it, Enter confirms in it).
-    if (hidden || useUI.getState().sheets.length || useUI.getState().focusOverlayOpen || event.target?.closest?.('.wf-dock')) return false
+    if (hidden || useUI.getState().sheets.length || immersiveFocus || event.target?.closest?.('.wf-page')) return false
     const action = workoutKeyAction(event, { tabbed: tabbed.current, rtl: document.documentElement.dir === 'rtl' })
     if (!action) return false
     event.preventDefault()
@@ -1918,18 +1925,24 @@ function ActiveWorkout({ hidden = false }) {
         set counter, discard/finish, progress) stays pinned — the one thing you want in view
         while you are somewhere in the middle of a long stack. Cards mode never scrolls far. */}
     <div className={'whdr' + (listMode ? ' stick' : '')} ref={hdrRef}>
-    {/* ⌄ leaves the screen and keeps the session running (the tab bar's Resume brings it back);
+    {/* The tab bar owns leaving a live session;
         in the editor of a saved workout it is the ✕ that closes the editor. Discard is in the ⋯
         menu now, and Finish is a labelled pill rather than a check that looked like a set tick: it
         opens the Finish sheet (Finish and save, Discard), the editor's Save saves at once. */}
     <div className="hdr whdr-bar">
       {editing
         ? <button className="iconbtn" aria-label={t('Close editor')} title={t('Close editor')} onClick={() => exitWorkoutEdit()}><Icon name="xmark" /></button>
-        : <button className="iconbtn" aria-label={t('Minimize')} title={t('Minimize')} onClick={() => nav('/home')}><Icon name="chevronDown" /></button>}
+        : null}
       <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) : <Elapsed start={A.start} />} · {t('{0} sets', done + '/' + total)}</div></div>
+      {!editing && !A.backfill && <button className={'iconbtn whdr-layout' + (focusMode ? ' is-focus' : '')}
+        aria-label={focusMode ? LAYOUT_LABEL[previousLayout.current] : t('Focus')}
+        title={focusMode ? LAYOUT_LABEL[previousLayout.current] : t('Focus')}
+        onClick={() => setWorkoutView(focusMode ? previousLayout.current : 'focus')}>
+        <Icon name={focusMode ? (previousLayout.current === 'cards' ? 'layout' : previousLayout.current) : 'target'} />
+      </button>}
       <button className="iconbtn" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
-      <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
-        onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>
+      {!immersiveFocus && <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
+        onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>}
     </div>
     <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>
     {/* In the list the chips ride in the pinned header, so any exercise is one tap away from
@@ -1939,6 +1952,9 @@ function ActiveWorkout({ hidden = false }) {
     {editing && <p className="muted small">{t('Editing a saved workout. Date and duration stay unchanged.')}</p>}
     {A.backfill && <div className="muted small" style={{ marginBottom: 8 }}>{t('Logging a past workout, so no rest timers.')}</div>}
 
+    {immersiveFocus ? <WorkoutFocus entryIdx={cur} unit={unit}
+      onSelectEntry={selectFocusEntry} onAdvanceUnit={advanceFocusUnit} controlsForEntry={blockProps} onAddExercise={addExercise}
+      {...blockProps(cur)} onFinish={() => finishWorkoutSheet({ onDiscard: discardWorkout })} /> : <>
     {A.entries.length ? (listMode ? (
       <div className="workout-list" data-testid="workout-list" ref={listRef}>
         {units.map((u, ui) => {
@@ -2091,11 +2107,8 @@ function ActiveWorkout({ hidden = false }) {
       </button>
     })()}
     <div className="workout-end-spacer" />
+    </>}
   </WorkoutScrollAnchor>}
-    {!editing && !A.backfill && A.entries.length > 0 && <WorkoutFocusDock away={hidden}
-      entryIdx={cur} unit={unit} onSelectEntry={selectFocusEntry} onAdvanceUnit={advanceFocusUnit}
-      controlsForEntry={blockProps}
-      {...blockProps(cur)} onFinish={() => finishWorkoutSheet({ onDiscard: discardWorkout })} />}
   </>
 }
 

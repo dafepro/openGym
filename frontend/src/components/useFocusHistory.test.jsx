@@ -8,7 +8,7 @@ import useFocusHistory from './useFocusHistory.js'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 let root, host, push, back
 function Harness() {
-  const open = useUI(s => s.focusOverlayOpen)
+  const open = useUI(s => s.focusDetailsOpen)
   useFocusHistory(open, () => useUI.getState().dismissFocus())
   return null
 }
@@ -18,7 +18,7 @@ const mount = strict => act(() => root.render(strict ? <React.StrictMode><Harnes
 
 beforeEach(() => {
   window.history.replaceState(null, '')
-  useUI.setState({ focusOverlayOpen: false, focusOverlayView: 'live', focusOverlayPane: null, sheets: [] })
+  useUI.setState({ focusDetailsOpen: false, focusView: 'live', focusPane: null, sheets: [] })
   push = vi.spyOn(window.history, 'pushState')
   // Rewinds are asynchronous in a browser. Each test delivers the corresponding pop.
   back = vi.spyOn(window.history, 'back').mockImplementation(() => {})
@@ -31,61 +31,61 @@ afterEach(() => {
   host.remove()
   vi.restoreAllMocks()
   window.history.replaceState(null, '')
-  useUI.setState({ focusOverlayOpen: false, focusOverlayView: 'live', focusOverlayPane: null, sheets: [] })
+  useUI.setState({ focusDetailsOpen: false, focusView: 'live', focusPane: null, sheets: [] })
 })
 
 describe('focus workspace history ownership', () => {
   it('adds only one entry, including a StrictMode effect replay', () => {
-    set({ focusOverlayOpen: true })
+    set({ focusDetailsOpen: true })
     mount(true)
     expect(push).toHaveBeenCalledTimes(1)
-    set({ focusOverlayPane: 'info', focusOverlayView: 'workout' })
+    set({ focusPane: 'info', focusView: 'workout' })
     expect(push).toHaveBeenCalledTimes(1)
   })
 
   it('does not dismiss focus when a sheet button rewinds onto its entry', () => {
-    mount(); set({ focusOverlayOpen: true, focusOverlayView: 'workout' })
+    mount(); set({ focusDetailsOpen: true, focusView: 'workout' })
     set({ sheets: [{ id: 'finish' }] })
     set({ sheets: [] })
     pop({ openGymFocus: true })
-    expect(useUI.getState().focusOverlayOpen).toBe(true)
-    expect(useUI.getState().focusOverlayView).toBe('workout')
+    expect(useUI.getState().focusDetailsOpen).toBe(true)
+    expect(useUI.getState().focusView).toBe('workout')
     expect(back).not.toHaveBeenCalled()
     expect(push).toHaveBeenCalledTimes(1)
   })
 
   it('leaves browser Back to the owning sheet before unwinding focus', () => {
-    mount(); set({ focusOverlayOpen: true, focusOverlayPane: 'load' })
+    mount(); set({ focusDetailsOpen: true, focusPane: 'load' })
     set({ sheets: [{ id: 'finish' }] })
     pop(null)
-    expect(useUI.getState().focusOverlayPane).toBe('load')
+    expect(useUI.getState().focusPane).toBe('load')
     set({ sheets: [] })
     pop(null)
-    expect(useUI.getState().focusOverlayPane).toBeNull()
-    expect(useUI.getState().focusOverlayOpen).toBe(true)
+    expect(useUI.getState().focusPane).toBeNull()
+    expect(useUI.getState().focusDetailsOpen).toBe(false)
   })
 
   it('waits for a pending rewind before rearming a fast reopen', () => {
-    mount(); set({ focusOverlayOpen: true })
-    set({ focusOverlayOpen: false })
+    mount(); set({ focusDetailsOpen: true })
+    set({ focusDetailsOpen: false })
     expect(back).toHaveBeenCalledTimes(1)
-    set({ focusOverlayOpen: true })
+    set({ focusDetailsOpen: true })
     expect(push).toHaveBeenCalledTimes(1)
     pop(null)
     expect(push).toHaveBeenCalledTimes(2)
-    expect(useUI.getState().focusOverlayOpen).toBe(true)
+    expect(useUI.getState().focusDetailsOpen).toBe(true)
     pop(null)
-    expect(useUI.getState().focusOverlayOpen).toBe(false)
+    expect(useUI.getState().focusDetailsOpen).toBe(false)
     expect(back).toHaveBeenCalledTimes(1)
   })
 
   it('reuses a surviving open marker on remount instead of stacking one', () => {
     window.history.replaceState({ openGymFocus: true }, '')
-    set({ focusOverlayOpen: true })
+    set({ focusDetailsOpen: true })
     mount()
     expect(push).not.toHaveBeenCalled()
     pop(null)
-    expect(useUI.getState().focusOverlayOpen).toBe(false)
+    expect(useUI.getState().focusDetailsOpen).toBe(false)
     expect(back).not.toHaveBeenCalled()
   })
 
@@ -95,14 +95,14 @@ describe('focus workspace history ownership', () => {
     expect(back).toHaveBeenCalledTimes(1)
     pop(null)
     expect(push).not.toHaveBeenCalled()
-    expect(useUI.getState().focusOverlayOpen).toBe(false)
+    expect(useUI.getState().focusDetailsOpen).toBe(false)
   })
 
   it('waits for the finishing sheet to release its entry before removing focus', () => {
-    mount(); set({ focusOverlayOpen: true })
+    mount(); set({ focusDetailsOpen: true })
     set({ sheets: [{ id: 'finish' }] })
     window.history.replaceState({ openGymSheet: true }, '')
-    set({ focusOverlayOpen: false })
+    set({ focusDetailsOpen: false })
     set({ sheets: [] })
     expect(back).not.toHaveBeenCalled()
     window.history.replaceState({ openGymFocus: true }, '')
@@ -118,6 +118,6 @@ describe('focus workspace history ownership', () => {
     expect(back).toHaveBeenCalledTimes(1)
     pop(null)
     expect(back).toHaveBeenCalledTimes(1)
-    expect(useUI.getState().focusOverlayOpen).toBe(false)
+    expect(useUI.getState().focusDetailsOpen).toBe(false)
   })
 })

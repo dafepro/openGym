@@ -211,17 +211,17 @@ export const useUI = create((set, get) => ({
   toastAction: null,   // { label, run, id } while the toast offers an action (Undo)
   swipeHint: null,     // { idx, i, id }: the set row showing the one-time swipe hint (Workout.jsx)
   setFlash: null,      // { idx, i, id }: the set row a copy or an undo just brought, flashed once
-  focusOverlayOpen: false, // presentation only; set logging and timer ownership stay in the workout
-  focusOverlayPrepared: null, // { sessionId, entries: [entry keys] }; one load check per exercise/session
-  focusOverlayView: 'live',
-  focusOverlayPane: null,
+  focusDetailsOpen: false, // only a disclosure/overview owns history; the Focus layout is a page
+  focusPrepared: null, // { sessionId, entries: [entry keys] }; one load check per exercise/session
+  focusView: 'live',
+  focusPane: null,
   focusLastSet: null,
   dismissFocus() {
-    const { focusOverlayPane, focusOverlayView, focusOverlayOpen } = get()
-    if (!focusOverlayOpen) return false
-    if (focusOverlayPane) set({ focusOverlayPane: null })
-    else if (focusOverlayView !== 'live') set({ focusOverlayView: 'live' })
-    else set({ focusOverlayOpen: false })
+    const { focusPane, focusView, focusDetailsOpen } = get()
+    if (!focusDetailsOpen) return false
+    if (focusPane) set({ focusPane: null, focusDetailsOpen: focusView !== 'live' })
+    else if (focusView !== 'live') set({ focusView: 'live', focusDetailsOpen: false })
+    else set({ focusDetailsOpen: false })
     return true
   },
   timer: null,         // rest countdown between sets — { left, total, endsAt, forIdx, ready?, paused?, kind? }

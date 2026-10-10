@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useUI } from '../store/useUI.js'
 
-// One same-URL entry owns the workspace. Back within it unwinds its editor/view and
-// re-arms that entry, so browser Back and Android Back follow the same hierarchy.
+// One same-URL entry owns an inline editor or the workout overview. The base Focus
+// layout is the workout route, so Back leaves the page once its details are closed.
 export default function useFocusHistory(open, dismiss) {
   const handler = useRef(dismiss)
   handler.current = dismiss
@@ -31,7 +31,7 @@ export default function useFocusHistory(open, dismiss) {
       if (suppress.current) {
         suppress.current = false
         // A fast reopen can occur before the asynchronous rewind arrives.
-        if (useUI.getState().focusOverlayOpen && !entry.current) push()
+        if (useUI.getState().focusDetailsOpen && !entry.current) push()
         return
       }
       // Modals owns its own entries, above the workspace's entry.
@@ -41,7 +41,7 @@ export default function useFocusHistory(open, dismiss) {
       if (event.state?.openGymFocus) {
         // A completed workout, reload or route change may leave a marker behind.
         // Skip it automatically while closed instead of requiring an empty Back.
-        if (!useUI.getState().focusOverlayOpen) {
+        if (!useUI.getState().focusDetailsOpen) {
           entry.current = null
           suppress.current = true; window.history.back()
         }
@@ -49,9 +49,9 @@ export default function useFocusHistory(open, dismiss) {
       }
       if (!entry.current) return
       entry.current = null
-      if (useUI.getState().focusOverlayOpen) {
+      if (useUI.getState().focusDetailsOpen) {
         handler.current()
-        if (useUI.getState().focusOverlayOpen) push()
+        if (useUI.getState().focusDetailsOpen) push()
       }
     }
     window.addEventListener('popstate', pop)

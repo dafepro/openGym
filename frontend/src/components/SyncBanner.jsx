@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
 import { DEMO } from '../lib/demo.js'
 import { t } from '../lib/i18n.js'
 import { connectionView, actionLabel, syncNowWithToast, pairAgain, connectServer, signInAgain, useOnline } from './ServerSync.jsx'
@@ -71,7 +70,6 @@ export function useConnectionTrouble() {
 }
 
 export default function SyncBanner() {
-  const focusOwnsScreen = useUI(s => s.focusOverlayOpen && !s.sheets.length)
   const nav = useNavigate()
   const on = useStore(s => showsConnection(s.S))
   const local = useStore(s => showsLocalLine(s.S))
@@ -108,7 +106,7 @@ export default function SyncBanner() {
     <span className="conn-t">{view.banner}</span>
     {act && label && <span className="conn-a">{label}</span>}
   </>
-  return <div className={'conn-bar ' + view.tone} inert={focusOwnsScreen}>
+  return <div className={'conn-bar ' + view.tone}>
     <div className="conn-row" ref={row} role="status" aria-live="polite">
       {act ? <button className="conn" onClick={act}>{inner}</button> : <div className="conn">{inner}</div>}
       {/* Connecting or signing in is still in Settings, so hiding the line takes nothing away. */}

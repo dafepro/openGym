@@ -1,5 +1,4 @@
 import { useEffect, useId, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { exOr } from '../lib/exercises.js'
@@ -15,7 +14,7 @@ import Icon from './Icon.jsx'
 import Media from './Media.jsx'
 import FocusSetFields from './FocusSetFields.jsx'
 import FocusSwitch from './FocusSwitch.jsx'
-import './WorkoutFocusDock.css'
+import './WorkoutFocus.css'
 
 const clock = sec => {
   const n = Math.abs(Math.round(sec))
@@ -33,26 +32,25 @@ function Disclosure({ name, label, icon, pane, disclose, children }) {
   </section>
 }
 
-export default function WorkoutFocusDock({
-  entryIdx, unit, away = false, controlsForEntry, onSelectEntry, onAdvanceUnit,
-  onToggle, onToggleSide, onField, onSideField, onMutateSet, onStartTimed, onFinish,
+export default function WorkoutFocus({
+  entryIdx, unit, controlsForEntry, onSelectEntry, onAdvanceUnit,
+  onToggle, onToggleSide, onField, onSideField, onMutateSet, onStartTimed, onFinish, onAddExercise,
 }) {
   const S = useStore(s => s.S)
   useLang()
-  const { focusOverlayOpen: open, focusOverlayPrepared: prepared, focusOverlayView: view,
-    focusOverlayPane: pane, focusLastSet: tracked, timer, work, sheets = [] } = useUI()
+  const { focusPrepared: prepared, focusView: view = 'live',
+    focusPane: pane, focusLastSet: tracked, timer, work, sheets = [] } = useUI()
   const A = S.active
   const current = focusSet(A, entryIdx)
   const { entry, setIdx, row, set, side } = current
-  const dockRef = useRef(null), toggleRef = useRef(null), lastRecord = useRef(-Infinity)
+  const actionRef = useRef(null), pageRef = useRef(null), lastRecord = useRef(-Infinity)
   const lastEditor = useRef(null)
   const infoVisited = useRef(null)
   const id = useId()
   const sessionKey = A?.id ?? A?.start
   const prepKey = entryIdx + ':' + entry?.id
   if (pane === 'info') infoVisited.current = prepKey
-  const setOpen = value => useUI.setState({ focusOverlayOpen: value })
-  const setPane = value => useUI.setState({ focusOverlayPane: value })
+  const setPane = value => useUI.setState({ focusPane: value, focusDetailsOpen: !!value || view === 'workout' })
   const disclose = value => {
     if (value === 'last' && pane !== 'last') lastEditor.current = lastFocusSet(A, tracked, timer)
     setPane(pane === value ? null : value)
@@ -60,57 +58,26 @@ export default function WorkoutFocusDock({
   const dismiss = () => useUI.getState().dismissFocus()
 
   useEffect(() => {
-    document.body.classList.add('focus-docked')
-    return () => document.body.classList.remove('focus-docked', 'focus-panel-open', 'focus-away')
+    document.body.classList.add('workout-focus')
+    return () => document.body.classList.remove('workout-focus')
   }, [])
-  useEffect(() => {
-    document.body.classList.toggle('focus-away', away)
-    return () => document.body.classList.remove('focus-away')
-  }, [away])
-  useEffect(() => { if (useUI.getState().focusOverlayPane) setPane(null) }, [sessionKey, prepKey])
+  useEffect(() => { if (useUI.getState().focusPane) setPane(null) }, [sessionKey, prepKey])
   useEffect(() => { lastRecord.current = -Infinity }, [sessionKey])
   useEffect(() => {
-    const visible = open && !sheets.length
-    document.body.classList.toggle('focus-panel-open', visible)
-    const surfaces = [document.getElementById('app'), document.getElementById('tabbar')].filter(Boolean)
-    const originals = surfaces.map(el => el.inert)
-    if (visible) surfaces.forEach(el => { el.inert = true })
-    if (visible) dockRef.current?.querySelector('.wf-primary')?.focus({ preventScroll: true })
-    return () => {
-      document.body.classList.remove('focus-panel-open')
-      surfaces.forEach((el, i) => { el.inert = originals[i] })
-    }
-  }, [open, sheets.length, away])
-  useEffect(() => {
-    if (!open) return
     const keydown = event => {
       if (useUI.getState().sheets.length) return
       if (event.key === 'Escape') {
-        event.preventDefault(); event.stopPropagation(); dismiss()
-        toggleRef.current?.focus({ preventScroll: true })
-      }
-      if (event.key !== 'Tab') return
-      const controls = [...dockRef.current.querySelectorAll('button:not(:disabled), input:not(:disabled)')]
-        .filter(el => !el.closest('[inert]') && !el.closest('[aria-hidden="true"]'))
-      const first = controls[0], last = controls.at(-1)
-      if (event.shiftKey && (document.activeElement === first || !dockRef.current.contains(document.activeElement))) {
-        event.preventDefault(); last?.focus()
-      } else if (!event.shiftKey && (document.activeElement === last || !dockRef.current.contains(document.activeElement))) {
-        event.preventDefault(); first?.focus()
+        if (!dismiss()) return
+        event.preventDefault(); event.stopPropagation()
+        pageRef.current?.querySelector('.wf-info-toggle')?.focus({ preventScroll: true })
+      } else if ((event.key === ' ' || event.key === 'Enter') && !event.repeat &&
+        !event.target?.closest?.('button,input,textarea,select,a,[contenteditable="true"]') &&
+        !useUI.getState().focusDetailsOpen) {
+        event.preventDefault(); actionRef.current?.()
       }
     }
     document.addEventListener('keydown', keydown, true)
     return () => document.removeEventListener('keydown', keydown, true)
-  }, [open])
-  useEffect(() => {
-    const vv = window.visualViewport
-    if (!vv) return
-    const sync = () => {
-      const keyboard = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
-      dockRef.current?.style.setProperty('--wf-keyboard', keyboard > 100 ? keyboard + 'px' : '0px')
-    }
-    sync(); vv.addEventListener('resize', sync); vv.addEventListener('scroll', sync)
-    return () => { vv.removeEventListener('resize', sync); vv.removeEventListener('scroll', sync) }
   }, [])
   if (!entry) return null
 
@@ -160,9 +127,9 @@ export default function WorkoutFocusDock({
     onSelectEntry(previous.entryIdx); setPane(null)
     lastRecord.current = Date.now()
   }
-  const ready = () => useUI.setState(current => ({ focusOverlayPrepared: {
+  const ready = () => useUI.setState(current => ({ focusPrepared: {
     sessionId: sessionKey,
-    entries: [...new Set([...(current.focusOverlayPrepared?.sessionId === sessionKey ? current.focusOverlayPrepared.entries : []), prepKey])],
+    entries: [...new Set([...(current.focusPrepared?.sessionId === sessionKey ? current.focusPrepared.entries : []), prepKey])],
   } }))
   const progress = ({ unitDone }) => { if (unitDone) onAdvanceUnit() }
   const record = () => {
@@ -187,6 +154,7 @@ export default function WorkoutFocusDock({
     phase === 'working' ? { label: t('Done'), icon: 'check', run: finishTimed } :
     phase === 'complete' ? { label: allDone ? t('Finish') : t('Next'), icon: allDone ? 'flag' : 'arrowRight', run: allDone ? onFinish : onAdvanceUnit } :
     phase === 'prep' || mode === 'time' ? { label: t('Start'), icon: 'play', run: start } : { label: t('Done'), icon: 'check', run: record }
+  actionRef.current = primary.run
   const restSec = focusRest(A, entryIdx, setIdx, S.restSec)
   const loadLabel = t(...focusLoadLabel(entry, S.unit))
   const load = set && mode === 'reps' ? rowLoad(loadKindFor(S, { ...entry.target, id: entry.id }), set.w, baseWeightFor(S, entry.id), inventoryFor(S)) : null
@@ -206,10 +174,8 @@ export default function WorkoutFocusDock({
     {load && <div className="wf-plate"><strong>{t('Plate loading')}</strong><p>{load.barOnly ? t('Bar only') : load.kind === 'pairs' ? t('{0} per side', load.plates.map(fmtPlate).join(' + ') || '–') : t('Load {0}', load.plates.map(fmtPlate).join(' + ') || '–')}</p>{load.missing > 0 && <p className="wf-errors">{t('{0} short', fmtPlate(load.missing) + ' ' + S.unit)}</p>}</div>}
   </Disclosure>
 
-  return createPortal(<>
-    <div className={'wf-scrim' + (open && !sheets.length ? ' is-open' : '')} aria-hidden="true" onClick={() => { setPane(null); setOpen(false); toggleRef.current?.focus() }} />
-    <div ref={dockRef} className={'wf-dock' + (open ? ' is-open' : '') + (away ? ' is-away' : '')} data-phase={phase} role={open && !sheets.length ? 'dialog' : undefined} aria-modal={open && !sheets.length ? 'true' : undefined} aria-label={t('Focus')} aria-hidden={!!sheets.length} inert={!!sheets.length}>
-      <section id={id + '-panel'} className="wf-panel" aria-hidden={!open} inert={!open}>
+  return <section ref={pageRef} className="wf-page" data-testid="focus-view" data-phase={phase} aria-label={t('Focus')}>
+      <section id={id + '-panel'} className="wf-panel" aria-hidden={!!sheets.length} inert={!!sheets.length}>
         <header className="wf-header"><div><span className="wf-kicker">{kicker}</span><h2>{view === 'workout' ? A.name : work?.label || exerciseNameFor(ex)}</h2></div>
           {view === 'live' && <button type="button" className="wf-info-toggle" aria-label={t('Details')} aria-expanded={pane === 'info'} aria-controls={id + '-info'} onClick={() => disclose('info')}><Icon name={pane === 'info' ? 'chevronUp' : 'info'} /></button>}
         </header>
@@ -218,7 +184,7 @@ export default function WorkoutFocusDock({
           <FocusSwitch stateKey={view + ':' + phase + ':' + entryIdx + ':' + setIdx + ':' + side}>
             {view === 'workout' ? <div className="wf-stations">
               {A.entries.map((candidate, index) => <button type="button" key={index} aria-current={index === entryIdx ? 'true' : undefined} disabled={!!work} onClick={() => {
-                onSelectEntry(index); useUI.setState({ focusOverlayView: 'live', focusOverlayPane: null })
+                onSelectEntry(index); useUI.setState({ focusView: 'live', focusPane: null, focusDetailsOpen: false })
               }}><span><strong>{exerciseNameFor(exOr(candidate.id))}</strong><small>{t('{0} sets', candidate.sets.filter(s => s.done).length + '/' + candidate.sets.length)}</small></span><Icon name={candidate.sets.length && candidate.sets.every(s => s.done) ? 'check' : 'chevronRight'} /></button>)}
               <button type="button" className="wf-finish" onClick={onFinish}><Icon name="flag" />{t('Finish workout')}</button>
             </div> : <>
@@ -232,29 +198,24 @@ export default function WorkoutFocusDock({
                   <div className="wf-rest-adjust"><button type="button" aria-label={t('Less time')} disabled={timer.ready} onClick={() => useUI.getState().addRest(-15)}>−15s</button><button type="button" className="wf-skip" aria-label={t('Skip rest')} onClick={leaveRest}>{t('Skip rest')}</button><button type="button" aria-label={t('More time')} disabled={!timer.ready && timer.left >= REST_MAX} onClick={() => useUI.getState().addRest(15)}>+15s</button></div>
                 </div>
                 {row && <><div className="wf-next-label">{t('Next set')} · {t('Set {0}', setIdx + 1)} / {entry.sets.length}</div>{mode === 'cardio' ? mainFields : loadDisclosure}</>}
-              </> : phase === 'working' ? <div className="wf-recovery"><button type="button" className="wf-stop" onClick={() => useUI.getState().abandonWork()}>{t('Stop')}</button></div> : phase === 'complete' ? <div className="wf-complete"><Icon name="check" /><strong>{t('Completed')}</strong></div> : phase === 'prep' ? <div className="wf-prep">{mainFields}<p>{fmtRest(restSec)} · {t('Rest')}</p></div> : mode === 'reps' ? <>
+              </> : phase === 'working' ? <div className="wf-recovery"><button type="button" className="wf-stop" onClick={() => useUI.getState().abandonWork()}>{t('Stop')}</button></div> : phase === 'complete' ? <div className="wf-complete"><Icon name="check" />{allDone && onAddExercise && <button type="button" className="wf-add" onClick={onAddExercise}><Icon name="plus" />{t('Add exercise')}</button>}</div> : phase === 'prep' ? <div className="wf-prep">{mainFields}<p>{fmtRest(restSec)} · {t('Rest')}</p></div> : mode === 'reps' ? <>
                 {row.max && <strong className="wf-target">{t('Max: as many reps as you can')}</strong>}
-                {!row.max && entry.target?.reps > 0 && <span className="wf-target">{t('Reps')} · {entry.target.repsMin > 0 ? entry.target.repsMin + '–' : ''}{entry.target.reps}</span>}
+                {!row.max && entry.target?.repsMin > 0 && <span className="wf-target">{t('Reps')} · {entry.target.repsMin > 0 ? entry.target.repsMin + '–' : ''}{entry.target.reps}</span>}
                 <div className="wf-reps-control"><button type="button" aria-label={t('Decrease') + ' ' + t('Reps')} disabled={!set?.r} onClick={() => edit.field('r', Math.max(0, (set.r || 0) - 1))}><Icon name="minus" /></button><div><NumberField id={id + '-reps'} className="wf-rep-input" aria-label={t('Reps')} value={set?.r ?? 0} decimal={false} onChange={value => edit.field('r', Math.min(999, value))} /><label htmlFor={id + '-reps'}>{clustersOf(set).length ? t('Total reps') : t('Reps')}</label></div><button type="button" aria-label={t('Increase') + ' ' + t('Reps')} onClick={() => edit.field('r', Math.min(999, (set.r || 0) + 1))}><Icon name="plus" /></button></div>
                 {isPerSide({ ...entry.target, id: entry.id }) && !isSideSet(row) && <span className="wf-target">{t('{0} per side', fmtNum((set?.r || 0) / 2))}</span>}
                 {loadDisclosure}
               </> : mode === 'cardio' ? mainFields : <div className="wf-prep"><strong>{clock(set?.planSec ?? set?.sec ?? entry.target?.sec ?? 45)}</strong>{loadDisclosure}</div>}
               {(dropsOf(set).length > 0 || clustersOf(set).length > 0) && phase !== 'working' && <FocusSetFields target={current} {...edit} main={false} extras disabled={readonly} />}
-              {!timer && !work && row && mode !== 'cardio' && !isWarmupRow(row) && <Disclosure name="effort" label={t('More')} icon="gauge" pane={pane} disclose={disclose}><FocusSetFields target={current} {...edit} main={false} effort disabled={readonly} /></Disclosure>}
+              {!timer && !work && row && phase !== 'prep' && mode !== 'cardio' && !isWarmupRow(row) && <Disclosure name="effort" label={t('More')} icon="gauge" pane={pane} disclose={disclose}><FocusSetFields target={current} {...edit} main={false} effort disabled={readonly} /></Disclosure>}
               {lastFields}
             </>}
           </FocusSwitch>
         </div>
         {view === 'workout' && <div className="wf-live-context">{exerciseNameFor(ex)} · {row ? t('Set {0}', setIdx + 1) + ' / ' + entry.sets.length : t('Completed')}</div>}
       </section>
-      <div className="wf-rail">
-        <div className="wf-expanded-controls" aria-hidden={!open} inert={!open}>
-          <button type="button" className="wf-view-toggle" aria-label={t(view === 'workout' ? 'Live' : 'Workout')} onClick={() => useUI.setState({ focusOverlayView: view === 'workout' ? 'live' : 'workout', focusOverlayPane: null })}><Icon name={view === 'workout' ? 'target' : 'list'} /><span>{t(view === 'workout' ? 'Live' : 'Workout')}</span></button>
-          <button type="button" className="wf-primary" onClick={primary.run}><Icon name={primary.icon} />{primary.label}</button>
-        </div>
-        <div className="wf-summary" aria-hidden={!!open} inert={!!open}><div><strong>{exerciseNameFor(ex)}</strong><span>{summary}</span></div>{timer && !timer.ready && <button type="button" className="wf-mini-pause" aria-label={t(timer.paused ? 'Resume' : 'Pause')} onClick={() => timer.paused ? useUI.getState().resumeRest() : useUI.getState().pauseRest()}><Icon name={timer.paused ? 'play' : 'pause'} /></button>}</div>
-        <button type="button" ref={toggleRef} className="wf-toggle" aria-label={t(open ? 'Minimize' : 'Focus')} title={t(open ? 'Minimize' : 'Focus')} aria-expanded={!!open} aria-controls={id + '-panel'} onClick={() => setOpen(!open)}><Icon name={open ? 'chevronDown' : 'chevronUp'} /><span>{t(open ? 'Minimize' : 'Focus')}</span></button>
+      <div className="wf-actions" aria-hidden={!!sheets.length} inert={!!sheets.length}>
+        <button type="button" className="wf-view-toggle" aria-label={t(view === 'workout' ? 'Live' : 'Workout')} aria-expanded={view === 'workout'} aria-controls={id + '-panel'} onClick={() => useUI.setState({ focusView: view === 'workout' ? 'live' : 'workout', focusPane: null, focusDetailsOpen: view !== 'workout' })}><Icon name={view === 'workout' ? 'target' : 'list'} /><span>{t(view === 'workout' ? 'Live' : 'Workout')}</span></button>
+        <button type="button" className="wf-primary" onClick={primary.run}><Icon name={primary.icon} />{primary.label}</button>
       </div>
-    </div>
-  </>, document.body)
+    </section>
 }

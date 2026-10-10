@@ -1,50 +1,65 @@
-# Workout focus workspace
+# Workout Focus layout
 
-The focus workspace uses openGym's live workout controller and set rows. It changes
-presentation and navigation without introducing a second workout model or a new
-storage format. The controller stays mounted across app routes so a hold started in
-the workout can be completed from Home with the same owner and elapsed time.
+Focus is the live workout page's current-step layout. It uses openGym's existing
+`workoutView: 'focus'` preference and session override. Cards, List and Compact remain
+available. The header layout toggle enters Focus and returns to the preceding layout;
+Workout options → Layout and the saved workout settings offer the same choice.
+Historical editing and backfill retain their detailed set controls.
 
-## Rail and navigation
+## Navigation and action ownership
 
-- Left: **Workout / Live** switches two flat views.
-- Center: the current **Start / Done / Pause / Resume / Next set** action stays in
-  the same slot, including while an editor or Workout view is open.
-- Right: **Focus / Minimize** opens and closes the workspace at the same coordinates.
-- Details, load, effort and last-set correction expand inline. The same button closes
-  its disclosure. The timer remains pinned above the scrolling content.
-- Browser Back, Android Back and Escape unwind a disclosure, then Workout to Live,
-  then minimize focus. A sheet owns Back before any focus layer does. After a session
-  finishes, spent focus and sheet markers are skipped rather than creating empty Back steps.
-- Finish lives in Workout and opens openGym's existing finish sheet. That sheet
-  temporarily hides the entire focus workspace and returns ownership when dismissed.
+The app's bottom tabs stay visible on the workout page. Home, Plan, Stats and Exercises
+leave the page without ending the session; the center Workout/Resume tab returns to it.
+There is no top Minimize button, floating launcher, scrim or modal focus trap.
 
-## Review findings addressed
+The current action occupies one fixed position above the app tabs. It changes through
+load check → set entry → rest → the next pending set or completion. Timed sets retain
+Start, Done and Stop with their existing elapsed-time semantics. Rest retains explicit
+adjustment and skip controls and never records a set. Workout/Live toggles the exercise
+overview from the same position, while the current action and timer remain available.
+Finish in the overview opens the existing finish confirmation. Completion offers
+Add exercise directly instead of pointing to a hidden button below the page.
 
-| Finding | Implementation |
-| --- | --- |
-| Rest blocked useful edits and offered no undo | Next-set load and duration remain editable during rest. Last set corrects the completed row, including optional effort, with explicit Undo. Only that row's rest is stopped by Undo. |
-| Load and prescription meanings were lost | Added, Each and Both labels use the existing load rules. Side rows, Max, drops and rest-pause bursts retain their existing fields and calculations. |
-| Back bypassed focus | A same-URL history entry owns the workspace; native Back uses the same UI dismissal hierarchy. Sheet rewinds and fast reopen are covered by regression tests. |
-| Opening and closing moved the anchor | One persistent right-hand toggle replaces the former separate launcher. Opening from Home keeps the route. Rest no longer changes the rail's bottom offset. |
-| Detail views removed the next action and timer | Inline disclosures and Workout keep the center rail action. The countdown and real progress bar remain above the scroll area. |
-| Load appeared static; rep ring implied false progress | The load row has an icon, disclosure chevron and expanded state. Reps are an editable number with direct steppers. Timer progress represents actual remaining time. |
-| Preparation showed the wrong rest | Preparation and Details use the same pyramid, warm-up and superset rest helpers as the workout controller. |
-| Narrow rail was crowded | Three controls, 48px or larger targets, generous separation and secondary Finish in Workout. The rail has been inspected at 320px. |
-| Transitions lost ownership and continuity | Incoming and outgoing content crossfade for 180ms; disclosures expand and collapse for 200ms. The rail button DOM persists. Reduced motion disables transitions. Outgoing snapshots are inert and do not retain duplicate IDs. |
+Details, load, effort and last-set correction expand inline from their own buttons.
+Details grows below its fixed header anchor instead of recentering the whole page.
+Closing uses the same trigger; there is no second X or Back control. Browser/Android
+Back and Escape close a disclosure or overview first. The base Focus layout is the
+workout route and does not create a separate history entry. Sheets own Back before
+inline details, and spent sheet/detail history entries are skipped automatically.
+
+## Existing review improvements preserved
+
+- During rest, edit the next load/duration or correct and undo the previous set without
+  restarting rest or checking another row. Undo stops only its own set's rest.
+- Added/Each/Both load meanings, independent sides, Max, drops and rest-pause bursts
+  use the existing workout fields and training helpers.
+- Preparation shows the actual warm-up, pyramid or superset rest. It is acknowledged
+  once per exercise/session in presentation state; a reload offers it again.
+- Load is an explicit disclosure; reps are editable with direct steppers. Only actual
+  countdowns have progress indicators. Redundant target copy is omitted.
+- The main action persists through overview/disclosure changes. Secondary details
+  disappear until requested; preparation contains only the load check and rest.
+- Incoming/outgoing content crossfades for 180ms. Disclosures expand and collapse;
+  outgoing content is inert, inaccessible and has no duplicate IDs. Reduced motion
+  removes the animation. Timer ticks do not restart a phase transition.
 
 ## Data and validation
 
-Edits call existing entry handlers, including weight-origin tracking and cascades.
-Logging, rest, advancement and timed completion use the existing controller. Optional
-effort remains absent until entered; zero reps and zero RIR remain meaningful values.
+The workout controller remains mounted across routes, preserving the original owner
+of timed callbacks. Focus is mounted only while its layout is visible. Other routes
+and layouts use the existing rest bar. Logging, load provenance/cascades, rest,
+advancement and saving share the normal workout handlers; no storage schema changes
+or historical load seeding are introduced.
+
 Editors validate session, exercise, row and completion identity before writing. An
-open last-set editor does not silently retarget when another set completes.
+open last-set editor does not silently retarget when another set completes. Optional
+effort remains absent until entered; zero reps and zero RIR remain meaningful. Short
+activation guards prevent Start→Done, rest→Done and superset double-tap accidents.
 
-Regression coverage includes side completion, effort zero/clearing, rest preservation,
-undo, stale and duplicate taps, intensifiers, warm-up/pyramid rest, sheet/history
-ownership, keyboard focus and timed holds completed after navigating to Home.
-
-Browser checks cover the rail at 320px and 390px, inline editing during paused rest,
-real Back navigation, finish-sheet dismissal, timed Stop/Done and opening on Home.
-Physical iOS/Android keyboard animation and frame pacing still need device testing.
+Regression checks cover current-step logging, sides, intensifiers, optional effort,
+rest editing/undo, stale and duplicate taps, prep/rest calculations, keyboard phases,
+layout switching, Back/sheet ownership and timed holds across Home/Resume navigation.
+The older detailed Focus tests apply to historical/backfill workflows. Browser QA uses
+an isolated guest profile and checks phone/desktop layout, fixed tab positions,
+inline disclosure anchoring, rest correction and Back navigation. Physical phone
+keyboard behavior and animation frame pacing still need device testing.

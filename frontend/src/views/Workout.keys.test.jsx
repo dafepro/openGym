@@ -45,7 +45,7 @@ const doneOf = idx => active().entries[idx].sets.map(s => s.done)
 beforeEach(() => {
   vi.useFakeTimers()
   localStorage.clear()
-  useUI.setState({ sheets: [], toastMsg: '', timer: null, work: null })
+  useUI.setState({ sheets: [], toastMsg: '', timer: null, work: null, focusDetailsOpen: false, focusPrepared: null, focusPane: null, focusView: 'live' })
   root = null
   container = null
 })
@@ -70,12 +70,17 @@ describe('workout keys (issue #133)', () => {
     expect(doneOf(0)).toEqual([true, true, true])
   })
 
-  it('Space and Enter tick Focus sets through the same handler', () => {
+  it('Space and Enter follow Focus phases through prep, logging and rest without ticking ahead', () => {
     renderWorkout([entry('1001', [false, false])], 0, { workoutView: 'focus' })
     expect(container.querySelector('[data-testid="focus-view"]')).toBeTruthy()
     press(' ')
+    expect(doneOf(0)).toEqual([false, false])
+    act(() => vi.advanceTimersByTime(601))
     press('Enter')
-    expect(doneOf(0)).toEqual([true, true])
+    expect(doneOf(0)).toEqual([true, false])
+    press(' ')
+    expect(useUI.getState().timer.paused).toBe(true)
+    expect(doneOf(0)).toEqual([true, false])
   })
 
   it('once the exercise on screen is finished, a press brings up the next one and the next press ticks it', () => {
