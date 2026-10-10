@@ -79,7 +79,7 @@ describe('workout keys (issue #133)', () => {
     press('Enter')
     expect(doneOf(0)).toEqual([true, false])
     press(' ')
-    expect(useUI.getState().timer.paused).toBe(true)
+    expect(useUI.getState().timer).toBeNull()
     expect(doneOf(0)).toEqual([true, false])
   })
 

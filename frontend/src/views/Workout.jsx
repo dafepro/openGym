@@ -3,6 +3,7 @@ import SwipeCards from '../components/SwipeCards.jsx'
 import SwipeRow from '../components/SwipeRow.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
+import { focusFlowEntries } from '../lib/workout-focus.js'
 import { workoutControls } from '../lib/workout-controls.js'
 import { useUI } from '../store/useUI.js'
 import { exOr, betterWeight } from '../lib/exercises.js'
@@ -950,6 +951,7 @@ function ActiveWorkout({ hidden = false }) {
   const previousLayout = useRef(focusMode ? defaultReturnView : workoutView)
   if (!focusMode) previousLayout.current = workoutView
   const immersiveFocus = focusMode && !editing && !A.backfill && A.entries.length > 0
+  const flowEntriesFor = active => immersiveFocus ? focusFlowEntries(active, useUI.getState().focusSkippedWarmups) : active.entries
   const dense = workoutView === 'compact'
   // A superset's heading: its own name and rest between rounds when it has them (#292).
   const ssTitle = u => {
@@ -1313,7 +1315,7 @@ function ActiveWorkout({ hidden = false }) {
   const selectFocusEntry = idx => update(s => { if (s.active) s.active.cur = idx })
   const advanceFocusUnit = () => update(s => {
     if (!s.active) return
-    const next = nextUnfinishedUnit(s.active.entries, supersetUnits(s.active.entries), s.active.cur)
+    const next = nextUnfinishedUnit(flowEntriesFor(s.active), supersetUnits(s.active.entries), s.active.cur)
     if (next) s.active.cur = next[0]
   })
   const navigateUnit = direction => {
@@ -1661,8 +1663,9 @@ function ActiveWorkout({ hidden = false }) {
         // follows a finished exercise, and in list mode any exercise can be worked on, so judging
         // the marker's unit here declared the workout complete after one set elsewhere.
         const ownUnit = unitOf(units, idx)
-        const unitDone = ownUnit.every(ui => (ui === idx ? e : A.entries[ui]).sets.every(x => x.done))
-        if (unitDone) workoutDone = !nextUnfinishedUnit(A.entries, supersetUnits(A.entries), idx)
+        const flowEntries = flowEntriesFor(s.active)
+        const unitDone = ownUnit.every(ui => flowEntries[ui].sets.every(x => x.done))
+        if (unitDone) workoutDone = !nextUnfinishedUnit(flowEntries, supersetUnits(s.active.entries), idx)
         if (e.sets.every(x => x.done)) {
           exJustDone = true
           // topW is captured now; exWeights only at the finish (doFinishWorkout), so a typo you
@@ -1687,13 +1690,14 @@ function ActiveWorkout({ hidden = false }) {
       const progress = setProgressHighWater(fresh.entries[idx], progressHighWater.current[idx] || 0)
       progressHighWater.current[idx] = progress.highWater
 
+      const flowEntries = flowEntriesFor(fresh)
       const freshUnits = supersetUnits(fresh.entries)
       const freshUnit = freshUnits.find(u => u.includes(idx))
-      const freshUnitDone = freshUnit?.every(ui => fresh.entries[ui].sets.every(x => x.done))
-      const nextUnit = freshUnitDone ? nextUnfinishedUnit(fresh.entries, freshUnits, idx) : null
+      const freshUnitDone = freshUnit?.every(ui => flowEntries[ui].sets.every(x => x.done))
+      const nextUnit = freshUnitDone ? nextUnfinishedUnit(flowEntries, freshUnits, idx) : null
       const freshWorkoutDone = freshUnitDone && !nextUnit
       const restBeforeWarmup = nextUnit?.some(ui =>
-        fresh.entries[ui].sets.some(set => isWarmupRow(set) && !set.done),
+        flowEntries[ui].sets.some(set => isWarmupRow(set) && !set.done),
       )
       // The rest this set has earned: the exercise's own restSec when it set one, the global
       // timer when it did not, and the longest of the group's across a superset (issue #10).
@@ -1747,7 +1751,7 @@ function ActiveWorkout({ hidden = false }) {
         return
       }
 
-      const step = supersetFlowStep(fresh.entries, freshUnit, idx)
+      const step = supersetFlowStep(flowEntries, freshUnit, idx)
       if (!step) { onFocusProgress?.({ unitDone: freshUnitDone }); return }
       if (step.unitDone) {
         if (nextUnit?.length && !restBeforeWarmup) startRest(restAfter, idx, { forSet: i })

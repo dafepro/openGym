@@ -1,13 +1,29 @@
 import { isBw, supersetUnits, unitOf } from './history.js'
 import { bellsIn, entryDbLoad } from './dumbbells.js'
-import { isSideSet } from './workout-model.js'
+import { isSideSet, isWarmupRow } from './workout-model.js'
 import { pyramidRestFor } from './pyramid.js'
 import { restSecFor, warmupRestSecFor } from './supersetFlow.js'
 
 // The dock reads the same rows and meanings as the full workout; it owns no training plan.
-export function focusSet(active, entryIdx) {
+export function focusEntryKey(active, entryIdx) {
   const entry = active?.entries?.[entryIdx]
-  const setIdx = entry?.sets.findIndex(set => !set.done) ?? -1
+  const occurrence = active?.entries?.slice(0, entryIdx).filter(e => e.id === entry?.id && e.rid === entry?.rid).length || 0
+  return entry?.id + ':' + (entry?.rid || '') + ':' + occurrence
+}
+
+const workOnly = (active, entryIdx, skipped) => skipped?.sessionId === (active?.id ?? active?.start) &&
+  skipped?.entries?.includes(focusEntryKey(active, entryIdx))
+
+// Presentation-only bypass. Original warm-up rows stay unrecorded in the session/history.
+// The projection is used only for pending-work, navigation and rest decisions.
+export function focusFlowEntries(active, skipped) {
+  return (active?.entries || []).map((entry, index) => workOnly(active, index, skipped)
+    ? { ...entry, sets: entry.sets.filter(set => !isWarmupRow(set)) } : entry)
+}
+
+export function focusSet(active, entryIdx, skipped) {
+  const entry = active?.entries?.[entryIdx]
+  const setIdx = entry?.sets.findIndex(set => !set.done && (!workOnly(active, entryIdx, skipped) || !isWarmupRow(set))) ?? -1
   const row = entry?.sets[setIdx]
   const side = isSideSet(row) ? (!row.sides.L.done ? 'L' : 'R') : null
   return { entryIdx, setIdx, entry, row, side, set: side ? row.sides[side] : row }

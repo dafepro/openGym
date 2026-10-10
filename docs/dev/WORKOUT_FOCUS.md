@@ -10,13 +10,21 @@ Historical editing and backfill retain their detailed set controls.
 
 The app's bottom tabs stay visible on the workout page. Home, Plan, Stats and Exercises
 leave the page without ending the session; the center Workout/Resume tab returns to it.
+The center tab turns blue only during a running or paused rest. A smooth ring shows
+actual rest progress and freezes while paused. Lifting, timed work and rest completion
+use the normal tab appearance; the tab always keeps its Workout/Resume label.
 There is no top Minimize button, floating launcher, scrim or modal focus trap.
 
 The current action occupies one fixed position above the app tabs. It changes through
 load check → set entry → rest → the next pending set or completion. Timed sets retain
 Start, Done and Stop with their existing elapsed-time semantics. Rest retains explicit
-adjustment and skip controls and never records a set. Workout/Live toggles the exercise
-overview from the same position, while the current action and timer remain available.
+adjustment and skip controls and never records a set. Skip rest is the primary action;
+Pause/Resume stays between the time adjustments in the same press position.
+Warm-up bypass, Pause/Resume, time adjustments, Stop, Undo, Add exercise and overview Finish
+are grouped directly above the primary action in the bottom thumb rail. The primary
+action and Workout/Live toggle keep their fixed positions when secondary actions change.
+Workout/Live toggles the exercise overview from the same position, while the current
+action and timer remain available.
 Finish in the overview opens the existing finish confirmation. Completion offers
 Add exercise directly instead of pointing to a hidden button below the page.
 
@@ -35,6 +43,13 @@ inline details, and spent sheet/detail history entries are skipped automatically
   use the existing workout fields and training helpers.
 - Preparation shows the actual warm-up, pyramid or superset rest. It is acknowledged
   once per exercise/session in presentation state; a reload offers it again.
+- Warm-up preparation and pending warm-ups offer Skip warm-ups. It bypasses the
+  remaining warm-ups for Focus navigation, including superset and completion decisions.
+  Original rows, completed warm-ups and earned rest are untouched. The bypass is
+  presentation state for this session and can be offered again after reload. Cards/List
+  still show the original unrecorded rows; no warm-up is fabricated in history.
+- Centered, larger accent-colored reps and a subtle breathing spotlight distinguish
+  Focus. The spotlight is decorative; reduced motion freezes it.
 - Load is an explicit disclosure; reps are editable with direct steppers. Only actual
   countdowns have progress indicators. Redundant target copy is omitted.
 - The main action persists through overview/disclosure changes. Secondary details
@@ -58,7 +73,7 @@ activation guards prevent Start→Done, rest→Done and superset double-tap acci
 
 Regression checks cover current-step logging, sides, intensifiers, optional effort,
 rest editing/undo, stale and duplicate taps, prep/rest calculations, keyboard phases,
-layout switching, Back/sheet ownership and timed holds across Home/Resume navigation.
+warm-up bypass and advancement, navigation timer/pause progress, layout switching, Back/sheet ownership and timed holds across Home/Resume navigation.
 The older detailed Focus tests apply to historical/backfill workflows. Browser QA uses
 an isolated guest profile and checks phone/desktop layout, fixed tab positions,
 inline disclosure anchoring, rest correction and Back navigation. Physical phone

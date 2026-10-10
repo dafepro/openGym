@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { focusSet, focusRest, focusLoadLabel, lastFocusSet } from './workout-focus.js'
+import { focusSet, focusRest, focusLoadLabel, lastFocusSet, focusEntryKey, focusFlowEntries } from './workout-focus.js'
 
 const entry = (sets, target = {}) => ({ id: '0043', target, sets })
 describe('the focus workspace reads existing workout semantics', () => {
@@ -30,4 +30,18 @@ describe('the focus workspace reads existing workout semantics', () => {
     expect(lastFocusSet(active, tracked)).toMatchObject({ entryIdx: 0, side: 'L' })
     expect(lastFocusSet({ ...active, id: 'new' }, tracked)).toMatchObject({ entryIdx: 1, at: 20 })
   })
+})
+
+it('bypasses only warm-ups in the selected session and keeps original rows and indices', () => {
+  const active = { id: 'a', entries: [entry([{ warmup: true, done: false }, { done: true }, { r: 0, done: false }]),
+    { id: 'other', sets: [{ warmup: true, done: false }, { done: false }] }] }
+  const skipped = { sessionId: 'a', entries: [focusEntryKey(active, 0)] }
+  expect(focusSet(active, 0, skipped)).toMatchObject({ setIdx: 2, set: { r: 0 } })
+  expect(focusSet(active, 1, skipped).setIdx).toBe(0)
+  expect(focusFlowEntries(active, skipped)[0].sets).toHaveLength(2)
+  expect(active.entries[0].sets).toHaveLength(3)
+  expect(active.entries[0].sets[0].done).toBe(false)
+  expect(focusSet({ ...active, id: 'b' }, 0, skipped).setIdx).toBe(0)
+  active.entries.reverse()
+  expect(focusSet(active, 1, skipped).setIdx).toBe(2)
 })

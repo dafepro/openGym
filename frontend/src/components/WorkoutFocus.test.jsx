@@ -116,7 +116,7 @@ beforeEach(() => {
   originalStore = useStore.getState()
   useUI.getState().stopRest()
   useUI.getState().stopWork()
-  useUI.setState({ sheets: [], toastMsg: '', focusDetailsOpen: false, focusPrepared: null, focusView: 'live', focusPane: null, focusLastSet: null })
+  useUI.setState({ sheets: [], toastMsg: '', focusDetailsOpen: false, focusPrepared: null, focusSkippedWarmups: null, focusView: 'live', focusPane: null, focusLastSet: null })
   host = document.createElement('div')
   host.id = 'app'
   document.body.appendChild(host)
@@ -128,7 +128,7 @@ afterEach(() => {
   host.remove()
   useUI.getState().stopRest()
   useUI.getState().stopWork()
-  useUI.setState({ sheets: [], toastMsg: '', focusDetailsOpen: false, focusPrepared: null, focusView: 'live', focusPane: null, focusLastSet: null })
+  useUI.setState({ sheets: [], toastMsg: '', focusDetailsOpen: false, focusPrepared: null, focusSkippedWarmups: null, focusView: 'live', focusPane: null, focusLastSet: null })
   useStore.setState(originalStore)
   vi.clearAllTimers()
   vi.useRealTimers()
@@ -419,7 +419,10 @@ describe('the workout focus layout', () => {
     mount([squat([{ w: 95, r: 5, done: true }, { w: 95, r: 5, done: false }])])
     act(() => useUI.getState().startRest(60, 0, { forSet: 0 }))
     open()
+    expect(document.querySelector('.wf-primary').textContent).toBe('Skip rest')
     const anchor = tap('Pause')
+    expect(anchor.closest('.wf-rest-adjust')).toBeTruthy()
+    expect(anchor.closest('.wf-actions')).toBeTruthy()
     expect(button('Resume')).toBe(anchor)
     expect(useUI.getState().timer).toMatchObject({ paused: true, left: 60 })
     act(() => vi.advanceTimersByTime(10_000))
@@ -579,6 +582,70 @@ describe('the workout focus layout', () => {
     tab.remove()
   })
 
+
+  it('skips remaining warm-ups without recording them or changing an earned rest', () => {
+    const entries = [squat([
+      { w: 20, r: 8, done: true, phase: 'warmup', at: 1 },
+      { w: 40, r: 5, done: false, phase: 'warmup' },
+      { w: 95, r: 5, done: false },
+    ])]
+    mount(entries)
+    act(() => useUI.getState().startRest(60, 0, { forSet: 0 }))
+    const rest = clone(useUI.getState().timer)
+    const before = clone(useStore.getState().S.active.entries[0].sets)
+    expect(button('Skip warm-ups').closest('.wf-actions')).toBeTruthy()
+    tap('Skip warm-ups')
+    expect(useStore.getState().S.active.entries[0].sets).toEqual(before)
+    expect(useUI.getState().timer).toEqual(rest)
+    expect(document.querySelector('.wf-phase .wf-next-label').textContent).toContain('Set 3')
+    expect(button('Skip warm-ups')).toBeUndefined()
+    tap('Skip rest'); prepare(); tap('Done')
+    expect(row(0, 0).done).toBe(true)
+    expect(row(0, 1).done).toBe(false)
+    expect(row(0, 2).done).toBe(true)
+    expect(button('Finish')).toBeTruthy()
+  })
+
+  it('advances through the real workout controller and finishes after work sets with warm-ups unrecorded', () => {
+    mount([squat([{ w: 20, r: 8, done: false, phase: 'warmup' }, { w: 95, r: 5, done: false }]),
+      { ...squat([{ w: 40, r: 5, done: false }]), id: '0025' }])
+    act(() => changeActive(active => { active.workoutView = 'focus' }))
+    act(() => root.render(<MemoryRouter initialEntries={['/workout']}><Workout /></MemoryRouter>))
+    tap('Skip warm-ups'); prepare(); tap('Done')
+    expect(useStore.getState().S.active.cur).toBe(1)
+    expect(row(0, 0)).toMatchObject({ done: false, r: 8 })
+    expect(row(0, 0).at).toBeUndefined()
+    expect(row(0, 1).done).toBe(true)
+    tap('Skip rest'); prepare(); tap('Done')
+    expect(useUI.getState().timer).toBeNull()
+    expect(row(1, 0).done).toBe(true)
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(document.querySelector('.wf-page').dataset.phase).toBe('complete')
+  })
+
+  it('keeps superset rounds and rest intact after both members bypass warm-ups', () => {
+    const sets = () => [{ w: 20, r: 8, done: false, phase: 'warmup' }, { w: 40, r: 5, done: false }]
+    mount([{ ...squat(sets()), sg: 'pair' }, { ...squat(sets()), id: '0025', sg: 'pair' },
+      { ...squat(), id: '0289' }])
+    act(() => changeActive(active => { active.workoutView = 'focus' }))
+    act(() => root.render(<MemoryRouter initialEntries={['/workout']}><Workout /></MemoryRouter>))
+    tap('Skip warm-ups'); prepare(); tap('Done')
+    expect(useStore.getState().S.active.cur).toBe(1)
+    expect(useUI.getState().timer).toBeNull()
+    tap('Skip warm-ups'); prepare(); tap('Done')
+    expect(useStore.getState().S.active.cur).toBe(2)
+    expect(row(0, 0).done).toBe(false)
+    expect(row(1, 0).done).toBe(false)
+    expect(row(0, 1).done).toBe(true)
+    expect(row(1, 1).done).toBe(true)
+    expect(useUI.getState().timer).toMatchObject({ forIdx: 1, forSet: 1 })
+  })
+
+  it('does not offer warm-up bypass when there are no pending work sets', () => {
+    mount([squat([{ w: 20, r: 8, done: false, phase: 'warmup' }])])
+    expect(button('Skip warm-ups')).toBeUndefined()
+  })
+
   it('gives the current phase the blank-space shortcut without bypassing prep or rest', () => {
     mount([squat([{ w: 95, r: 5, done: false }, { w: 95, r: 5, done: false }])])
     changeActive(active => { active.workoutView = 'focus' })
@@ -590,7 +657,7 @@ describe('the workout focus layout', () => {
     space()
     expect(useStore.getState().S.active.entries[0].sets.map(set => set.done)).toEqual([true, false])
     space()
-    expect(useUI.getState().timer).toMatchObject({ paused: true, forIdx: 0, forSet: 0 })
+    expect(useUI.getState().timer).toBeNull()
     expect(useStore.getState().S.active.entries[0].sets[1].done).toBe(false)
   })
 })

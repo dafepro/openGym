@@ -213,6 +213,7 @@ export const useUI = create((set, get) => ({
   setFlash: null,      // { idx, i, id }: the set row a copy or an undo just brought, flashed once
   focusDetailsOpen: false, // only a disclosure/overview owns history; the Focus layout is a page
   focusPrepared: null, // { sessionId, entries: [entry keys] }; one load check per exercise/session
+  focusSkippedWarmups: null, // presentation bypass only; never marks a warm-up recorded
   focusView: 'live',
   focusPane: null,
   focusLastSet: null,

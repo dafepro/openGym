@@ -426,24 +426,24 @@ h4.sec{
   width:52px;height:52px;border-radius:50%;background:var(--acc);color:var(--on-acc);
   display:flex;align-items:center;justify-content:center;position:relative;
   box-shadow:0 6px 18px -4px color-mix(in srgb,var(--acc) 55%,transparent);
-  transition:transform var(--fast) var(--ease);
+  transition:transform var(--fast) var(--ease),background var(--med) var(--ease),color var(--fast),box-shadow var(--med) var(--ease);
 }
 #tabbar button.start:active .cir{transform:scale(.93)}
 #tabbar button.start .cir .icn{font-size:26px;--icon-stroke:2;color:inherit;opacity:1}
 #tabbar button.start span{color:var(--acc);font-weight:600}
 #tabbar button.start .tab-time{font-variant-numeric:tabular-nums}
-/* `.cir` is itself a <span>, so the label rules above and below reach it too and
-   outrank the `.cir` block — which is how the running state ended up painting an
-   orange play glyph onto an orange disc. Both states restate their own colour.
-   The disc is orange in either theme, so its glyph is black, not `--on-acc`. */
 #tabbar button.start .cir{color:var(--on-acc)}
-#tabbar button.start.rec .cir{background:var(--orange);color:#000;box-shadow:0 6px 18px -4px color-mix(in srgb,var(--orange) 55%,transparent)}
-#tabbar button.start.rec span{color:var(--orange)}
-#tabbar button.start.rec .cir::after{
-  content:'';position:absolute;inset:0;border-radius:50%;
-  border:2px solid var(--orange);animation:ping 1.9s var(--ease) infinite;
-}
-@keyframes ping{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.45);opacity:0}}
+#tabbar button.start.resting .cir{background:var(--blue);color:#fff;box-shadow:0 4px 24px -4px color-mix(in srgb,var(--blue) 45%,transparent)}
+#tabbar button.start.resting>span{color:var(--blue)}
+#tabbar button.start.resting .cir{color:#fff}
+.workout-timer-ring{position:absolute;inset:-6px;width:64px;height:64px;overflow:visible;transform:rotate(-90deg);pointer-events:none}
+.workout-timer-ring circle{fill:none;stroke:var(--blue);stroke-width:2.5;stroke-linecap:round}
+.workout-timer-ring .wtr-track{opacity:.2}
+.workout-timer-ring .wtr-arc{transition:stroke-dashoffset 1s linear}
+.workout-timer-ring .wtr-tip{stroke:var(--label);stroke-width:3.5;transition:stroke-dashoffset 1s linear}
+.workout-timer-ring[data-mode="paused"] circle{transition:none}
+@media(prefers-reduced-motion:reduce){.workout-timer-ring,.workout-timer-ring circle{animation:none;transition:none}}
+
 
 /* NOTE on every backdrop-filter pair in this file: the -webkit- line comes first and the
    standard property last, which is the order a prefixed/standard pair wants — whichever is

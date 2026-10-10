@@ -6,6 +6,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TabBar from './TabBar.jsx'
+import { useUI } from '../store/useUI.js'
 import { DEF, useStore } from '../store/useStore.js'
 
 vi.mock('react-router-dom', () => ({
@@ -18,6 +19,8 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 let host, root, originalS, originalUser
 
 beforeEach(() => {
+  useUI.getState().stopRest()
+  useUI.getState().stopWork()
   const store = useStore.getState()
   originalS = store.S
   originalUser = store.user
@@ -30,6 +33,8 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount())
   host.remove()
+  useUI.getState().stopRest()
+  useUI.getState().stopWork()
   useStore.setState({ S: originalS, user: originalUser })
 })
 
@@ -56,7 +61,7 @@ describe('the tab bar across a store write', () => {
     expect(tabs()[2].className).toBe('start')
 
     act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0 } }, false) })
-    expect(tabs()[2].className).toBe('start rec')
+    expect(tabs()[2].className).toBe('start')
     expect(tabs()[0].className).toBe('on')
   })
 })
@@ -96,22 +101,48 @@ describe('the tab icons and labels', () => {
     expect(label(tabs()[2])).toBe('Resume')
   })
 
-  it('shows a minimized session’s running time, still named Resume', () => {
+  it('keeps a live session normal outside rest and keeps Resume named', () => {
+    act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0, start: Date.now() - 754_000 } }, false) })
+    act(() => { root.render(<TabBar onStart={() => {}} />) })
+    const start = tabs()[2]
+    expect(label(start)).toBe('Resume')
+    expect(start.className).toBe('start')
+    expect(start.querySelector('.workout-timer-ring')).toBeNull()
+    act(() => { useStore.getState().update(s => { s.active.editingWorkoutId = 'w1' }, false) })
+    expect(label(tabs()[2])).toBe('Edit workout')
+    expect(tabs()[2]).toBe(start)
+    expect(start.querySelector('.workout-timer-ring')).toBeNull()
+  })
+
+  it('shows blue progress only during rest, freezes while paused and resets when rest ends', () => {
     vi.useFakeTimers()
     try {
-      vi.setSystemTime(new Date(2026, 9, 5, 18, 0, 0))
-      act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0, start: Date.now() - 754_000 } }, false) })
+      act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0, start: Date.now() } }, false) })
       act(() => { root.render(<TabBar onStart={() => {}} />) })
       const start = tabs()[2]
-      expect(label(start)).toBe('12:34')
-      expect(start.getAttribute('aria-label')).toBe('Resume')
-      act(() => { vi.advanceTimersByTime(2000) })
-      expect(label(start)).toBe('12:36')
-      expect(tabs()[2]).toBe(start)   // the same button, only its text ticks
-
-      // a past workout being edited has no clock running
-      act(() => { useStore.getState().update(s => { s.active.editingWorkoutId = 'w1' }, false) })
-      expect(label(tabs()[2])).toBe('Edit workout')
-    } finally { vi.useRealTimers() }
+      expect(start.querySelector('.workout-timer-ring')).toBeNull()
+      act(() => useUI.getState().startRest(100, 0))
+      const ring = start.querySelector('.workout-timer-ring')
+      const offset = () => Number(ring.querySelector('.wtr-arc').getAttribute('stroke-dashoffset'))
+      expect(start.classList.contains('resting')).toBe(true)
+      expect(ring.dataset.mode).toBe('rest')
+      expect(offset()).toBe(100)
+      act(() => vi.advanceTimersByTime(20_000))
+      expect(offset()).toBe(80)
+      act(() => useUI.getState().pauseRest())
+      expect(ring.dataset.mode).toBe('paused')
+      act(() => vi.advanceTimersByTime(10_000))
+      expect(offset()).toBe(80)
+      act(() => useUI.getState().resumeRest())
+      act(() => vi.advanceTimersByTime(80_000))
+      expect(start.querySelector('.workout-timer-ring')).toBeNull()
+      expect(start.classList.contains('resting')).toBe(false)
+      act(() => { useUI.getState().stopRest(); useUI.getState().startWork(50, 'Hold', () => {}) })
+      act(() => vi.advanceTimersByTime(25_000))
+      expect(start.classList.contains('resting')).toBe(false)
+      expect(tabs()[2]).toBe(start)
+      expect(start.querySelector('.workout-timer-ring')).toBeNull()
+      expect(label(start)).toBe('Resume')
+    } finally { useUI.getState().stopRest(); useUI.getState().stopWork(); vi.useRealTimers() }
   })
 })

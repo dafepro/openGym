@@ -6,7 +6,7 @@ import { exerciseNameFor, instrFor, instrTranslated, getLang, useLang, t } from 
 import { fmtNum, fmtPlate } from '../lib/format.js'
 import { modeOf, pinnedNoteFor, setsRepsOf, isPerSide } from '../lib/history.js'
 import { isSideSet, isWarmupRow, setSideField, dropsOf, clustersOf } from '../lib/workout-model.js'
-import { focusSet, focusRest, focusLoadLabel, lastFocusSet } from '../lib/workout-focus.js'
+import { focusSet, focusRest, focusLoadLabel, lastFocusSet, focusEntryKey, focusFlowEntries } from '../lib/workout-focus.js'
 import { baseWeightFor, inventoryFor, loadKindFor, rowLoad } from '../lib/plates.js'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
 import { NumberField } from './ui.jsx'
@@ -39,9 +39,9 @@ export default function WorkoutFocus({
   const S = useStore(s => s.S)
   useLang()
   const { focusPrepared: prepared, focusView: view = 'live',
-    focusPane: pane, focusLastSet: tracked, timer, work, sheets = [] } = useUI()
+    focusPane: pane, focusLastSet: tracked, focusSkippedWarmups: skipped, timer, work, sheets = [] } = useUI()
   const A = S.active
-  const current = focusSet(A, entryIdx)
+  const current = focusSet(A, entryIdx, skipped)
   const { entry, setIdx, row, set, side } = current
   const actionRef = useRef(null), pageRef = useRef(null), lastRecord = useRef(-Infinity)
   const lastEditor = useRef(null)
@@ -95,7 +95,7 @@ export default function WorkoutFocus({
     if ((fresh?.id ?? fresh?.start) !== sessionKey || freshEntry?.id !== target?.entry?.id || !freshRow) return false
     if (completed) return freshRow.at === target.row.at && (target.side ? freshRow.sides?.[target.side]?.done : freshRow.done)
     const freshCur = Number.isInteger(fresh?.cur) ? Math.min(Math.max(fresh.cur, 0), Math.max(0, fresh.entries.length - 1)) : 0
-    return freshCur === target.entryIdx && freshEntry.sets.findIndex(s => !s.done) === target.setIdx &&
+    return freshCur === target.entryIdx && focusSet(fresh, target.entryIdx, useUI.getState().focusSkippedWarmups).setIdx === target.setIdx &&
       !freshRow.done && (!target.side || !freshRow.sides?.[target.side]?.done) && !useUI.getState().work
   }
   const handlers = (target, completed = false) => {
@@ -144,13 +144,22 @@ export default function WorkoutFocus({
     if (mode === 'time') onStartTimed(setIdx, progress)
   }
   const leaveRest = () => { lastRecord.current = Date.now(); useUI.getState().stopRest() }
+  const skipWarmups = () => {
+    if (!validTarget(current) || !isWarmupRow(row)) return
+    lastRecord.current = Date.now()
+    useUI.setState(ui => ({ focusPane: null, focusDetailsOpen: view === 'workout', focusSkippedWarmups: {
+      sessionId: sessionKey,
+      entries: [...new Set([...(ui.focusSkippedWarmups?.sessionId === sessionKey ? ui.focusSkippedWarmups.entries : []), focusEntryKey(A, entryIdx)])],
+    } }))
+  }
   const finishTimed = () => {
     const current = useUI.getState().work
     if (!current || Date.now() - (current.endsAt - current.total * 1000) < 600) return
     lastRecord.current = Date.now(); useUI.getState().finishWorkEarly()
   }
-  const allDone = A.entries.every(e => e.sets.every(s => s.done))
-  const primary = phase === 'rest' ? { label: timer.ready ? t('Next set') : t(timer.paused ? 'Resume' : 'Pause'), icon: timer.ready ? 'play' : timer.paused ? 'play' : 'pause', run: timer.ready ? leaveRest : timer.paused ? useUI.getState().resumeRest : useUI.getState().pauseRest } :
+  const allDone = focusFlowEntries(A, skipped).every(e => e.sets.every(s => s.done))
+  const canSkipWarmups = !work && isWarmupRow(row) && entry.sets.some(s => !isWarmupRow(s) && !s.done)
+  const primary = phase === 'rest' ? { label: t(timer.ready ? 'Next set' : 'Skip rest'), icon: timer.ready ? 'play' : 'skipForward', run: leaveRest } :
     phase === 'working' ? { label: t('Done'), icon: 'check', run: finishTimed } :
     phase === 'complete' ? { label: allDone ? t('Finish') : t('Next'), icon: allDone ? 'flag' : 'arrowRight', run: allDone ? onFinish : onAdvanceUnit } :
     phase === 'prep' || mode === 'time' ? { label: t('Start'), icon: 'play', run: start } : { label: t('Done'), icon: 'check', run: record }
@@ -167,7 +176,6 @@ export default function WorkoutFocus({
   const lastLabel = t('Last set') + (previousTarget ? ' · ' + t('Set {0}', previousTarget.setIdx + 1) + (previousTarget.entryIdx !== entryIdx ? ' · ' + exerciseNameFor(exOr(previousTarget.entry.id)) : '') + (previousTarget.side ? ' · ' + t(previousTarget.side === 'L' ? 'Left' : 'Right') : '') : '')
   const lastFields = previousTarget && <Disclosure name="last" label={lastLabel} icon="pencil" pane={pane} disclose={disclose}>
     <FocusSetFields target={previousTarget} {...lastEdit} disabled={!previousValid} effort extras />
-    <button type="button" className="wf-undo" disabled={!previousValid || !!work} onClick={undoLast}><Icon name="undo" />{t('Undo')}</button>
   </Disclosure>
   const loadDisclosure = <Disclosure name="load" label={loadLabel + ' · ' + fmtNum(set?.w ?? 0)} icon="barbell" pane={pane} disclose={disclose}>
     {mainFields}
@@ -186,7 +194,6 @@ export default function WorkoutFocus({
               {A.entries.map((candidate, index) => <button type="button" key={index} aria-current={index === entryIdx ? 'true' : undefined} disabled={!!work} onClick={() => {
                 onSelectEntry(index); useUI.setState({ focusView: 'live', focusPane: null, focusDetailsOpen: false })
               }}><span><strong>{exerciseNameFor(exOr(candidate.id))}</strong><small>{t('{0} sets', candidate.sets.filter(s => s.done).length + '/' + candidate.sets.length)}</small></span><Icon name={candidate.sets.length && candidate.sets.every(s => s.done) ? 'check' : 'chevronRight'} /></button>)}
-              <button type="button" className="wf-finish" onClick={onFinish}><Icon name="flag" />{t('Finish workout')}</button>
             </div> : <>
               <div id={id + '-info'} className={'wf-expander wf-info' + (pane === 'info' ? ' expanded' : '')} aria-hidden={pane !== 'info'} inert={pane !== 'info'}><div>
                 {infoVisited.current === prepKey && <><Media ex={ex} compact /><p>{setsRepsOf(entry.target || {})} · {fmtRest(restSec)} · {t('Rest')}</p>{notes.map(note => <p key={note}>{note}</p>)}{A.note && <p>{A.note}</p>}{unit.length > 1 && <p>{t('Superset')} · {unit.map(index => exerciseNameFor(exOr(A.entries[index].id))).join(' + ')}</p>}
@@ -194,14 +201,11 @@ export default function WorkoutFocus({
                 </>}
               </div></div>
               {phase === 'rest' ? <>
-                <div className="wf-recovery">
-                  <div className="wf-rest-adjust"><button type="button" aria-label={t('Less time')} disabled={timer.ready} onClick={() => useUI.getState().addRest(-15)}>−15s</button><button type="button" className="wf-skip" aria-label={t('Skip rest')} onClick={leaveRest}>{t('Skip rest')}</button><button type="button" aria-label={t('More time')} disabled={!timer.ready && timer.left >= REST_MAX} onClick={() => useUI.getState().addRest(15)}>+15s</button></div>
-                </div>
                 {row && <><div className="wf-next-label">{t('Next set')} · {t('Set {0}', setIdx + 1)} / {entry.sets.length}</div>{mode === 'cardio' ? mainFields : loadDisclosure}</>}
-              </> : phase === 'working' ? <div className="wf-recovery"><button type="button" className="wf-stop" onClick={() => useUI.getState().abandonWork()}>{t('Stop')}</button></div> : phase === 'complete' ? <div className="wf-complete"><Icon name="check" />{allDone && onAddExercise && <button type="button" className="wf-add" onClick={onAddExercise}><Icon name="plus" />{t('Add exercise')}</button>}</div> : phase === 'prep' ? <div className="wf-prep">{mainFields}<p>{fmtRest(restSec)} · {t('Rest')}</p></div> : mode === 'reps' ? <>
+              </> : phase === 'working' ? null : phase === 'complete' ? <div className="wf-complete"><Icon name="check" /></div> : phase === 'prep' ? <div className="wf-prep">{mainFields}<p>{fmtRest(restSec)} · {t('Rest')}</p></div> : mode === 'reps' ? <>
                 {row.max && <strong className="wf-target">{t('Max: as many reps as you can')}</strong>}
                 {!row.max && entry.target?.repsMin > 0 && <span className="wf-target">{t('Reps')} · {entry.target.repsMin > 0 ? entry.target.repsMin + '–' : ''}{entry.target.reps}</span>}
-                <div className="wf-reps-control"><button type="button" aria-label={t('Decrease') + ' ' + t('Reps')} disabled={!set?.r} onClick={() => edit.field('r', Math.max(0, (set.r || 0) - 1))}><Icon name="minus" /></button><div><NumberField id={id + '-reps'} className="wf-rep-input" aria-label={t('Reps')} value={set?.r ?? 0} decimal={false} onChange={value => edit.field('r', Math.min(999, value))} /><label htmlFor={id + '-reps'}>{clustersOf(set).length ? t('Total reps') : t('Reps')}</label></div><button type="button" aria-label={t('Increase') + ' ' + t('Reps')} onClick={() => edit.field('r', Math.min(999, (set.r || 0) + 1))}><Icon name="plus" /></button></div>
+                <div className="wf-reps-control"><span className="wf-rep-glow" aria-hidden="true" /><button type="button" aria-label={t('Decrease') + ' ' + t('Reps')} disabled={!set?.r} onClick={() => edit.field('r', Math.max(0, (set.r || 0) - 1))}><Icon name="minus" /></button><div><NumberField id={id + '-reps'} className="wf-rep-input" data-digits={String(set?.r ?? 0).length} aria-label={t('Reps')} value={set?.r ?? 0} decimal={false} onChange={value => edit.field('r', Math.min(999, value))} /><label htmlFor={id + '-reps'}>{clustersOf(set).length ? t('Total reps') : t('Reps')}</label></div><button type="button" aria-label={t('Increase') + ' ' + t('Reps')} onClick={() => edit.field('r', Math.min(999, (set.r || 0) + 1))}><Icon name="plus" /></button></div>
                 {isPerSide({ ...entry.target, id: entry.id }) && !isSideSet(row) && <span className="wf-target">{t('{0} per side', fmtNum((set?.r || 0) / 2))}</span>}
                 {loadDisclosure}
               </> : mode === 'cardio' ? mainFields : <div className="wf-prep"><strong>{clock(set?.planSec ?? set?.sec ?? entry.target?.sec ?? 45)}</strong>{loadDisclosure}</div>}
@@ -214,6 +218,18 @@ export default function WorkoutFocus({
         {view === 'workout' && <div className="wf-live-context">{exerciseNameFor(ex)} · {row ? t('Set {0}', setIdx + 1) + ' / ' + entry.sets.length : t('Completed')}</div>}
       </section>
       <div className="wf-actions" aria-hidden={!!sheets.length} inert={!!sheets.length}>
+        {(canSkipWarmups || pane === 'last' && previousTarget || phase === 'working' || phase === 'complete' && allDone && onAddExercise || view === 'workout' && primary.run !== onFinish) && <div className="wf-secondary-actions">
+          {pane === 'last' && previousTarget && <button type="button" disabled={!previousValid || !!work} onClick={undoLast}><Icon name="undo" />{t('Undo')}</button>}
+          {canSkipWarmups && <button type="button" onClick={skipWarmups}><Icon name="skipForward" />{t('Skip warm-ups')}</button>}
+          {phase === 'working' && <button type="button" onClick={() => useUI.getState().abandonWork()}><Icon name="stop" />{t('Stop')}</button>}
+          {phase === 'complete' && allDone && onAddExercise && <button type="button" onClick={onAddExercise}><Icon name="plus" />{t('Add exercise')}</button>}
+          {view === 'workout' && primary.run !== onFinish && <button type="button" onClick={onFinish}><Icon name="flag" />{t('Finish workout')}</button>}
+        </div>}
+        {phase === 'rest' && <div className="wf-secondary-actions wf-rest-adjust">
+          <button type="button" aria-label={t('Less time')} disabled={timer.ready} onClick={() => useUI.getState().addRest(-15)}>−15s</button>
+          <button type="button" className="wf-pause" disabled={timer.ready} aria-label={t(timer.paused ? 'Resume' : 'Pause')} onClick={timer.paused ? useUI.getState().resumeRest : useUI.getState().pauseRest}><Icon name={timer.paused ? 'play' : 'pause'} />{t(timer.paused ? 'Resume' : 'Pause')}</button>
+          <button type="button" aria-label={t('More time')} disabled={!timer.ready && timer.left >= REST_MAX} onClick={() => useUI.getState().addRest(15)}>+15s</button>
+        </div>}
         <button type="button" className="wf-view-toggle" aria-label={t(view === 'workout' ? 'Live' : 'Workout')} aria-expanded={view === 'workout'} aria-controls={id + '-panel'} onClick={() => useUI.setState({ focusView: view === 'workout' ? 'live' : 'workout', focusPane: null, focusDetailsOpen: view !== 'workout' })}><Icon name={view === 'workout' ? 'target' : 'list'} /><span>{t(view === 'workout' ? 'Live' : 'Workout')}</span></button>
         <button type="button" className="wf-primary" onClick={primary.run}><Icon name={primary.icon} />{primary.label}</button>
       </div>

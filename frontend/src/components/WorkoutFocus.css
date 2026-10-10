@@ -22,7 +22,7 @@
   flex-direction: column;
   justify-content: flex-start;
   min-height: calc(100dvh - var(--sat) - var(--conn) - 270px - var(--sab));
-  padding: clamp(24px,calc((100dvh - 640px) / 2),120px) 0 8px;
+  padding: clamp(24px,calc((100dvh - 720px) / 2),80px) 0 8px;
 }
 
 .wf-header {
@@ -215,14 +215,6 @@ body.workout-focus #toast {
   background: var(--surface);
 }
 
-.wf-recovery {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 0;
-}
-
 .wf-rest-adjust {
   display: grid;
   grid-template-columns: 56px minmax(84px,1fr) 56px;
@@ -230,7 +222,7 @@ body.workout-focus #toast {
   max-width: 100%;
 }
 
-.wf-rest-adjust button,.wf-stop {
+.wf-rest-adjust button {
   min-height: 48px;
   border-radius: 14px;
   padding: 0 10px;
@@ -240,7 +232,7 @@ body.workout-focus #toast {
   font-weight: 500;
 }
 
-.wf-rest-adjust .wf-skip {
+.wf-rest-adjust .wf-pause {
   background: none;
   color: var(--wf-accent);
 }
@@ -513,22 +505,6 @@ body.workout-focus #toast {
   opacity: .35;
 }
 
-.wf-undo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 48px;
-  width: 100%;
-  margin-top: 8px;
-  color: var(--label-2);
-  font-size: 13px;
-}
-
-.wf-undo:disabled {
-  opacity: .35;
-}
-
 .wf-plate {
   font-size: 12px;
   color: var(--label-2);
@@ -608,26 +584,25 @@ body.workout-focus #toast {
   margin-top: 5px;
 }
 
-.wf-stations>.wf-finish {
-  justify-content: center;
-  background: none;
-  color: var(--label-2);
-  min-height: 48px;
-  font-size: 13px;
-}
-
 .wf-reps-control {
+  position: relative;
+  isolation: isolate;
   justify-content: center;
-  min-height: 140px;
+  min-height: 164px;
 }
 
 .wf-rep-input {
   font-size: clamp(88px,26vw,116px);
+  font-weight: 650;
+  color: var(--wf-accent);
   height: 120px;
 }
 
 .wf-reps-control>div {
+  width: 100%;
   max-width: 240px;
+  justify-self: center;
+  position: relative;
 }
 
 .wf-prep>.wf-fields {
@@ -726,14 +701,97 @@ body.workout-focus #toast {
 }
 
 
-.wf-add {
+/* A soft, breathing spotlight marks Focus without suggesting timer/set progress. */
+.wf-rep-glow {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: min(260px,80%);
+  height: 200px;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, color-mix(in srgb,var(--wf-accent) 24%,transparent), color-mix(in srgb,var(--blue) 8%,transparent) 45%,transparent 70%);
+  transform: translate(-50%,-50%);
+  animation: wf-breathe 5s ease-in-out infinite;
+}
+.wf-kicker {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: color-mix(in srgb,var(--wf-accent) 11%,transparent);
+}
+.wf-reps-control>button {
+  position: relative;
+  transition: transform var(--fast) var(--ease),background var(--fast);
+}
+.wf-reps-control>button:active {
+  transform: scale(.9);
+  background: color-mix(in srgb,var(--wf-accent) 20%,var(--surface));
+}
+.wf-pause {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+}
+.whdr-layout.is-focus {
+  background: color-mix(in srgb,var(--acc) 16%,var(--surface));
+  color: var(--acc);
+}
+@keyframes wf-breathe {
+  0%,100% { opacity: .65; transform: translate(-50%,-50%) scale(.96); }
+  50% { opacity: 1; transform: translate(-50%,-50%) scale(1.04); }
+}
+
+:root[data-theme="light"] .wf-rep-input {
+  color: var(--acc-2);
+}
+:root[data-theme="light"] .wf-kicker {
+  color: color-mix(in srgb,var(--wf-accent) 65%,#000);
+}
+
+.wf-rep-input[data-digits="3"] {
+  font-size: clamp(62px,18vw,90px);
+}
+
+/* Phase transitions live together in the thumb rail. The primary row never moves. */
+.wf-secondary-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0,1fr);
   gap: 8px;
+}
+.wf-secondary-actions>button {
   min-height: 48px;
-  padding: 0 16px;
   border-radius: 16px;
-  background: var(--surface);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--label-2);
+  background: var(--surface-2);
+}
+.wf-secondary-actions .icn {
+  font-size: 18px;
+}
+.wf-actions .wf-rest-adjust {
+  grid-auto-flow: initial;
+  grid-auto-columns: initial;
+  grid-template-columns: 1fr 1.4fr 1fr;
+}
+.wf-actions .wf-pause {
+  color: var(--wf-accent);
+  background: var(--surface-2);
+}
+body.workout-focus #app {
+  padding-bottom: calc(248px + var(--sab));
+}
+
+.wf-secondary-actions>button:disabled {
+  opacity: .35;
 }
