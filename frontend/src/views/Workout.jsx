@@ -45,6 +45,7 @@ import { canMoveActiveWorkoutUnit, moveActiveWorkoutUnit, canMoveActiveWorkoutEn
 import { nextOpenSet, workoutKeyAction } from '../lib/workout-keys.js'
 import { MUSCLE_NAME } from '../lib/muscles.js'
 import FocusView from './FocusView.jsx'
+import WorkoutFocusDock from '../components/WorkoutFocusDock.jsx'
 import { withMeaning, historyAs, dbLoadFor, entryDbLoad, bellsIn, ownedWeightsFor, stepOwned } from '../lib/dumbbells.js'
 
 // How long after a key starts a hold the same key is not yet its "Done" (#133). A USB button
@@ -1287,6 +1288,12 @@ function ActiveWorkout() {
     onToggle: (i, onFocusProgress) => toggle(idx, i, undefined, { onFocusProgress }),
     onToggleSide: (i, side, onFocusProgress) => toggle(idx, i, side, { onFocusProgress }),
     onField: (i, f, v) => setField(idx, i, f, v),
+    onSideField: (i, side, field, value) => mutEntry(idx, entry => {
+      const row = setSideField(entry.sets[i], side, field, value)
+      if (field === 'w') row.sides[side].weightOrigin = WEIGHT_ORIGIN_MANUAL
+      entry.sets[i] = row
+      if (field === 'w') entry.sets = cascadeWeight(entry.sets, i, value, side, entry.target?.backoffStep)
+    }),
     onMutateSet: (i, fn) => mutEntry(idx, entry => { entry.sets[i] = fn(entry.sets[i]) }),
     onAddSet: () => addSet(idx),
     onRemoveSet: () => removeSet(idx),
@@ -1806,7 +1813,7 @@ function ActiveWorkout() {
   }
   onKey.current = event => {
     // A sheet on top owns the keyboard (Escape closes it, Enter confirms in it).
-    if (useUI.getState().sheets.length) return false
+    if (useUI.getState().sheets.length || useUI.getState().focusOverlayOpen || event.target?.closest?.('.wf-dock')) return false
     const action = workoutKeyAction(event, { tabbed: tabbed.current, rtl: document.documentElement.dir === 'rtl' })
     if (!action) return false
     event.preventDefault()
@@ -2080,6 +2087,9 @@ function ActiveWorkout() {
       </button>
     })()}
     <div className="workout-end-spacer" />
+    {!editing && !A.backfill && A.entries.length > 0 && <WorkoutFocusDock
+      entryIdx={cur} unit={unit} onSelectEntry={selectFocusEntry} onAdvanceUnit={advanceFocusUnit}
+      {...blockProps(cur)} onFinish={() => finishWorkoutSheet({ onDiscard: discardWorkout })} />}
   </WorkoutScrollAnchor>
 }
 

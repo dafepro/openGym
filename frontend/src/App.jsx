@@ -25,6 +25,7 @@ import Modals from './components/Modals.jsx'
 import Toast from './components/Toast.jsx'
 import SyncBanner from './components/SyncBanner.jsx'
 import RestTimer from './components/RestTimer.jsx'
+import { WorkoutFocusLauncher } from './components/WorkoutFocusDock.jsx'
 import TimerFlash from './components/TimerFlash.jsx'
 import { openDeviceLinkRedeem } from './components/Passkeys.jsx'
 import Login from './views/Login.jsx'
@@ -186,6 +187,10 @@ function Shell() {
   // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
   // The first-launch card has no tabs either: they changed the route behind it.
   const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding
+  useEffect(() => {
+    if (!inWorkout || !S.active) useUI.setState({ focusOverlayOpen: false })
+    if (!S.active) useUI.setState({ focusOverlayPrepared: null })
+  }, [inWorkout, !!S.active])
 
   const authed = user || isGuest
   if (!ready && !authed) return (
@@ -239,6 +244,10 @@ function Shell() {
       <SyncBanner />
       {!noTabs && <TabBar onStart={startFlow} />}
       <RestTimer />
+      {authed && !needsMobileOnboarding && !inWorkout && <WorkoutFocusLauncher onOpen={() => {
+        useUI.setState({ focusOverlayOpen: true })
+        navigate('/workout')
+      }} />}
       <Modals />
       <Toast />
       <TimerFlash />
