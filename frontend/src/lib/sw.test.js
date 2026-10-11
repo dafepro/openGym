@@ -272,3 +272,16 @@ describe('the Uplift display font survives offline reopen', () => {
     expect(await (await globalThis.caches.open(CACHE)).match('index.html')).toBeFalsy()
   })
 })
+
+
+it('keeps an installed update waiting until explicitly accepted', async () => {
+  await loadSW()
+  self.registration.active = {}
+  globalThis.fetch = async u => String(u) === './' ? { ok: true, text: async () => shellHtml } : { ok: true }
+  await fire('install')
+  expect(skipWaiting).toBe(0)
+  await fire('message', { data: { type: 'UNKNOWN' } })
+  expect(skipWaiting).toBe(0)
+  await fire('message', { data: { type: 'UPLIFT_ACTIVATE' } })
+  expect(skipWaiting).toBe(1)
+})

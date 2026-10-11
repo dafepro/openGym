@@ -28,7 +28,7 @@ export function loadGoogleIdentity() {
 
 // Call synchronously from a tap after loadGoogleIdentity has finished: Google
 // requires a user gesture. Tokens stay in memory and never enter localStorage/S.
-export function authorizeDrive(clientId) {
+export function authorizeDrive(clientId, scope = DRIVE_SCOPE) {
   if (!validClientId(clientId)) return Promise.reject(cloudError('client-id'))
   const oauth = globalThis.google?.accounts?.oauth2
   if (!oauth) return Promise.reject(cloudError('google-load'))
@@ -36,10 +36,10 @@ export function authorizeDrive(clientId) {
     const timer = setTimeout(() => reject(cloudError('google-timeout')), 120000)
     const fail = code => { clearTimeout(timer); reject(cloudError(code)) }
     const client = oauth.initTokenClient({
-      client_id: clientId, scope: DRIVE_SCOPE, include_granted_scopes: false,
+      client_id: clientId, scope, include_granted_scopes: false,
       callback: r => {
         clearTimeout(timer)
-        if (r.error || !r.access_token || !oauth.hasGrantedAllScopes(r, DRIVE_SCOPE)) return fail('google-denied')
+        if (r.error || !r.access_token || !oauth.hasGrantedAllScopes(r, scope)) return fail('google-denied')
         resolve({ token: r.access_token, expiresAt: Date.now() + Number(r.expires_in || 0) * 1000 })
       },
       error_callback: () => fail('google-popup'),

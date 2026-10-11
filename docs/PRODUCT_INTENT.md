@@ -28,3 +28,9 @@ not provide the Node account, Coach, push or uploaded-media backend. Coach is de
 original Uplift cloud data graph. See ADRs [001](decisions/001-uplift-watch-and-oauth.md) and
 [002](decisions/002-uplift-visual-identity.md) and
 [003](decisions/003-explicit-workout-views.md).
+
+Updates wait for an explicit Update action and verified local saves. Watch pairing recovery preserves
+queued results and never imports the original application's history. Dynamic gym check-in stays in the
+owner's official gym app, reached through a saved shortcut. StrongLifts CSV and Drive plan/backup imports
+preview before changing data; historical exports must not seed new working loads. Personal coaching plans
+remain private and distinguish source evidence from symptom-dependent assumptions. See ADR 006.

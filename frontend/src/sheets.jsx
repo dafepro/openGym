@@ -31,7 +31,8 @@ import MuscleExplorer from './components/MuscleExplorer.jsx'
 import ExerciseViewToggle from './components/ExerciseViewToggle.jsx'
 import { sameMuscleFirst, swapMuscleOf } from './lib/similar-exercises.js'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
-import { parseImport, mergeImport } from './lib/import-csv.js'
+import { parseImport, mergeImport, importedWorkoutExists } from './lib/import-csv.js'
+import { importFromDrive } from './components/DriveImport.jsx'
 import { importHevyData, HevyApiError, HEVY_DEV_SETTINGS, mergeHevyRoutines } from './lib/import-hevy.js'
 import { buildPlanBundle, parsePlan, mergePlan, printPlan, planPrintHTML } from './lib/plan-share.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP, formulaOf, FORMULA_NAMES } from './lib/onerm.js'
@@ -423,8 +424,9 @@ function ImportSummary({ parsed, close }) {
   const isBW = parsed.kind === 'bodyweight'
   const have = isBW
     ? parsed.bodyweight.filter(b => st.bodyweight.some(x => x.d === b.d)).length
-    : parsed.workouts.filter(w => st.workouts.some(x => x.d === w.d)).length
-  const fresh = (isBW ? parsed.bodyweight.length : parsed.workouts.length) - have
+    : parsed.workouts.filter(w => importedWorkoutExists(st.workouts, w, parsed.source)).length
+  const freshBody = !isBW ? (parsed.bodyweight || []).filter(b => !st.bodyweight.some(x => x.d === b.d)).length : 0
+  const fresh = (isBW ? parsed.bodyweight.length : parsed.workouts.length) - have + freshBody
 
   const doImport = () => {
     let res
@@ -432,7 +434,8 @@ function ImportSummary({ parsed, close }) {
     close()
     toast(isBW
       ? tn('{0} weigh-in imported', '{0} weigh-ins imported', res.added)
-      : tn('{0} workout imported', '{0} workouts imported', res.added))
+      : [tn('{0} workout imported', '{0} workouts imported', res.added),
+        res.bodyweightAdded ? tn('{0} weigh-in imported', '{0} weigh-ins imported', res.bodyweightAdded) : null].filter(Boolean).join(' · '))
   }
 
   return <>
@@ -453,6 +456,9 @@ function ImportSummary({ parsed, close }) {
       </>}
     </div>
 
+    {freshBody > 0 && <div className="small dim" style={{ marginBottom: 10 }}>
+      {t('Weigh-ins')}: {parsed.bodyweight.length} · {t('New')}: {freshBody}
+    </div>}
     {parsed.mixedUnits ? <div className="small" style={{ color: 'var(--yellow)', marginBottom: 10 }}>
       {t('The file mixes kg and lb, so each set is converted to {0}.', st.unit)}
     </div> : parsed.converted ? <div className="small" style={{ color: 'var(--yellow)', marginBottom: 10 }}>
@@ -496,7 +502,7 @@ export function importFromApp(file, onDone) {
   rd.onload = () => {
     let parsed
     try { parsed = parseImport(String(rd.result), { unit: S().unit, customEx: S().customEx }) }
-    catch (e) { toast(t('Could not read that file')); return }
+    catch (e) { toast(t(e.message || 'Could not read that file')); return }
     if (parsed.error === 'empty') { toast(t('That file is empty')); return }
     if (parsed.error) { toast(t("We don't recognise that file's columns. Check the docs for supported apps.")); return }
     if (parsed.kind === 'bodyweight' ? !parsed.bodyweight.length : !parsed.workouts.length) {
@@ -504,6 +510,24 @@ export function importFromApp(file, onDone) {
     }
     ui().openSheet(close => <ImportSummary parsed={parsed} close={close} />)
     onDone && onDone()
+  }
+  rd.onerror = () => toast(t('Could not read that file'))
+  rd.readAsText(file)
+}
+
+export function importDataFile(file, onRead, onBackup) {
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) { toast(t('That file is too large. Maximum 5 MB.')); return }
+  const rd = new FileReader()
+  rd.onload = () => {
+    try {
+      const text = String(rd.result)
+      if (/^\s*\{/.test(text)) {
+        if (JSON.parse(text).opengym_plan !== 1 && onBackup) { onRead?.(); void onBackup(file); return }
+        const plan = parsePlan(text, S().unit || 'kg')
+        onRead?.(); planImportSheet(plan)
+      } else { onRead?.(); importFromApp(file) }
+    } catch (e) { toast(t(e.message || 'Could not read that file')) }
   }
   rd.onerror = () => toast(t('Could not read that file'))
   rd.readAsText(file)
@@ -2165,6 +2189,7 @@ function PlanTools({ close }) {
     <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('A clean printout, one page per plan. No exercise ever gets split across pages.')}</div>
     {!hasRoutines && <div className="dim small" style={{ margin: '12px 2px 0' }}>{t('Add an exercise to a routine first. An empty plan has nothing to share.')}</div>}
     <h4 className="sec">{t('Got a plan from a friend?')}</h4>
+    <Button variant="tinted" icon="cloud" onClick={importFromDrive}>{t('Import from Google Drive')}</Button>
     <Button variant="ghost" icon="download" onClick={() => fileRef.current?.click()}>{t('Import a plan file')}</Button>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
   </>
@@ -2678,7 +2703,7 @@ export const workoutDetailSheet = w => ui().openSheet(close => <WorkoutDetail w=
 /* ============================ calendar ============================ */
 function Calendar({ start, close }) {
   const st = useStore(s => s.S)
-  const [cur, setCur] = useState(() => { const d = start ? new Date(start) : new Date(); d.setDate(1); return d })
+  const [cur, setCur] = useState(() => { const d = start ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(start) ? start + 'T12:00:00' : start) : new Date(); d.setDate(1); return d })
   const y = cur.getFullYear(), mo = cur.getMonth()
   const byDay = {}
   st.workouts.forEach(w => {

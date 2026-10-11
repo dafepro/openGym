@@ -24,6 +24,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Modals from './components/Modals.jsx'
 import Toast from './components/Toast.jsx'
 import SyncBanner from './components/SyncBanner.jsx'
+import AppUpdate from './components/AppUpdate.jsx'
 import RestTimer from './components/RestTimer.jsx'
 import TimerFlash from './components/TimerFlash.jsx'
 import useFocusHistory from './components/useFocusHistory.js'
@@ -204,6 +205,7 @@ function Shell() {
       {/* keyed on the route: a view that throws is contained, and switching tabs
           re-mounts the boundary, so the tab bar is always a way out */}
       <div id="app">
+        <AppUpdate />
         <ErrorBoundary key={loc.pathname}>
           {!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
             <div className="vfade" key={loc.pathname}><Routes>

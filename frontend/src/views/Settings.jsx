@@ -43,6 +43,7 @@ import { durationSheet } from '../components/DurationWheel.jsx'
 import { showsConnection, showsLocalLine } from '../components/SyncBanner.jsx'
 import BackupFolderRow, { useBackupFolder, autoBackupSubtitle } from '../components/BackupFolderRow.jsx'
 import GarminSection from '../components/GarminSync.jsx'
+import { importFromDrive } from '../components/DriveImport.jsx'
 import { withoutWatch } from '../lib/garmin.js'
 import CloudSyncSection, { cloudStatusLine } from '../components/CloudSync.jsx'
 import { useCloudSync } from '../store/useCloudSync.js'
@@ -800,9 +801,10 @@ export default function Settings({ page = null, find = null, via = null }) {
       </Section>
       {MOBILE && android && <HealthConnectCard S={S} toast={toast} />}
       <Section title={t('Bring data in')}>
+        <Row icon="cloud" iconTint="var(--blue)" title={t('Import from Google Drive')} subtitle={t('Plan files and workout exports')} accessory="chevron" onClick={() => importFromDrive({ onBackup: f => doImport({ target: { files: [f], value: '' } }) })} />
         <Row icon="download" iconTint="var(--teal)" title={t('Import backup')} accessory="chevron" onClick={() => fileRef.current.click()} />
         <Row icon="download" iconTint="var(--teal)" title={t('Import from another app')}
-          subtitle={t('FitNotes, Strong, Hevy, or body weight from Apple Health')}
+          subtitle={t('StrongLifts, FitNotes, Strong, Hevy, or Apple Health')}
           accessory="chevron" onClick={() => importRef.current.click()} />
         <Row icon="key" iconTint="var(--teal)" title={t('Import from Hevy')}
           subtitle={t('Pull your history with a Hevy Pro API key')}

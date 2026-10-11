@@ -23,6 +23,7 @@ import { uid } from './format.js'
 import { isWarmupRow } from './workout-model.js'
 import { HEVY_TITLE_MAP } from './hevy-id-map.js'
 import { clampIncline, inclineFrom } from './incline.js'
+import { isStrongLiftsHeader, parseStrongLifts } from './import-stronglifts.js'
 
 /* ----------------------------------------------------------------- CSV ---- */
 
@@ -761,6 +762,8 @@ const bodyOk = (w, u) => w > 0 && w <= (u === 'lb' ? MAX_BODY_KG / LB_TO_KG : MA
 export function parseImport(text, opts) {
   const s = String(text)
   if (s.includes('HKQuantityTypeIdentifier') || /^\s*</.test(s)) return parseBodyweight(s, opts)
+  const rows = parseCSV(s)
+  if (rows.length && isStrongLiftsHeader(rows[0])) return parseStrongLifts(rows, opts, { matchExercise, importId })
   const asWorkouts = parseWorkoutCSV(s, opts)
   if (!asWorkouts.error) return asWorkouts
   const asWeights = parseBodyweight(s, opts)
@@ -768,6 +771,9 @@ export function parseImport(text, opts) {
 }
 
 /* --------------------------------------------------------------- merge ---- */
+export const importedWorkoutExists = (existing, workout, source) => source === 'StrongLifts'
+  ? existing.some(x => x.id === workout.id || (x.d === workout.d && x.source !== 'StrongLifts'))
+  : existing.some(x => x.d === workout.d)
 
 /** Merge into state. Existing days win — importing twice never duplicates a workout. */
 export function mergeImport(S, parsed) {
@@ -789,7 +795,7 @@ export function mergeImport(S, parsed) {
     const same = S.customEx.find(x => x.id !== c.id && nameKey(x.n) === nameKey(c.n))
     if (same) exIdMap[c.id] = same.id
   })
-  const fresh = parsed.workouts.filter(w => !have.has(w.d))
+  const fresh = parsed.workouts.filter(w => !importedWorkoutExists(S.workouts, w, parsed.source))
     .map(w => ({ ...w, entries: w.entries.map(e => (exIdMap[e.id] ? { ...e, id: exIdMap[e.id] } : e)) }))
   const used = new Set(fresh.flatMap(w => w.entries.map(e => e.id)))
   // (one an earlier import of the same name already made has the same id now: kept once)
@@ -798,9 +804,16 @@ export function mergeImport(S, parsed) {
   S.customEx = [...S.customEx, ...customs]
   S.workouts = [...S.workouts, ...fresh].sort((a, b) => (a.d < b.d ? -1 : 1))
   // seed the weight suggestions from the newest imported set of each lift
-  fresh.forEach(w => w.entries.forEach(e => {
+  if (parsed.source !== 'StrongLifts') fresh.forEach(w => w.entries.forEach(e => {
     const mx = Math.max(0, ...e.sets.map(s => s.w || 0), e.topW || 0)
     if (mx > 0) { const cur = S.exWeights[e.id]; if (!cur || w.d >= cur.d) S.exWeights[e.id] = { w: mx, d: w.d } }
   }))
-  return { added: fresh.length, skipped: parsed.workouts.length - fresh.length }
+  let bodyweightAdded = 0
+  if (parsed.source === 'StrongLifts' && parsed.bodyweight?.length) {
+    const haveBody = new Set((S.bodyweight || []).map(b => b.d))
+    const newBody = parsed.bodyweight.filter(b => !haveBody.has(b.d))
+    S.bodyweight = [...(S.bodyweight || []), ...newBody].sort((a, b) => a.d.localeCompare(b.d))
+    bodyweightAdded = newBody.length
+  }
+  return { added: fresh.length, skipped: parsed.workouts.length - fresh.length, ...(parsed.source === 'StrongLifts' ? { bodyweightAdded } : {}) }
 }

@@ -1325,6 +1325,15 @@ export const useStore = create((set, get) => {
       if (get().user && get().user.id !== owner) return null
       return owner
     },
+    async saveForUpdate() {
+      // Retry a refused local write before any update can reload the app. The
+      // ordinary persistence boundary joins concurrent tabs and preserves owners.
+      if (get().cloudSyncOwner() === null) throw new Error('Finish switching profiles before updating.')
+      persist(get().S, false, false)
+      if (get().cloudSyncOwner() === null) throw new Error('Finish switching profiles before updating.')
+      if (storeLag) throw new Error('Could not save locally. Export a backup before updating.')
+      if (MOBILE) await nativePersist(true)
+    },
     mergeCloudState(remote) {
       if (get().cloudSyncOwner() === null) return
       const local = get().S

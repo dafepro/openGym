@@ -128,3 +128,22 @@ resolve exercises through the same generated lookup, `frontend/src/lib/hevy-id-m
 for the API, English title for the CSV). To regenerate it, set `HEVY_API_KEY` in the environment or
 `.env` and run `node scripts/build-hevy-id-map.mjs`. Localised (non-English) Hevy titles fall back
 to name matching.
+
+## StrongLifts and Google Drive
+
+StrongLifts → Settings → Export Data supplies a CSV with one exercise per row and set-specific
+Reps/LBS/KG/Time columns. Import it through **Import from another app**. Uplift preserves blank
+vs zero-rep vs timed results, recorded loads/units and notes. Same-day sessions remain separate;
+repeat imports deduplicate by stable identity. Invalid or mixed rep/time sets are refused with an
+explanation. StrongLifts history does not prescribe current working weights or progression.
+
+**Import from Google Drive** accepts exported plan JSON, workout CSV/XML and, in Settings, backup
+JSON. Choose Drive from your phone's file picker, or use a file link with separate read-only Google
+consent. The link flow fetches only your selected file (maximum 5 MB), with its temporary token
+kept in memory; this is not Drive sync. Native Google Sheets/Docs must be exported first.
+Plans open a merge/schedule preview; backups use the existing confirmed replacement/recovery flow.
+Personal files are never embedded in the published app.
+
+StrongLifts body-weight columns are converted independently of lifting units. The latest logged
+measurement per day is previewed and imported; existing weigh-ins are retained. Re-importing
+workouts can add missing weigh-ins without duplicating workout history.

@@ -288,6 +288,9 @@ h4.sec{
 
 /* ------------------------------------------------------ inset group list -- */
 .sect{margin-bottom:22px}
+.ci-app { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px 12px; text-align: center; }
+.ci-app > svg { width: 72px; height: 72px; color: var(--acc); }
+.ci-app .btn { margin-top: auto; width: 100%; }
 .sect-t{
   font-size:13px;font-weight:400;color:var(--label-2);
   letter-spacing:-.004em;padding:0 4px 7px;display:block;

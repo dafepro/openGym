@@ -1,5 +1,33 @@
 // Korean UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // New release wording: explicit English fallback pending translation review.
+  "Add gym app": "Add gym app",
+  "App or website link": "App or website link",
+  "App update": "App update",
+  "Choose Google Drive in your phone’s file picker. Plans, backups (.json) or workout exports (.csv). Review before importing.": "Choose Google Drive in your phone’s file picker. Plans, backups (.json) or workout exports (.csv). Review before importing.",
+  "Choose file": "Choose file",
+  "Dynamic codes stay in your gym app. Uplift saves a shortcut, not your gym login or QR code.": "Dynamic codes stay in your gym app. Uplift saves a shortcut, not your gym login or QR code.",
+  "Get the current check-in code in your gym app.": "Get the current check-in code in your gym app.",
+  "Google Drive file link": "Google Drive file link",
+  "Google grants read-only Drive access. Uplift downloads only this file. This does not enable sync.": "Google grants read-only Drive access. Uplift downloads only this file. This does not enable sync.",
+  "Gym app": "Gym app",
+  "Import from Google Drive": "Import from Google Drive",
+  "Keep Garmin Connect open and connected. If the watch still uses the old app, release its pairing here on the phone that originally paired it.": "Keep Garmin Connect open and connected. If the watch still uses the old app, release its pairing here on the phone that originally paired it.",
+  "New Uplift ready": "New Uplift ready",
+  "Old pairing released. Open Garmin Connect, then Uplift on the watch. Press BACK, then START when Pair again appears.": "Old pairing released. Open Garmin Connect, then Uplift on the watch. Press BACK, then START when Pair again appears.",
+  "Plan files and workout exports": "Plan files and workout exports",
+  "Release old pairing": "Release old pairing",
+  "Release old watch pairing?": "Release old watch pairing?",
+  "Release pairing": "Release pairing",
+  "StrongLifts, FitNotes, Strong, Hevy, or Apple Health": "StrongLifts, FitNotes, Strong, Hevy, or Apple Health",
+  "Sync any queued entries with the old app first. This releases its relay connection. Local workouts and the watch queue are kept.": "Sync any queued entries with the old app first. This releases its relay connection. Local workouts and the watch queue are kept.",
+  "That file is too large. Maximum 5 MB.": "That file is too large. Maximum 5 MB.",
+  "Use a Drive link": "Use a Drive link",
+  "Use a secure https:// link.": "Use a secure https:// link.",
+  "Use your gym app for a changing QR code. Save a card here only when its code stays the same.": "Use your gym app for a changing QR code. Save a card here only when its code stays the same.",
+  "When the watch shows Pair again: press BACK to leave its menu, then START. Enter the new eight-character code here and confirm the four digits on the watch.": "When the watch shows Pair again: press BACK to leave its menu, then START. Enter the new eight-character code here and confirm the four digits on the watch.",
+  "After updating the beta in Garmin Connect, open the watch menu with BACK, select Pair again with UP/DOWN, then START. Queued results stay on the watch.": "After updating the beta in Garmin Connect, open the watch menu with BACK, select Pair again with UP/DOWN, then START. Queued results stay on the watch.",
+
   "Saved on this device.": "이 기기에 저장됨.",
   // Workout layout switch
   "Workout details": "운동 상세",

@@ -69,6 +69,7 @@ function convertedBundle(bundle, destinationUnit) {
 // Keep only the meaningful config fields, so the file stays small and readable.
 function cleanEx(e) {
   const o = { id: e.id, sets: e.sets }
+  if (e.historyScope === 'routine') o.historyScope = 'routine'
   const mode = modeOf(e)
   if (mode === 'cardio') {
     if (e.min != null) o.min = e.min

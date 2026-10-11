@@ -8,6 +8,9 @@
 .watch-handoff > .btn { margin-bottom: 10px; }
 @media (prefers-reduced-motion: reduce) { .watch-handoff summary svg:last-child { transition: none; } }
 
+.garmin-guide { padding: 0 16px 12px; min-width: 0; overflow-wrap: anywhere; }
+.garmin-guide > p { margin: 8px 0 12px; line-height: 1.5; }
+.garmin-guide > .lrow { padding-inline: 0; }
 .garmin-guide > summary { display: flex; align-items: center; gap: 8px; min-height: 48px; cursor: pointer; list-style: none; }
 .garmin-guide > summary::-webkit-details-marker, .watch-handoff > summary::-webkit-details-marker { display: none; }
 .garmin-guide > summary span { flex: 1; }

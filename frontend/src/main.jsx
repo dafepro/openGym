@@ -6,6 +6,7 @@ import { useStore } from './store/useStore.js'
 import { startMediaSync } from './lib/media-sync.js'
 import { startGarminSync } from './store/useGarminSync.js'
 import { startCloudSync } from './store/useCloudSync.js'
+import { startAppUpdates } from './store/useAppUpdates.js'
 import { startNativeKeyboard } from './lib/native-keyboard.js'
 import './index.css'
 import './uplift-theme.css'
@@ -29,7 +30,7 @@ startNativeKeyboard()
 
 // Not in the mobile build: the native shell already serves everything from disk.
 if (!MOBILE && 'serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('sw.js').catch(() => {})
+  void startAppUpdates()
   // The plan's exercise media, kept by the worker for a workout opened without a network (#281).
   // It only fetches ahead while the page runs as the installed app; a tab keeps what it has shown.
   import('./lib/media-prefetch.js').then(m => m.startMediaPrefetch(useStore)).catch(() => {})

@@ -90,7 +90,10 @@ async function precache() {
 }
 
 self.addEventListener('install', e => {
-  e.waitUntil(precache().then(() => self.skipWaiting()))
+  e.waitUntil(precache().then(() => { if (!self.registration.active) return self.skipWaiting() }))
+})
+self.addEventListener('message', e => {
+  if (e.data?.type === 'UPLIFT_ACTIVATE') e.waitUntil(self.skipWaiting())
 })
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {

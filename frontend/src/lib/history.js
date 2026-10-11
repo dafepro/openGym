@@ -368,6 +368,7 @@ function lastEntryIn(S, exId, rid) {
   const workouts = S.workouts || []
   for (let i = workouts.length - 1; i >= 0; i--) {
     const w = workouts[i]
+    if (w.source === 'StrongLifts') continue // Imported records are not a current load prescription.
     const en = entryIn(w, exId, rid)
     if (!en) continue
     // A session that does not count — a planned deload, or a rehab block merged into a real

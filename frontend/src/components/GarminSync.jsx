@@ -6,6 +6,8 @@ import { watchSnapshot } from '../lib/garmin.js'
 import { t } from '../lib/i18n.js'
 import { DEMO } from '../lib/demo.js'
 import { MOBILE } from '../lib/mobile.js'
+import { legacyWatchConnection, releaseLegacyWatch } from '../lib/legacy-watch.js'
+import { garminRequest } from '../store/useGarminSync.js'
 import { Section, Row, Button, TextField, Switch } from './ui.jsx'
 import { confirmSheet } from '../sheets.jsx'
 import Icon from './Icon.jsx'
@@ -62,13 +64,24 @@ function exportReviews(review) {
 }
 export default function GarminSection() {
   const bridge = useGarminSync(), S = useStore(s => s.S), ui = useUI()
+  const [legacy, setLegacy] = useState(false)
+  const [repairing, setRepairing] = useState(false)
+  const [released, setReleased] = useState(false)
   useEffect(() => { void bridge.checkServer() }, [])
+  useEffect(() => { let live = true; legacyWatchConnection().then(c => { if (live) setLegacy(!!c) }).catch(() => {}); return () => { live = false } }, [])
   if (DEMO) return null
   const c = bridge.device.connection, review = S._watch?.review || []
   const pair = () => useUI.getState().openSheet(close => <PairWatchSheet close={close} />)
   const disconnect = () => confirmSheet({ title: t('Disconnect watch?'),
     message: t('Queued entries may still be on the watch. Sync first. Local workouts and review entries are kept.'),
     confirmText: t('Disconnect'), onConfirm: () => bridge.disconnect().catch(toastError) })
+  const repair = () => confirmSheet({ title: t('Release old watch pairing?'),
+    message: t('Sync any queued entries with the old app first. This releases its relay connection. Local workouts and the watch queue are kept.'),
+    confirmText: t('Release pairing'), onConfirm: async () => {
+      setRepairing(true)
+      try { await releaseLegacyWatch(garminRequest); setReleased(true) } catch (e) { toastError(e) }
+      finally { setRepairing(false) }
+    } })
   return <Section title={t('Garmin watch')} footer={t('Keep the phone app open to receive watch entries. Saved on phone is separate from Google Drive sync.')}>
     <Row icon="clock" iconTint="var(--blue)" title={t('Uplift watch companion')}
       subtitle={MOBILE ? t('Use the watch companion in the browser or installed PWA.') : t('Forerunner 245 Music · reps, warm-ups and rest')} />
@@ -85,7 +98,11 @@ export default function GarminSection() {
         <Row title={t('Rest alert')}><Switch checked={bridge.device.preferences.restAlert} disabled={bridge.busy} onChange={restAlert => bridge.setPreferences({ restAlert })} /></Row>
       </details>
     </>}
-    <details className="garmin-guide"><summary><span>{t('Watch guide')}</span><Icon name="chevronDown" /></summary><p className="small muted">{t('Use your existing Uplift Garmin app. Disconnect its old phone pairing and generate a new code for openGym.')}</p>
+    <details className="garmin-guide"><summary><span>{t('Watch guide')}</span><Icon name="chevronDown" /></summary><p className="small muted">{t('Keep Garmin Connect open and connected. If the watch still uses the old app, release its pairing here on the phone that originally paired it.')}</p>
+      {legacy && !released && <Button icon="reset" disabled={repairing || bridge.busy} onClick={repair}>{t('Release old pairing')}</Button>}
+      <p className="small muted">{t('After updating the beta in Garmin Connect, open the watch menu with BACK, select Pair again with UP/DOWN, then START. Queued results stay on the watch.')}</p>
+      <p className="small muted">{t('When the watch shows Pair again: press BACK to leave its menu, then START. Enter the new eight-character code here and confirm the four digits on the watch.')}</p>
+      {released && <p role="status">{t('Old pairing released. Open Garmin Connect, then Uplift on the watch. Press BACK, then START when Pair again appears.')}</p>}
       <p className="small muted">{t('Configure on phone. Unsupported workouts stay on phone. Unreceived entries stay queued on your watch.')}</p>
       <p className="small muted">{t('Follow the phone’s warm-up rest timer. The watch does not time rest between warm-ups.')}</p>
       <a href="https://github.com/dafepro/openGym/blob/codex/focused-workout-overlay/docs/GARMIN.md" target="_blank" rel="noopener noreferrer">{t('Setup guide')}</a>

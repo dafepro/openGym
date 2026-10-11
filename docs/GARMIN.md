@@ -2,12 +2,12 @@
 
 **Settings → Data & backup → Garmin watch** connects the existing Uplift Connect IQ app on the Forerunner 245 Music. The phone and watch interfaces are both branded Uplift; the phone is powered by openGym.
 
-The existing companion targets `https://uplift.quicktrack.cc/api/garmin/`. The prepared Cloudflare config preserves the original Worker and relay resource identities. This branch has **not** replaced the live site. A watch cannot reach a laptop's localhost. Pairing is available locally for protocol testing; real-watch testing requires an owner-approved HTTPS deployment.
+The existing companion targets `https://uplift.quicktrack.cc/api/garmin/`. The deployed Cloudflare app preserves the original Worker and relay resource identities. A watch cannot reach a laptop's localhost; physical pairing uses the HTTPS production site.
 
 ## Pair and train
 
 1. Drain/export any queued results in the original Uplift app before switching.
-2. Disconnect the old watch pairing. Open Uplift on the watch and generate a fresh eight-character code.
+2. Sync the existing Connect IQ beta update (0.4.1-beta.1). Open Uplift on the watch, press BACK, select **Pair again** with UP/DOWN and press START. Confirm **Get new code**; queued results and the cached workout remain on the watch. With older firmware, Settings → Watch guide → **Release old pairing** on the original phone browser can revoke the old relay. After the watch reports Pair again, BACK leaves its menu and START generates a code.
 3. In openGym choose **Pair watch**, enter the code, and confirm the matching four digits on the watch.
 4. Start/configure the workout on the phone. Keep the phone app visible to transfer entries. Garmin Connect must remain installed and connected to the watch.
 5. Use the existing physical-button controls for preparation, warm-ups, reps, station selection, skip rest, next exercise and confirmed finish. Loads/targets stay configured on phone.
@@ -24,7 +24,7 @@ Warm-up recovery has a firmware limitation: the existing companion projects warm
 
 Conflicting/stale entries preserve phone results and enter **Watch entries need review**. Export that inbox before dismissing rows; make corrections in the phone workout/history editor. Old undo commands are reviewed instead of rewriting results. A full review inbox leaves additional entries unacknowledged on the watch. Workouts and saved timestamps survive retries; elapsed rest does not restart on late delivery.
 
-Credentials live only in `gym_garmin_device_v1`. Results and bounded local receipts/reviews save together in `gym_state_v1`; `_watch` is excluded from Drive, account-server writes and ordinary backup exports. Explicit review exports contain only the entries the user chooses to export. Original Uplift data/credentials are neither imported nor erased.
+Credentials live only in `gym_garmin_device_v1`. Results and bounded local receipts/reviews save together in `gym_state_v1`; `_watch` is excluded from Drive, account-server writes and ordinary backup exports. Explicit review exports contain only the entries the user chooses to export. Original Uplift history is neither imported nor erased. Explicit legacy-pairing recovery reads only the original device credential to revoke its relay, leaving that database intact.
 
 ## Local runtime and deployment candidate
 
