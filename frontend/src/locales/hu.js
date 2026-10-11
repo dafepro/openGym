@@ -1,5 +1,9 @@
 // Hungarian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Workout layout switch
+  "Workout details": "Edzés részletei",
+  "Focused": "Fókusz",
+
   // Uplift identity and fork releases
   "Powered by {0}": "A {0} alapjain",
   "Releases": "Kiadások",

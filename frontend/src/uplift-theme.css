@@ -117,7 +117,7 @@ body {
 .wf-rep-glow { background: radial-gradient(ellipse,var(--acc-soft),transparent 70%); }
 .wf-page[data-warmup="true"] .wf-rep-glow { background: radial-gradient(ellipse,color-mix(in srgb,var(--purple) 16%,transparent),transparent 70%); }
 .wf-prep>.wf-fields { border-radius: 24px; box-shadow: inset 0 0 0 1px var(--sep); }
-.wf-view-toggle,.wf-finish,.wf-disclosure,.wf-stations>button { box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--sep) 80%,transparent); }
+.wf-view-toggle,.wf-disclosure,.wf-stations>button { box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--sep) 80%,transparent); }
 .wf-primary { font-weight: 600; box-shadow: inset 0 1px 0 #ffffff24,0 6px 22px color-mix(in srgb,var(--wf-accent) 9%,transparent); }
 .wf-expander { transition: grid-template-rows var(--med) var(--ease),opacity var(--fast) var(--ease); }
 .wf-expander>div { transition-duration: var(--med); }

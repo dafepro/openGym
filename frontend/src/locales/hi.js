@@ -1,5 +1,9 @@
 // Hindi UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Workout layout switch
+  "Workout details": "वर्कआउट विवरण",
+  "Focused": "फ़ोकस",
+
   // Uplift identity and fork releases
   "Powered by {0}": "{0} द्वारा संचालित",
   "Releases": "रिलीज़",

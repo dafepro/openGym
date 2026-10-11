@@ -32,7 +32,7 @@ import { afterScrollRestore, scrollRestorePending } from '../components/Modals.j
 import { effortColor } from '../lib/effort.js'
 import Elapsed from '../components/Elapsed.jsx'
 import Icon from '../components/Icon.jsx'
-import { Button, Check, NumberField } from '../components/ui.jsx'
+import { Button, Check, NumberField, Segmented } from '../components/ui.jsx'
 import { defaultIncrement, weightIncrement, stepWeight } from '../lib/progression.js'
 import { progressionGuidance } from '../lib/progression-copy.js'
 import { buildPlannedEntry, plannedConfigOf, builtOutOfProgression } from '../lib/session-start.js'
@@ -1925,10 +1925,8 @@ function ActiveWorkout({ hidden = false }) {
   }, [])
 
   return <>{!hidden && <WorkoutScrollAnchor enabled={collapseOn} collapsed={[...collapsed].join(',')}>
-    {/* In list mode the whole session scrolls under the header, so the header (name, clock,
-        set counter, discard/finish, progress) stays pinned — the one thing you want in view
-        while you are somewhere in the middle of a long stack. Cards mode never scrolls far. */}
-    <div className={'whdr' + (listMode ? ' stick' : '')} ref={hdrRef}>
+    {/* The live workout keeps its name, Finish and view switch pinned in every layout. */}
+    <div className={'whdr' + (listMode || !editing && !A.backfill ? ' stick' : '')} ref={hdrRef}>
     {/* The tab bar owns leaving a live session;
         in the editor of a saved workout it is the ✕ that closes the editor. Discard is in the ⋯
         menu now, and Finish is a labelled pill rather than a check that looked like a set tick: it
@@ -1938,17 +1936,19 @@ function ActiveWorkout({ hidden = false }) {
         ? <button className="iconbtn" aria-label={t('Close editor')} title={t('Close editor')} onClick={() => exitWorkoutEdit()}><Icon name="xmark" /></button>
         : null}
       <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) : <Elapsed start={A.start} />} · {t('{0} sets', done + '/' + total)}</div></div>
-      {!editing && !A.backfill && <button className={'iconbtn whdr-layout' + (focusMode ? ' is-focus' : '')}
-        aria-label={focusMode ? LAYOUT_LABEL[previousLayout.current] : t('Focus')}
-        title={focusMode ? LAYOUT_LABEL[previousLayout.current] : t('Focus')}
-        onClick={() => setWorkoutView(focusMode ? previousLayout.current : 'focus')}>
-        <Icon name={focusMode ? (previousLayout.current === 'cards' ? 'layout' : previousLayout.current) : 'target'} />
-      </button>}
       <button className="iconbtn" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
-      {!immersiveFocus && <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
-        onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>}
+      <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : t('Finish workout')}
+        onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>
     </div>
     <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>
+    {!editing && !A.backfill && <div className="whdr-views" role="group" aria-label={t('Layout')}>
+      <Segmented value={focusMode ? 'focus' : 'details'} options={[
+        { value: 'details', label: t('Workout details') },
+        { value: 'focus', label: t('Focused') },
+      ]} onChange={value => {
+        if ((value === 'focus') !== focusMode) setWorkoutView(value === 'focus' ? 'focus' : previousLayout.current)
+      }} />
+    </div>}
     {/* In the list the chips ride in the pinned header, so any exercise is one tap away from
         anywhere in a long stack. */}
     {listMode && chipRow}
@@ -1958,7 +1958,7 @@ function ActiveWorkout({ hidden = false }) {
 
     {immersiveFocus ? <WorkoutFocus entryIdx={cur} unit={unit}
       onSelectEntry={selectFocusEntry} onAdvanceUnit={advanceFocusUnit} controlsForEntry={blockProps} onAddExercise={addExercise}
-      {...blockProps(cur)} onFinish={() => finishWorkoutSheet({ onDiscard: discardWorkout })} /> : <>
+      {...blockProps(cur)} /> : <>
     {A.entries.length ? (listMode ? (
       <div className="workout-list" data-testid="workout-list" ref={listRef}>
         {units.map((u, ui) => {

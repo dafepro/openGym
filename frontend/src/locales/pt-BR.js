@@ -4,6 +4,10 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  // Workout layout switch
+  "Workout details": "Detalhes do treino",
+  "Focused": "Foco",
+
   // Uplift identity and fork releases
   "Powered by {0}": "Com tecnologia {0}",
   "Releases": "Versões",

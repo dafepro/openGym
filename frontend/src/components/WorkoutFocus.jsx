@@ -35,7 +35,7 @@ function Disclosure({ name, label, icon, pane, disclose, children }) {
 
 export default function WorkoutFocus({
   entryIdx, unit, controlsForEntry, onSelectEntry, onAdvanceUnit,
-  onToggle, onToggleSide, onField, onSideField, onMutateSet, onStartTimed, onFinish, onAddExercise,
+  onToggle, onToggleSide, onField, onSideField, onMutateSet, onStartTimed, onAddExercise,
 }) {
   const S = useStore(s => s.S)
   useLang()
@@ -236,7 +236,6 @@ export default function WorkoutFocus({
         </div>}
         <button type="button" className="wf-view-toggle" aria-label={t(view === 'workout' ? 'Live' : 'Workout')} aria-expanded={view === 'workout'} aria-controls={id + '-panel'} onClick={() => useUI.setState({ focusView: view === 'workout' ? 'live' : 'workout', focusPane: null, focusDetailsOpen: view !== 'workout' })}><Icon name={view === 'workout' ? 'target' : 'list'} /><span>{t(view === 'workout' ? 'Live' : 'Workout')}</span></button>
         <button type="button" className="wf-primary" disabled={primary.disabled} onClick={primary.run}><Icon name={primary.icon} /><span>{primary.label}</span></button>
-        <button type="button" className="wf-finish" aria-label={t('Finish workout')} onClick={onFinish}><Icon name="flag" /><span>{t('Finish')}</span></button>
       </div>
     </section>
 }

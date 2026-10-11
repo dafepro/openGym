@@ -62,8 +62,11 @@ describe('the focus workspace across routes', () => {
     const workouts = structuredClone(useStore.getState().S.workouts)
     const work = useUI.getState().work
     const rest = useUI.getState().timer
-    const finish = dock.querySelector('.wf-finish')
-    await tap(dock, 'Finish workout')
+    const header = document.querySelector('.whdr')
+    const finish = header.querySelector('.whdr-finish')
+    expect(document.querySelectorAll('.whdr-finish')).toHaveLength(1)
+    expect(dock.querySelector('.wf-finish')).toBeNull()
+    await tap(header, 'Finish workout')
     expect([...document.querySelectorAll('h3')].some(el => el.textContent === (phase === 'rest' ? 'Finish early?' : 'Nothing logged yet'))).toBe(true)
     expect(document.body.textContent).toContain('Finish and save')
     expect(useStore.getState().S.active).toEqual(active)
@@ -72,7 +75,7 @@ describe('the focus workspace across routes', () => {
     expect(useUI.getState().timer).toBe(rest)
     await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
     expect(useUI.getState().sheets).toHaveLength(0)
-    expect(dock.querySelector('.wf-finish')).toBe(finish)
+    expect(header.querySelector('.whdr-finish')).toBe(finish)
     expect(dock.dataset.phase).toBe(phase)
     expect(useStore.getState().S.active).toEqual(active)
     expect(useUI.getState().work).toBe(work)

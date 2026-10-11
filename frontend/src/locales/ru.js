@@ -1,5 +1,9 @@
 // Russian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Workout layout switch
+  "Workout details": "Детали тренировки",
+  "Focused": "Фокус",
+
   // Uplift identity and fork releases
   "Powered by {0}": "На базе {0}",
   "Releases": "Версии",

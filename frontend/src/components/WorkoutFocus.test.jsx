@@ -97,7 +97,6 @@ function mount(entries = [squat()], state = {}, strict = false) {
         calls.onToggle(i, onProgress)
       }, { idx, i, id: active.entries[idx].id })
     }),
-    onFinish: vi.fn(),
     onAddExercise: vi.fn(),
   }
   function Harness() {
@@ -137,11 +136,11 @@ afterEach(() => {
 })
 
 describe('the workout focus layout', () => {
-  it('keeps the current action while switching flat views and shows only three rail controls', () => {
+  it('keeps the current action while switching flat views and leaves Finish to the workout header', () => {
     mount(); open(); prepare()
     const rail = document.querySelector('.wf-actions')
     const action = button('Done')
-    expect([...rail.querySelectorAll('button')].map(b => b.textContent)).toEqual(['Workout', 'Done', 'Finish'])
+    expect([...rail.querySelectorAll('button')].map(b => b.textContent)).toEqual(['Workout', 'Done'])
     tap('Workout')
     expect(button('Live')).toBeTruthy()
     expect(button('Done')).toBe(action)
@@ -152,32 +151,13 @@ describe('the workout focus layout', () => {
     expect(row().done).toBe(false)
   })
 
-  it('keeps one Finish control in the same rail slot across phases, views and disclosures', () => {
-    mount([squat([{ w: 95, r: 5, done: false }, { w: 95, r: 5, done: false }])])
-    const finish = button('Finish workout')
-    const expectFinish = () => {
-      expect(button('Finish workout')).toBe(finish)
-      expect(finish.closest('.wf-actions')).toBeTruthy()
-      expect(document.querySelectorAll('.wf-finish')).toHaveLength(1)
-      const before = clone(useStore.getState().S.active)
-      tap('Finish workout')
-      expect(useStore.getState().S.active).toEqual(before)
-    }
-    expectFinish() // preparation
-    prepare(); expectFinish() // set entry
-    tap('Details'); expectFinish(); tap('Details')
-    tap('Workout'); expectFinish(); tap('Live')
-    act(() => useUI.getState().startRest(90, 0, { forSet: 0 }))
-    const rest = clone(useUI.getState().timer)
-    expectFinish()
-    expect(useUI.getState().timer).toEqual(rest)
-    tap('Pause'); expectFinish(); tap('Skip rest')
-    act(() => changeActive(active => active.entries[0].sets.forEach(set => { set.done = true })))
-    expectFinish() // completion has Add exercise, with Finish still at the same anchor
+  it('keeps the completion action separate from finishing the workout', () => {
+    mount([squat([{ w: 95, r: 5, done: true }])])
     expect(document.querySelector('.wf-primary').textContent).toBe('Add exercise')
+    expect(button('Finish workout')).toBeUndefined()
     tap('Add exercise')
     expect(calls.onAddExercise).toHaveBeenCalledOnce()
-    expect(calls.onFinish).toHaveBeenCalledTimes(7)
+    expect(row().done).toBe(true)
     expect(calls.onToggle).not.toHaveBeenCalled()
   })
 
@@ -633,7 +613,60 @@ describe('the workout focus layout', () => {
     expect(row(0, 0).done).toBe(true)
     expect(row(0, 1).done).toBe(false)
     expect(row(0, 2).done).toBe(true)
-    expect(button('Finish workout')).toBeTruthy()
+    expect(document.querySelector('.wf-primary').textContent).toBe('Add exercise')
+  })
+
+  it('keeps one header Finish and preserves preparation, skipped warm-ups and rest across view changes', () => {
+    mount([squat([{ w: 20, r: 8, done: false, phase: 'warmup' }, { w: 95, r: 5, done: false }])])
+    act(() => changeActive(active => { active.workoutView = 'focus' }))
+    act(() => root.render(<MemoryRouter initialEntries={['/workout']}><Workout /></MemoryRouter>))
+    const finish = button('Finish workout')
+    expect(finish.closest('.whdr')).toBeTruthy()
+    expect(document.querySelector('.wf-finish')).toBeNull()
+    tap('Skip warm-ups'); prepare()
+    act(() => useUI.getState().startRest(60, 0))
+    tap('Pause')
+    const before = clone(useStore.getState().S.active)
+    const rest = useUI.getState().timer
+    const prepared = useUI.getState().focusPrepared
+    const skipped = useUI.getState().focusSkippedWarmups
+    tap('Details')
+    const details = tap('Workout details')
+    expect(details.getAttribute('aria-pressed')).toBe('true')
+    expect(document.querySelector('.wf-page')).toBeNull()
+    expect(button('Finish workout')).toBe(finish)
+    expect(useUI.getState().focusPane).toBeNull()
+    // Selecting the current view does not mutate the workout or timer.
+    tap('Workout details'); tap('Focused')
+    expect(button('Focused').getAttribute('aria-pressed')).toBe('true')
+    expect(button('Finish workout')).toBe(finish)
+    expect(useStore.getState().S.active).toEqual(before)
+    expect(useUI.getState().timer).toBe(rest)
+    expect(useUI.getState().focusPrepared).toBe(prepared)
+    expect(useUI.getState().focusSkippedWarmups).toBe(skipped)
+    tap('Finish workout')
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useStore.getState().S.active).toEqual(before)
+    expect(useUI.getState().timer).toBe(rest)
+  })
+
+  it('keeps a timed set attached to its original row while swapping layouts', () => {
+    mount([{ id: '1001', target: { mode: 'time', sets: 2, sec: 30 }, sets: [
+      { w: 0, sec: 30, done: false }, { w: 0, sec: 30, done: false },
+    ] }])
+    act(() => changeActive(active => { active.workoutView = 'focus' }))
+    act(() => root.render(<MemoryRouter initialEntries={['/workout']}><Workout /></MemoryRouter>))
+    tap('Start')
+    const work = useUI.getState().work
+    tap('Workout details'); tap('Focused')
+    expect(useUI.getState().work).toBe(work)
+    expect(row().done).toBe(false)
+    act(() => vi.advanceTimersByTime(30001))
+    expect(row()).toMatchObject({ sec: 30, done: true })
+    expect(row(0, 1).done).toBe(false)
+    expect(useUI.getState().work).toBeNull()
+    expect(useUI.getState().timer).toBeTruthy()
+    expect(document.querySelectorAll('.whdr-finish')).toHaveLength(1)
   })
 
   it('advances through the real workout controller and finishes after work sets with warm-ups unrecorded', () => {

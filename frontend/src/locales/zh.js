@@ -1,5 +1,9 @@
 // Simplified Chinese UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Workout layout switch
+  "Workout details": "训练详情",
+  "Focused": "专注",
+
   // Uplift identity and fork releases
   "Powered by {0}": "基于 {0}",
   "Releases": "版本",

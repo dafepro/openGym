@@ -1,4 +1,8 @@
 export default {
+  // Workout layout switch
+  "Workout details": "訓練詳情",
+  "Focused": "專注",
+
   // Uplift identity and fork releases
   "Powered by {0}": "基於 {0}",
   "Releases": "版本",

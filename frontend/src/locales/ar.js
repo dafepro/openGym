@@ -1,5 +1,9 @@
 // Arabic UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Workout layout switch
+  "Workout details": "تفاصيل التمرين",
+  "Focused": "التركيز",
+
   // Uplift identity and fork releases
   "Powered by {0}": "بدعم من {0}",
   "Releases": "الإصدارات",

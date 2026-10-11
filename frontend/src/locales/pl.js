@@ -1,5 +1,9 @@
 // Polish UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Workout layout switch
+  "Workout details": "Szczegóły treningu",
+  "Focused": "Skupienie",
+
   // Uplift identity and fork releases
   "Powered by {0}": "Wspierane przez {0}",
   "Releases": "Wydania",

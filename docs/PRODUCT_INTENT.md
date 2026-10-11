@@ -1,8 +1,10 @@
 # Uplift fork intent
 
 Uplift is a personal strength-training app powered by openGym. Keep the main gym workflow short,
-clear and practical with one hand. Focus shows the next action, with state transitions and Finish
-always near the bottom. Details expand from their toggle; that same button closes them. Keep
+clear and practical with one hand. Focus shows the next action, with state transitions near the
+bottom. The pinned workout header keeps Finish visible in both layouts. A full-width two-button
+switch below it explicitly selects Workout details or Focused, preserving the current set and
+timers. Details expand from their toggle; that same button closes them. Keep
 nonessential information behind a deliberate action and use short labels and intuitive icons.
 
 Use the original Uplift athletic visual system: charcoal/slate surfaces, pale lime actions,
@@ -22,4 +24,5 @@ rights to licensed exercise media; public distribution needs a separate media-pe
 Deployment remains a separate step. Publish only `frontend/dist`. Cloudflare/Drive hosting does
 not provide the Node account, Coach, push or uploaded-media backend. Do not silently migrate the
 original Uplift cloud data graph. See ADRs [001](decisions/001-uplift-watch-and-oauth.md) and
-[002](decisions/002-uplift-visual-identity.md).
+[002](decisions/002-uplift-visual-identity.md) and
+[003](decisions/003-explicit-workout-views.md).

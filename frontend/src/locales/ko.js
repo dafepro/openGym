@@ -1,5 +1,9 @@
 // Korean UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Workout layout switch
+  "Workout details": "운동 상세",
+  "Focused": "집중",
+
   // Uplift identity and fork releases
   "Powered by {0}": "{0} 기반",
   "Releases": "릴리스",
