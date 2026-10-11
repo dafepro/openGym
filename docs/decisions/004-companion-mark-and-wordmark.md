@@ -4,7 +4,9 @@ Accepted 2026-10-10. Refines the icon and wordmark in ADR 002.
 
 The fork homepage used an uppercase Barlow Condensed heading, while original Uplift's header
 uses lowercase sans-serif `uplift /`. Match the original header's font stack, weight 650,
-letter spacing -1.1px, 23px desktop / 21px phone sizing and lime slash. Keep condensed display
+letter spacing -1.1px and lime slash. Following the owner's sizing refinement, the homepage
+wordmark and companion icon share the other main page headings' responsive 40–56px scale.
+Keep condensed display
 type for workout headings and prominent numbers. Onboarding/login use the same lowercase
 identity at a larger size; accessible app naming remains Uplift.
 

@@ -7,6 +7,7 @@
 }
 :root {
   --display: 'Barlow Condensed','Arial Narrow',sans-serif;
+  --page-heading-size: clamp(40px,11vw,56px);
   --bg: #101214;
   --bg-el: #161a1c;
   --surface: #1a1d20;
@@ -79,7 +80,7 @@ body {
 .hdr h1,.whdr h1 {
   font-family: var(--display);
   font-weight: 600;
-  font-size: clamp(40px,11vw,56px);
+  font-size: var(--page-heading-size);
   line-height: .98;
   letter-spacing: -.5px;
   text-transform: uppercase;
@@ -98,13 +99,9 @@ body {
 .uplift-wordmark h1>span { color: var(--acc); margin-inline-start: 3px; }
 .uplift-wordmark img { flex: none; }
 .uplift-brand.compact { margin: 0; }
-.uplift-brand.compact .uplift-wordmark { justify-content: flex-start; gap: 8px; }
-.uplift-brand.compact .uplift-wordmark h1 { font-size: 23px; }
-.uplift-brand.compact img { width: 34px; height: 34px; }
-@media(max-width:650px) {
-  .uplift-brand.compact .uplift-wordmark h1 { font-size: 21px; }
-  .uplift-brand.compact .uplift-wordmark h1>span { margin-inline-start: 0; }
-}
+.uplift-brand.compact .uplift-wordmark { justify-content: flex-start; gap: 10px; }
+.uplift-brand.compact .uplift-wordmark h1 { font-size: var(--page-heading-size); }
+.uplift-brand.compact img { width: var(--page-heading-size); height: var(--page-heading-size); }
 .uplift-credit { display: inline-block; color: var(--label-2); font-size: 12px; margin-top: 8px; text-decoration: underline; text-underline-offset: 3px; }
 .sp-version .uplift-credit { margin: 0; font-size: inherit; }
 .hdr .sub { margin-top: 7px; font-size: 12px; color: var(--label-2); }
