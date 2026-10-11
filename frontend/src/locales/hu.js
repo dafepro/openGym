@@ -1,5 +1,6 @@
 // Hungarian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Saved on this device.": "Ezen az eszközön mentve.",
   // Workout layout switch
   "Workout details": "Edzés részletei",
   "Focused": "Fókusz",

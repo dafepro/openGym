@@ -4,6 +4,7 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  "Saved on this device.": "Salvo neste dispositivo.",
   // Workout layout switch
   "Workout details": "Detalhes do treino",
   "Focused": "Foco",

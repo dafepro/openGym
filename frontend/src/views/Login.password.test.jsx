@@ -52,6 +52,13 @@ beforeEach(() => { mocks.webauthn = true; mocks.config = null; mocks.sheets.leng
 afterEach(() => { act(() => { mounted.splice(0).forEach(({ root, host }) => { root.unmount(); host.remove() }) }) })
 
 describe('Login with password sign-in', () => {
+  it('a local Worker offers only the local entrance, even if the browser supports passkeys', () => {
+    mocks.config = { local_only: true, allow_guest: true, password_login: true }
+    const page = mount(<Login />)
+    expect(buttons(page)).toEqual(['Continue'])
+    expect(page.textContent).toContain('Saved on this device.')
+  })
+
   it('an instance without it looks exactly as before', () => {
     const page = mount(<Login />)
     expect(buttons(page)).not.toContain('Sign in with password')

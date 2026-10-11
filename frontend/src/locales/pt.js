@@ -1,5 +1,6 @@
 // Portuguese UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Saved on this device.": "Guardado neste dispositivo.",
   // Workout layout switch
   "Workout details": "Detalhes do treino",
   "Focused": "Foco",

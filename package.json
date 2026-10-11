@@ -4,7 +4,9 @@
     "wrangler": "^4.143.0"
   },
   "scripts": {
-    "build:worker": "npm --prefix frontend run build && node scripts/catalogue/stage-media.mjs frontend/dist",
+    "deploy": "node scripts/deploy.mjs",
+    "test:garmin:live": "cd frontend && ./node_modules/.bin/vitest run --root .. --config frontend/vite.config.js worker/live-relay.test.ts",
+    "build:worker": "VITE_LOCAL_ONLY=1 VITE_NO_MEDIA=1 npm --prefix frontend run build",
     "dev:worker": "WRANGLER_SEND_METRICS=false wrangler dev --local --port 8788",
     "check:worker": "WRANGLER_SEND_METRICS=false wrangler deploy --dry-run --outdir worker-dist",
     "test:worker": "cd frontend && ./node_modules/.bin/vitest run --root .. --config frontend/vite.config.js worker/relay.test.ts worker/index.test.ts"

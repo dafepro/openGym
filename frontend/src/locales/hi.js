@@ -1,5 +1,6 @@
 // Hindi UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Saved on this device.": "इस डिवाइस पर सहेजा गया।",
   // Workout layout switch
   "Workout details": "वर्कआउट विवरण",
   "Focused": "फ़ोकस",

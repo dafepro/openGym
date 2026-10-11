@@ -1,5 +1,6 @@
 // Bengali UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Saved on this device.": "এই ডিভাইসে সংরক্ষিত।",
   // Workout layout switch
   "Workout details": "ওয়ার্কআউটের বিবরণ",
   "Focused": "ফোকাস",

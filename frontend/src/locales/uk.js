@@ -1,5 +1,6 @@
 // Ukrainian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Saved on this device.": "Збережено на цьому пристрої.",
   // Workout layout switch
   "Workout details": "Деталі тренування",
   "Focused": "Фокус",

@@ -1,5 +1,6 @@
 // Russian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Saved on this device.": "Сохранено на этом устройстве.",
   // Workout layout switch
   "Workout details": "Детали тренировки",
   "Focused": "Фокус",

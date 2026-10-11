@@ -1,4 +1,5 @@
 export default {
+  "Saved on this device.": "已儲存在此裝置上。",
   // Workout layout switch
   "Workout details": "訓練詳情",
   "Focused": "專注",

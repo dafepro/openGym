@@ -100,7 +100,8 @@ self.addEventListener('activate', e => {
     if (await c.match('index.html')) {
       // DEVICE_CACHE holds this browser's device id (the push re-register below needs it): not a
       // build, so an update never sweeps it.
-      const old = (await caches.keys()).filter(k => k !== CACHE && k !== MEDIA && k !== DEVICE_CACHE)
+      // Preserve original Uplift/Workbox caches for recovery and rollback on this origin.
+      const old = (await caches.keys()).filter(k => k.startsWith('opengym-') && k !== CACHE && k !== MEDIA && k !== DEVICE_CACHE)
       // A build from before MEDIA existed kept its media in its own cache: move it across first,
       // so the first update to this worker does not cost what the device already had offline.
       await Promise.all(old.map(k => adoptMedia(k).catch(() => {})))
@@ -274,8 +275,8 @@ self.addEventListener('fetch', e => {
   // abort used, does not exist before iOS 16: the handler threw before it answered at all, the
   // cache fallback with it). A request the cache cannot answer keeps waiting for the network, as
   // it always did; and the network's answer, whenever it comes, still refreshes the cache.
-  const fromCache = () => caches.match(e.request, { ignoreSearch: true }).then(hit =>
-    hit || (e.request.mode === 'navigate' ? caches.match('index.html') : undefined))
+  const fromCache = () => caches.open(CACHE).then(async c =>
+    await c.match(e.request, { ignoreSearch: true }) || (e.request.mode === 'navigate' ? c.match('index.html') : undefined))
   e.respondWith(new Promise(resolve => {
     const slow = setTimeout(() => fromCache().then(hit => { if (hit) resolve(hit) }, () => {}), NET_WAIT_MS)
     fetch(e.request).then(res => {

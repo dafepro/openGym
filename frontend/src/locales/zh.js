@@ -1,5 +1,6 @@
 // Simplified Chinese UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Saved on this device.": "已保存在此设备上。",
   // Workout layout switch
   "Workout details": "训练详情",
   "Focused": "专注",

@@ -124,6 +124,31 @@ describe('sync status', () => {
 })
 
 describe('the web boot', () => {
+  it('an offline Worker build keeps its local entrance without an account request', async () => {
+    vi.stubEnv('VITE_LOCAL_ONLY', '1')
+    try {
+      api.mockRejectedValue(new TypeError('offline'))
+      await useStore.getState().boot()
+      expect(paths()).toEqual(['GET /api/config'])
+      expect(useStore.getState().isGuest()).toBe(true)
+      expect(useStore.getState().ready).toBe(true)
+    } finally { vi.unstubAllEnvs() }
+  })
+
+  it('a local Worker boots without account requests and preserves the owned copy and pending changes', async () => {
+    useStore.setState({ S: { ...clone(DEF), workouts: [workout('w-kept')] }, user: USER })
+    localStorage.setItem('gym_dirty', '1')
+    api.mockResolvedValue({ local_only: true, allow_guest: true })
+    await useStore.getState().boot()
+    expect(paths()).toEqual(['GET /api/config'])
+    expect(useStore.getState().ready).toBe(true)
+    expect(useStore.getState().isGuest()).toBe(true)
+    expect(useStore.getState().user).toBeNull()
+    expect(ids(useStore.getState().S.workouts)).toEqual(['w-kept'])
+    expect(localStorage.getItem('gym_owner')).toBe(USER.id)
+    expect(localStorage.getItem('gym_dirty')).toBe('1')
+  })
+
   const boot = async (me, user = USER) => {
     api.mockImplementation(async path => {
       if (path === '/api/config') return { allow_guest: true }

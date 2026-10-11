@@ -1,5 +1,6 @@
 // Korean UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Saved on this device.": "이 기기에 저장됨.",
   // Workout layout switch
   "Workout details": "운동 상세",
   "Focused": "집중",

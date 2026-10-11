@@ -148,6 +148,8 @@ describe('sw.js install and activate', () => {
   it('an install that got the shell takes over and drops the previous build', async () => {
     await loadSW()
     await previousBuild()
+    const legacy = await globalThis.caches.open('workbox-precache-uplift')
+    await legacy.put('index.html', { body: 'original Uplift recovery shell' })
     globalThis.fetch = async u => (String(u) === 'index.html'
       ? { ok: true, status: 200, redirected: false, text: async () => shellHtml }
       : { ok: true, status: 200, clone: () => ({}) })
@@ -156,8 +158,14 @@ describe('sw.js install and activate', () => {
     expect(skipWaiting).toBe(1)
     await fire('activate')
 
-    expect(await globalThis.caches.keys()).toEqual([CACHE])
+    expect(await globalThis.caches.keys()).toEqual(['workbox-precache-uplift', CACHE])
+    expect(await legacy.match('index.html')).toBeTruthy()
     expect((await globalThis.caches.open(CACHE)).keys()).toContain('index.html')
+    globalThis.fetch = async () => { throw new Error('offline') }
+    const request = new Request('https://gym.test/')
+    Object.defineProperty(request, 'mode', { value: 'navigate' })
+    const offline = await fire('fetch', { request })
+    expect(await (await offline._res).text()).toBe(shellHtml)
   })
 })
 

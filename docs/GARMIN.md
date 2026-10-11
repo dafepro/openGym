@@ -44,3 +44,5 @@ For production the Worker serves only `frontend/dist`, plus the same temporary G
 `npm run check:worker` bundles a dry run only. No new bindings, migration tags, routes or rate-limit namespaces were introduced. Routine releases should preserve the owner's existing separate release/admin credentials. Do not run a provisioning deploy to reconcile the custom domain as a side effect of a frontend change.
 
 No watch binary, signing key or private workout files are copied into this repository. Continue using the owner's existing validated companion; physical wrist ergonomics/Bluetooth throughput remain unverified for this adapter.
+
+Production now selects local mode explicitly and excludes the separately licensed Gym Visual assets. Original Uplift pairings must be disconnected and re-paired; the phone app does not adopt its old device credentials.

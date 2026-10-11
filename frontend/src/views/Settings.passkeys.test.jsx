@@ -177,3 +177,23 @@ describe('Settings: passkeys and another device', () => {
     expect(asked('/api/account/password')).toBe(2)
   })
 })
+
+it('local Worker settings expose Drive instead of unavailable account controls', async () => {
+  mocks.config = { local_only: true, password_login: true }
+  mocks.user = null
+  const page = mount(<Settings page="account" />)
+  await settle()
+  expect(page.textContent).toContain('Saved on this device.')
+  expect(page.textContent).toContain('Google Drive')
+  expect(page.textContent).not.toContain('Sign in with passkey')
+  expect(page.textContent).not.toContain('Create passkey profile')
+})
+
+it('the local Worker root shows Your data without a broken sign-in destination', () => {
+  mocks.config = { local_only: true }
+  mocks.user = null
+  const page = mount(<Settings />)
+  expect(page.textContent).toContain('Your data')
+  expect(page.textContent).toContain('Saved on this device.')
+  expect(page.textContent).not.toContain('Sign in to sync')
+})

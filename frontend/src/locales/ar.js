@@ -1,5 +1,6 @@
 // Arabic UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Saved on this device.": "محفوظ على هذا الجهاز.",
   // Workout layout switch
   "Workout details": "تفاصيل التمرين",
   "Focused": "التركيز",

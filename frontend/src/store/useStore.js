@@ -7,7 +7,7 @@ import { t } from '../lib/i18n.js'
 import { registerCustom, healCustomEx } from '../lib/exercises.js'
 import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
 import { rememberDefaultLang } from '../lib/default-lang.js'
-import { guestAllowed } from '../lib/guest.js'
+import { guestAllowed, localOnly } from '../lib/guest.js'
 import { MOBILE, initReminderSync, nativeLoad, nativeSave, onAppActive, readJsonFile, syncReminder, writeAutoBackup, writeJsonFile } from '../lib/mobile.js'
 import { initHealthSync, syncHealth } from '../lib/health-sync.js'
 import { refillIfComplete } from '../lib/rotation.js'
@@ -1983,6 +1983,14 @@ export const useStore = create((set, get) => {
       // boot. Ending the session needs a positive `allow_guest: false`; see lib/guest.js for why
       // an unreachable server must not be allowed to lock anyone out (#42).
       const cfg = await get().loadConfig()
+      if (localOnly(cfg)) {
+        // End server use without erasing its owner, pending changes or workout copy.
+        // This host has no account API, including during an offline cold launch.
+        get().setUser(null)
+        get().setGuest(true)
+        finishBoot()
+        return
+      }
       if (!guestAllowed(cfg)) get().setGuest(false)
       // A sign-out that could not reach the server: finish it first. Still unanswered, the
       // browser stays signed out rather than adopt the session it left behind.

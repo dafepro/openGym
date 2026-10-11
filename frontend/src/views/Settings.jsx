@@ -1,3 +1,4 @@
+import { localOnly } from '../lib/guest.js'
 import { useEffect, useRef, useState, forwardRef, useSyncExternalStore } from 'react'
 import { useNavigate, useParams, useLocation, Navigate } from 'react-router-dom'
 import { useStore, DEF, hasData } from '../store/useStore.js'
@@ -854,7 +855,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     account: () => <>
       {/* The server: which one, which account, how that stands, "Sync now". A paired phone's
           Admin and Disconnect sit in the same block; a browser's account rows follow in their own. */}
-      {user && !DEMO && <ServerSyncSection>
+      {user && !DEMO && !localOnly(config) && <ServerSyncSection>
         {MOBILE && <>
           {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
           <AccountIdRow id={user.id} />
@@ -863,7 +864,7 @@ export default function Settings({ page = null, find = null, via = null }) {
       </ServerSyncSection>}
 
       {/* account (demo and mobile builds have nothing to sign in to) */}
-      {!(MOBILE && user) && <Section title={MOBILE ? t('Your data') : DEMO ? t('Demo') : t('Account')}>
+      {!(MOBILE && user) && <Section title={MOBILE || localOnly(config) ? t('Your data') : DEMO ? t('Demo') : t('Account')}>
         {MOBILE ? <>
           <Row icon="lock" iconTint="var(--acc)" title={t('All data stays on this phone')} subtitle={t('No account, no cloud. Back it up anytime in Data & backup.')} />
           <Row icon="cloud" iconTint="var(--indigo)" title={t('Connect to my server')} subtitle={t('Sync this device to your own self-hosted openGym instead.')} accessory="chevron"
@@ -875,6 +876,11 @@ export default function Settings({ page = null, find = null, via = null }) {
             onClick={() => confirmSheet({ title: t('Reset demo data?'), message: t('Puts the example plan, workouts and weigh-ins back the way they started.'), confirmText: t('Reset'), onConfirm: () => { resetDemo(); nav('/home'); toast(t('Demo data reset')) } })} />
           <Row icon="rocket" iconTint="var(--indigo)" title={t('Self-host openGym')} subtitle={t('Passkey sign-in, sync across your devices, your own data.')} accessory="chevron"
             onClick={() => window.open(REPO, '_blank', 'noopener')} />
+        </> : localOnly(config) ? <>
+          <Row icon="lock" iconTint="var(--acc)" title={t('Saved on this device.')} />
+          <Row icon="cloud" iconTint="var(--blue)" title={t('Google Drive')} subtitle={t('Optional. Your data saves locally first.')}
+            accessory="chevron" onClick={() => nav('/settings/data')} />
+          <KeptChangesRows />
         </> : user ? <>
           {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
           <PasskeysRow state={passkeys.st} changed={credsChanged} />
@@ -905,7 +911,7 @@ export default function Settings({ page = null, find = null, via = null }) {
       </Section>}
       {/* The connection banner already says this to a guest; the line is for when it is switched
           off, or its × hid it (#454). */}
-      {!user && !DEMO && !MOBILE && !(showsConnection(S) && showsLocalLine(S)) && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode: your data lives only in this browser.')}</p>}
+      {!user && !DEMO && !MOBILE && !localOnly(config) && !(showsConnection(S) && showsLocalLine(S)) && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode: your data lives only in this browser.')}</p>}
     </>,
   }
 
@@ -919,7 +925,7 @@ export default function Settings({ page = null, find = null, via = null }) {
         <button className="sp-back" onClick={back}>
           <Icon name="chevronLeft" /><span>{parent ? t(PAGES[parent].title) : t('Settings')}</span>
         </button>
-        <h1 className="sp-title">{t(PAGES[page].title)}</h1>
+        <h1 className="sp-title">{t(page === 'account' && localOnly(config) ? 'Your data' : PAGES[page].title)}</h1>
       </div>
       {pages[page]()}
     </div>
@@ -934,6 +940,7 @@ export default function Settings({ page = null, find = null, via = null }) {
 }
 
 function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
+  const config = useStore(s => s.config)
   const cloud = useCloudSync()
   // The router's key for this history entry (what useLocation().key reads), taken once.
   const [key] = useState(() => window.history.state?.key || null)
@@ -941,7 +948,8 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
   const set = v => { lastQuery = { q: v, key }; setQ(v) }
   const hits = q.trim() ? searchSettings(q, ctx) : null
   // The account card: who this is, and the one line that matters about it.
-  const acct = DEMO ? { title: t('Demo'), sub: t('Example data, only in this browser.') }
+  const acct = localOnly(config) && !MOBILE ? { title: t('Your data'), sub: cloud.connection ? 'Google Drive · ' + cloudStatusLine(cloud) : t('Saved on this device.') }
+    : DEMO ? { title: t('Demo'), sub: t('Example data, only in this browser.') }
     : user ? {
       title: user.name || t('Account'),
       sub: sync && sync.status && sync.status !== 'ok' ? t('Sync needs a look') : MOBILE ? t('Synced with your server') : t('Account, devices and sync'),

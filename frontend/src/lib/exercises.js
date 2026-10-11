@@ -181,8 +181,8 @@ export const figureOf = S => (S?.exFigure === 'female' || S?.exFigure === 'male'
   ? S.exFigure
   : (S?.body === 'female' ? 'female' : 'male')
 const drawing = (ex, figure) => (figure === 'female' ? ex.fv : figure === 'male' ? ex.mv : null) || null
-export const imgSrc = (ex, figure) => IMG_BASE + (drawing(ex, figure) ? drawing(ex, figure) + '.webp' : ex.img)
-export const gifSrc = (ex, figure) => GIF_BASE + (drawing(ex, figure) ? drawing(ex, figure) + '.mp4' : ex.gif)
+export const imgSrc = (ex, figure) => ENV.VITE_NO_MEDIA === '1' ? null : IMG_BASE + (drawing(ex, figure) ? drawing(ex, figure) + '.webp' : ex.img)
+export const gifSrc = (ex, figure) => ENV.VITE_NO_MEDIA === '1' ? null : GIF_BASE + (drawing(ex, figure) ? drawing(ex, figure) + '.mp4' : ex.gif)
 // The catalogue's animations are short MP4 loops; a fork's or an older build's may still be GIFs.
 export const isVideoSrc = src => /\.(mp4|webm)(\?|$)/i.test(src || '')
 

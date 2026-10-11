@@ -23,8 +23,8 @@ Retain openGym copyright/license notices and attribution. The fork’s name is U
 About and onboarding link “Powered by openGym” to the upstream. Rebranding does not grant new
 rights to licensed exercise media; public distribution needs a separate media-permission check.
 
-Deployment remains a separate step. Publish only `frontend/dist`. Cloudflare/Drive hosting does
-not provide the Node account, Coach, push or uploaded-media backend. Do not silently migrate the
+The owner has authorized the Cloudflare production replacement (ADR 005). Publish only `frontend/dist`. Cloudflare/Drive hosting does
+not provide the Node account, Coach, push or uploaded-media backend. Coach is deferred. Do not silently migrate the
 original Uplift cloud data graph. See ADRs [001](decisions/001-uplift-watch-and-oauth.md) and
 [002](decisions/002-uplift-visual-identity.md) and
 [003](decisions/003-explicit-workout-views.md).

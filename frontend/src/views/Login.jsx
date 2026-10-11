@@ -4,7 +4,7 @@ import { webauthnOK, passkeyLogin, passkeyRegister, passkeyError, bio } from '..
 import { hasData } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
-import { guestAllowed } from '../lib/guest.js'
+import { guestAllowed, localOnly } from '../lib/guest.js'
 import { useState, useRef, useEffect } from 'react'
 import Icon from '../components/Icon.jsx'
 import BrandMark from '../components/BrandMark.jsx'
@@ -78,6 +78,12 @@ export default function Login() {
   }
   const head = <BrandMark />
   const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
+
+  if (localOnly(config)) return <div className="narrow" style={wrap}>
+    {head}
+    <div className="muted" style={{ marginBottom: 30 }}>{t('Saved on this device.')}</div>
+    <Button variant="primary" icon="play" onClick={() => setGuest(true)}>{t('Continue')}</Button>
+  </div>
 
   // Demo build: no backend to sign in against — the only way in is the local guest profile.
   if (DEMO) return (
