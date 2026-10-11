@@ -126,6 +126,8 @@ export default function CheckIn() {
 // doesn't fight the rail's horizontal scroll the way a drag gesture did.
 function CardFace({ card, index, count }) {
   const update = useStore(s => s.update)
+  const appUrl = card.kind === 'app' ? gymAppDestination(card) : null
+  const appIntent = appUrl?.startsWith('intent:')
   const remove = () => confirmSheet({
     title: t('Remove this card?'),
     message: card.label,
@@ -146,7 +148,7 @@ function CardFace({ card, index, count }) {
     {card.kind === 'app' ? <div className="ci-card-body ci-app">
       <Icon name="link" />
       <p>{t('Get the current check-in code in your gym app.')}</p>
-      {gymAppDestination(card) && <a className="btn primary" href={gymAppDestination(card)} target="_blank" rel="noopener noreferrer">{t(card.provider === 'club-elite' ? 'Open app / store' : 'Open gym app')}<Icon name="chevronRight" /></a>}
+      {appUrl && <a className="btn primary" href={appUrl} target={appIntent ? '_self' : '_blank'} rel="noopener noreferrer">{t(card.provider === 'club-elite' && !appIntent ? 'Open app / store' : 'Open gym app')}<Icon name="chevronRight" /></a>}
     </div> : <div className="ci-card-body">
       <div className="ci-qr-plate"><QrCanvas value={card.value} size={230} /></div>
       <div className="ci-value">{card.value}</div>

@@ -629,6 +629,18 @@ describe('CheckIn — the sheet openers', () => {
 
 
 describe('dynamic gym app shortcuts', () => {
+  it('keeps the Android intent in the current tab for a direct user-gesture handoff', () => {
+    const ua = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Android')
+    try {
+      mocks.S = { gymCards: [{ id: 'club', kind: 'app', label: 'Club Elite+', provider: 'club-elite' }], lastGymCardId: 'club' }
+      mount()
+      const link = host.querySelector('.ci-app a')
+      expect(link.getAttribute('href')).toContain('intent://widget.dash.open#Intent;scheme=trainerize;package=com.trainerize.clubfitness;')
+      expect(link.target).toBe('_self')
+      expect(link.textContent).toContain('Open gym app')
+      expect(host.querySelector('[data-qr]')).toBeNull()
+    } finally { ua.mockRestore() }
+  })
   it('opens the official app destination without fabricating or storing a QR', () => {
     mocks.S = { gymCards: [{ id: 'club', kind: 'app', label: 'Club Elite+', provider: 'club-elite', url: 'https://www.clubfitness.us/app/' }], lastGymCardId: 'club' }
     mount()
