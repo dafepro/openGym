@@ -165,6 +165,29 @@ describe('CheckIn — the rail reopens where you left it', () => {
     expect(mocks.writes).toEqual([{ push: false }])
   })
 
+  it('does not jump to the slide edge while a swipe is still moving', () => {
+    withRailWidth(300)
+    mocks.S = { gymCards: [card('a'), card('b')], lastGymCardId: 'a' }
+    mount()
+    scrollTo(180)
+    rerender()
+    expect(mocks.S.lastGymCardId).toBe('b')
+    expect(rail().scrollLeft).toBe(180)
+    mocks.S.lastGymCardId = 'a'; rerender()
+    expect(rail().scrollLeft).toBe(0)
+  })
+
+  it('uses the measured slide pitch including spacing when reopening a saved card', () => {
+    withRailWidth(300)
+    mocks.S = { gymCards: [card('a'), card('b'), card('c')], lastGymCardId: 'a' }
+    mount()
+    for (const [i, el] of [...rail().children].entries()) Object.defineProperty(el, 'offsetLeft', { configurable: true, value: 16 + i * 284 })
+    mocks.S.lastGymCardId = 'c'; rerender()
+    expect(rail().scrollLeft).toBe(568)
+    scrollTo(284)
+    expect(mocks.S.lastGymCardId).toBe('b')
+  })
+
   it('a nudge that settles back on the same card writes nothing — only a real swipe counts', () => {
     withRailWidth(300)
     mocks.S = { gymCards: [card('a'), card('b')], lastGymCardId: 'a' }

@@ -288,7 +288,7 @@ h4.sec{
 
 /* ------------------------------------------------------ inset group list -- */
 .sect{margin-bottom:22px}
-.ci-app { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px 12px; text-align: center; }
+.ci-app { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px 12px; text-align: center; }
 .ci-app > svg { width: 72px; height: 72px; color: var(--acc); }
 .ci-app .btn { margin-top: auto; width: 100%; }
 .sect-t{
@@ -1953,7 +1953,7 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
    through horizontally. The rail is a scroll-snap track — one card per viewport, no JS
    carousel — with a trailing "+" card to add another. */
 .ci-rail{
-  display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;
+  position:relative;display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;
   -webkit-overflow-scrolling:touch;scrollbar-width:none;
   padding:4px 0 8px;margin:0 -16px;padding-left:16px;padding-right:16px;
 }
@@ -1961,18 +1961,21 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .ci-card{
   scroll-snap-align:center;flex:0 0 100%;box-sizing:border-box;
   background:var(--surface);border-radius:var(--r-xl);padding:22px 18px;
-  display:flex;flex-direction:column;align-items:center;gap:14px;
+  display:grid;grid-template-rows:48px minmax(306px,1fr) 32px;
+  align-items:center;justify-items:center;gap:14px;
   transition:transform var(--fast),box-shadow var(--fast),opacity var(--fast);
 }
 /* header row: edit — title — trash. The two icon buttons are equal fixed widths so the title,
    flexed between them, stays optically centered on the card no matter how long it is. */
-.ci-card-hd{display:flex;align-items:center;gap:8px;width:100%}
+.ci-sub{min-height:1.4em}
+.ci-card-hd{display:flex;align-items:center;gap:8px;width:100%;height:48px}
+.ci-card-body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;width:100%;min-width:0;box-sizing:border-box;align-self:stretch}
 .ci-card-btn{width:30px;height:30px;font-size:14px;flex:none}
-.ci-card .ci-label{flex:1;min-width:0;font-size:19px;font-weight:600;letter-spacing:-.014em;text-align:center;overflow-wrap:anywhere}
+.ci-card .ci-label{flex:1;min-width:0;font-size:19px;font-weight:600;letter-spacing:-.014em;text-align:center;overflow-wrap:anywhere;line-height:24px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .ci-card .ci-value{font-size:14px;color:var(--label-2);word-break:break-all;text-align:center;font-variant-numeric:tabular-nums}
 /* reorder row under a card (only shown with >1 card): ◀ position ▶ to nudge the card one slot
    along the rail. A plain, reliable control — no drag gesture to fight the horizontal scroll. */
-.ci-reorder{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:2px}
+.ci-reorder{grid-row:3;display:flex;align-items:center;justify-content:center;gap:14px;margin-top:2px}
 .ci-reorder .ci-pos{font-size:13px;color:var(--label-2);font-variant-numeric:tabular-nums;min-width:44px;text-align:center}
 .ci-reorder .iconbtn:disabled{opacity:.3;pointer-events:none}
 /* The QR itself: lean-qr paints 1 module per pixel, so scale it up with the browser's

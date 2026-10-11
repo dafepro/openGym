@@ -37,13 +37,18 @@ export function moveGymCard(cards, from, to) {
 // or importing a photo only — never by typing a code, which is too easy to fat-finger into a
 // code that silently fails at the turnstile. An existing card can be edited (rename, re-scan), and
 // with more than one card each carries ◀ ▶ buttons to nudge its position along the rail.
+// Use the real slide pitch, including the gap and rail insets.
+const slideStep = rail => (rail.children[1]?.offsetLeft - rail.children[0]?.offsetLeft) || rail.clientWidth
+
 export default function CheckIn() {
   const nav = useNavigate()
   const cards = useStore(s => s.S.gymCards) || []
   const lastId = useStore(s => s.S.lastGymCardId)
   const update = useStore(s => s.update)
-  const railRef = useRef(null)
+  const railRef = useRef(null), rememberedHere = useRef(null)
+  const cardOrder = JSON.stringify(cards.map(c => c.id))
   const [active, setActive] = useState(0)
+  const hideSubtitle = cards.length > 0 && (active >= cards.length || cards[active]?.kind === 'app')
 
   // Open on the last-used card. Done once on mount (and whenever the saved id changes from
   // elsewhere) with layout effect so the jump happens before paint — no visible scroll from 0.
@@ -51,22 +56,31 @@ export default function CheckIn() {
   useLayoutEffect(() => {
     const rail = railRef.current
     if (!rail || !cards.length) return
+    const local = rememberedHere.current
+    rememberedHere.current = null
+    // Remembering a swipe must not interrupt the browser's drag/snap animation.
+    if (local?.id === lastId && local.order === cardOrder) return
     const idx = Math.max(0, cards.findIndex(c => c.id === lastId))
-    rail.scrollLeft = idx * rail.clientWidth
+    rail.scrollLeft = idx * slideStep(rail)
     setActive(idx)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastId, cards.length])
+  }, [lastId, cardOrder])
 
   // Which card the horizontal scroll has settled on — drives the dots and gets remembered as the
   // last-used card. Reading it off the scroll position keeps the rail itself the single control.
   const onScroll = () => {
     const rail = railRef.current
     if (!rail) return
-    const i = Math.round(rail.scrollLeft / rail.clientWidth)
+    const step = slideStep(rail)
+    if (!step) return
+    const i = Math.max(0, Math.min(cards.length, Math.round(rail.scrollLeft / step)))
     if (i === active) return
     setActive(i)
     const card = cards[i]
-    if (card && card.id !== lastId) update(s => { s.lastGymCardId = card.id }, false)
+    if (card && card.id !== lastId) {
+      rememberedHere.current = { id: card.id, order: cardOrder }
+      update(s => { s.lastGymCardId = card.id }, false)
+    }
   }
 
   return <div className="narrow">
@@ -74,7 +88,7 @@ export default function CheckIn() {
       <button className="iconbtn" onClick={() => nav('/home')} aria-label={t('Home')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1 }}>
         <h1 style={{ fontSize: 28 }}>{t('Check in')}</h1>
-        {cards[active]?.kind !== 'app' && <div className="sub">{cards.length ? t('Show this at the gym') : t('Add your gym card')}</div>}
+        <div className="sub ci-sub" style={{ visibility: hideSubtitle ? 'hidden' : undefined }} aria-hidden={hideSubtitle || undefined}>{cards.length ? t('Show this at the gym') : t('Add your gym card')}</div>
       </div>
     </div>
 
@@ -126,17 +140,17 @@ function CardFace({ card, index, count }) {
   return <div className="ci-card">
     <div className="ci-card-hd">
       <button className="iconbtn ci-card-btn" onClick={() => card.kind === 'app' ? useUI.getState().openSheet(close => <GymAppSheet card={card} close={close} />) : openEditCard(card)} aria-label={t('Edit')}><Icon name="pencil" /></button>
-      <div className="ci-label">{card.label}</div>
+      <div className="ci-label" title={card.label}>{card.label}</div>
       <button className="iconbtn ci-card-btn" style={{ color: 'var(--red)' }} onClick={remove} aria-label={t('Remove')}><Icon name="trash" /></button>
     </div>
-    {card.kind === 'app' ? <div className="ci-app">
+    {card.kind === 'app' ? <div className="ci-card-body ci-app">
       <Icon name="link" />
       <p>{t('Get the current check-in code in your gym app.')}</p>
       {gymAppDestination(card) && <a className="btn primary" href={gymAppDestination(card)} target="_blank" rel="noopener noreferrer">{t(card.provider === 'club-elite' ? 'Open app / store' : 'Open gym app')}<Icon name="chevronRight" /></a>}
-    </div> : <>
+    </div> : <div className="ci-card-body">
       <div className="ci-qr-plate"><QrCanvas value={card.value} size={230} /></div>
       <div className="ci-value">{card.value}</div>
-    </>}
+    </div>}
     {count > 1 && <div className="ci-reorder">
       <button className="iconbtn ci-card-btn" onClick={() => move(index - 1)} disabled={index === 0} aria-label={t('Move left')}><Icon name="chevronLeft" /></button>
       <span className="ci-pos">{index + 1} / {count}</span>

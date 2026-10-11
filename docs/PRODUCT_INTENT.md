@@ -31,6 +31,7 @@ original Uplift cloud data graph. See ADRs [001](decisions/001-uplift-watch-and-
 
 Updates wait for an explicit Update action and verified local saves. Watch pairing recovery preserves
 queued results and never imports the original application's history. Dynamic gym check-in stays in the
-owner's official gym app, reached through a saved shortcut. StrongLifts CSV and Drive plan/backup imports
+owner's official gym app, reached through a saved shortcut. Check-in slides share stable header,
+card and control positions; remembering the selected card must not interrupt a swipe. StrongLifts CSV and Drive plan/backup imports
 preview before changing data; historical exports must not seed new working loads. Personal coaching plans
 remain private and distinguish source evidence from symptom-dependent assumptions. See ADR 006.
