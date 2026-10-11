@@ -33,3 +33,7 @@ adapter and relay regressions, locale coverage and the production build. After r
 pair/claim/approval, snapshot handoff, event receipts/retries, command barriers and revocation
 against the actual Durable Object service. Live physical Garmin/Bluetooth behavior still needs
 owner validation; a protocol test does not establish wrist ergonomics or connectivity.
+
+Installed-app validation found Cloudflare redirects `/index.html` to `/`. Precache requests the
+canonical scope root directly, while retaining redirect rejection for authentication failures.
+Regression checks cover that hosting behavior and isolation from original Workbox shell caches.

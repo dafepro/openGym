@@ -32,7 +32,7 @@ describe('the worker keeps the on-demand code too', () => {
   it('fetches every listed chunk at install', async () => {
     const sw = stampSw(source, { stamp: 'abc', lazy: ['./assets/index-new.js', './assets/media-ingest-x.js', './assets/jsQR-y.js'] })
     const asked = []
-    const cache = await install(sw, async u => { asked.push(String(u)); return String(u) === 'index.html' ? ok(shell) : ok('') })
+    const cache = await install(sw, async u => { asked.push(String(u)); return String(u) === './' ? ok(shell) : ok('') })
     expect(asked.filter(u => u === './assets/index-new.js')).toHaveLength(1)
     expect([...cache.keys()]).toEqual(expect.arrayContaining(['./assets/media-ingest-x.js', './assets/jsQR-y.js', 'index.html']))
   })
@@ -40,7 +40,7 @@ describe('the worker keeps the on-demand code too', () => {
   it('a chunk that will not come is no reason to fail the install', async () => {
     const sw = stampSw(source, { stamp: 'abc', lazy: ['./assets/media-ingest-x.js', './assets/gone.js'] })
     const cache = await install(sw, async u => {
-      if (String(u) === 'index.html') return ok(shell)
+      if (String(u) === './') return ok(shell)
       if (String(u).includes('gone')) throw new TypeError('network down')
       if (String(u).includes('media-ingest')) return { ok: true, status: 200, redirected: true }
       return ok('')
@@ -51,8 +51,8 @@ describe('the worker keeps the on-demand code too', () => {
 
   it('an unstamped worker (dev, tests) has nothing extra to fetch', async () => {
     const asked = []
-    await install(source, async u => { asked.push(String(u)); return String(u) === 'index.html' ? ok(shell) : ok('') })
-    expect(asked).toEqual(['index.html', './assets/index-new.js'])
+    await install(source, async u => { asked.push(String(u)); return String(u) === './' ? ok(shell) : ok('') })
+    expect(asked).toEqual(['./', './assets/index-new.js'])
   })
 
   it('the build lists code and styles, not the language packs (but the English steps)', () => {

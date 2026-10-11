@@ -59,6 +59,23 @@ const shellHtml = '<html><head><script src="./assets/index-new.js"></script></he
 beforeEach(() => { delete globalThis.self })
 
 describe('sw.js install and activate', () => {
+  it('fetches the canonical scope root, avoiding Cloudflare’s index.html redirect', async () => {
+    await loadSW()
+    const asked = []
+    globalThis.fetch = async u => {
+      asked.push(String(u))
+      return String(u) === './'
+        ? { ok: true, status: 200, redirected: false, text: async () => shellHtml }
+        : String(u) === 'index.html'
+          ? { ok: true, status: 200, redirected: true, text: async () => shellHtml }
+          : { ok: true, status: 200, clone: () => ({}) }
+    }
+    await fire('install')
+    expect(asked[0]).toBe('./')
+    expect(skipWaiting).toBe(1)
+    expect(await (await globalThis.caches.open(CACHE)).match('index.html')).toBeTruthy()
+  })
+
   it('a precache that cannot reach the server fails the install and keeps the build on the device', async () => {
     await loadSW()
     const old = await previousBuild()
@@ -95,7 +112,7 @@ describe('sw.js install and activate', () => {
   it('a chunk that will not cache fails the install, so the build on the device stays', async () => {
     await loadSW()
     const old = await previousBuild()
-    globalThis.fetch = async u => (String(u) === 'index.html'
+    globalThis.fetch = async u => (String(u) === './'
       ? { ok: true, status: 200, redirected: false, text: async () => shellHtml }
       : { ok: false, status: 404 })
 
@@ -114,7 +131,7 @@ describe('sw.js install and activate', () => {
     // would have stored that HTML under the main bundle's URL.
     await loadSW()
     const old = await previousBuild()
-    globalThis.fetch = async u => (String(u) === 'index.html'
+    globalThis.fetch = async u => (String(u) === './'
       ? { ok: true, status: 200, redirected: false, text: async () => shellHtml }
       : { ok: true, status: 200, redirected: true, text: async () => '<html>sign in</html>' })
 
@@ -132,7 +149,7 @@ describe('sw.js install and activate', () => {
     await previousBuild()
     const withIcon = '<html><head><script src="./assets/index-new.js"></script>'
       + '<link rel="stylesheet" href="./assets/index-new.css"><link rel="icon" href="./icon-512.png"></head></html>'
-    globalThis.fetch = async u => (String(u) === 'index.html'
+    globalThis.fetch = async u => (String(u) === './'
       ? { ok: true, status: 200, redirected: false, text: async () => withIcon }
       : String(u).endsWith('.png') ? { ok: false, status: 404 } : { ok: true, status: 200, clone: () => ({}) })
 
@@ -150,7 +167,7 @@ describe('sw.js install and activate', () => {
     await previousBuild()
     const legacy = await globalThis.caches.open('workbox-precache-uplift')
     await legacy.put('index.html', { body: 'original Uplift recovery shell' })
-    globalThis.fetch = async u => (String(u) === 'index.html'
+    globalThis.fetch = async u => (String(u) === './'
       ? { ok: true, status: 200, redirected: false, text: async () => shellHtml }
       : { ok: true, status: 200, clone: () => ({}) })
 
@@ -220,7 +237,7 @@ describe('sw.js re-registers a rotated push subscription with the page\'s device
     await loadSW()
     await previousBuild()
     await (await globalThis.caches.open(DEVICE_CACHE)).put(DEVICE_URL, new Response('dev1234abcd'))
-    globalThis.fetch = async u => (String(u) === 'index.html'
+    globalThis.fetch = async u => (String(u) === './'
       ? { ok: true, status: 200, redirected: false, text: async () => shellHtml }
       : { ok: true, status: 200, clone: () => ({}) })
     await fire('install')
@@ -235,7 +252,7 @@ describe('the Uplift display font survives offline reopen', () => {
   const withFont = '<html><link rel="preload" href="' + font + '" as="font"><script src="assets/main.js"></script></html>'
   it('stores the preloaded local font together with the complete shell', async () => {
     await loadSW()
-    globalThis.fetch = async url => String(url) === 'index.html'
+    globalThis.fetch = async url => String(url) === './'
       ? { ok: true, text: async () => withFont }
       : { ok: true, redirected: false, status: 200, font: String(url) === font }
     await fire('install')
@@ -246,7 +263,7 @@ describe('the Uplift display font survives offline reopen', () => {
   it('keeps the previous offline build if the required font download fails', async () => {
     await loadSW()
     await previousBuild()
-    globalThis.fetch = async url => String(url) === 'index.html'
+    globalThis.fetch = async url => String(url) === './'
       ? { ok: true, text: async () => withFont }
       : { ok: String(url) !== font, status: String(url) === font ? 503 : 200 }
     await expect(fire('install')).rejects.toThrow(font)
