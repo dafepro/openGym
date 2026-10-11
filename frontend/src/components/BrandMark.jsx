@@ -7,7 +7,7 @@ export function PoweredBy() {
 
 export default function BrandMark({ compact = false }) {
   return <div className={'uplift-brand' + (compact ? ' compact' : '')}>
-    <div className="uplift-wordmark"><img src="icon.svg" width="48" height="48" alt="" /><h1>{APP_NAME}</h1></div>
+    <div className="uplift-wordmark"><img src="icon.svg" width="48" height="48" alt="" /><h1 aria-label={APP_NAME}>{APP_NAME.toLowerCase()}<span aria-hidden="true"> /</span></h1></div>
     {!compact && <PoweredBy />}
   </div>
 }

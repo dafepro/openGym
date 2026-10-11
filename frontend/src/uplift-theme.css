@@ -76,7 +76,7 @@ body {
   font-family: Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   background: radial-gradient(ellipse at 80% 0,color-mix(in srgb,var(--teal) 4%,transparent),transparent 55%),var(--bg);
 }
-.hdr h1,.whdr h1,.uplift-wordmark h1 {
+.hdr h1,.whdr h1 {
   font-family: var(--display);
   font-weight: 600;
   font-size: clamp(40px,11vw,56px);
@@ -86,10 +86,25 @@ body {
 }
 .uplift-brand { margin-bottom: 24px; }
 .uplift-wordmark { display: flex; align-items: center; justify-content: center; gap: 11px; }
+.uplift-wordmark h1 {
+  font-family: Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size: 32px;
+  font-weight: 650;
+  letter-spacing: -1.1px;
+  line-height: 1;
+  text-transform: none;
+  font-synthesis: none;
+}
+.uplift-wordmark h1>span { color: var(--acc); margin-inline-start: 3px; }
 .uplift-wordmark img { flex: none; }
 .uplift-brand.compact { margin: 0; }
-.uplift-brand.compact .uplift-wordmark { justify-content: flex-start; gap: 10px; }
-.uplift-brand.compact img { width: 38px; height: 38px; }
+.uplift-brand.compact .uplift-wordmark { justify-content: flex-start; gap: 8px; }
+.uplift-brand.compact .uplift-wordmark h1 { font-size: 23px; }
+.uplift-brand.compact img { width: 34px; height: 34px; }
+@media(max-width:650px) {
+  .uplift-brand.compact .uplift-wordmark h1 { font-size: 21px; }
+  .uplift-brand.compact .uplift-wordmark h1>span { margin-inline-start: 0; }
+}
 .uplift-credit { display: inline-block; color: var(--label-2); font-size: 12px; margin-top: 8px; text-decoration: underline; text-underline-offset: 3px; }
 .sp-version .uplift-credit { margin: 0; font-size: inherit; }
 .hdr .sub { margin-top: 7px; font-size: 12px; color: var(--label-2); }

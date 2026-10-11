@@ -9,6 +9,8 @@ nonessential information behind a deliberate action and use short labels and int
 
 Use the original Uplift athletic visual system: charcoal/slate surfaces, pale lime actions,
 condensed headings and large stable numbers. Color identifies warm-up, work, rest and completion.
+Brand the fork with the companion's U-and-up-arrow mark and the original lowercase sans-serif
+`uplift /` wordmark; reserve condensed uppercase type for workout headings and statistics.
 Motion acknowledges taps and changes of phase, stays interruptible, and respects reduced motion.
 Support existing appearance preferences with readable light and custom-color variants.
 

@@ -2,6 +2,10 @@
 
 ## Fork integration status
 
+The homepage wordmark now matches original Uplift's lowercase sans-serif text and lime slash.
+The existing Garmin companion's U-and-up-arrow vector replaces the barbell across the fork's
+web and native identity assets. See [the identity refinement](docs/decisions/004-companion-mark-and-wordmark.md).
+
 The live workout keeps its header and Finish pinned in every layout. An explicit full-width
 Workout details / Focused switch replaces the target icon and returns to the previous Cards,
 List or Compact layout. Focus retains its bottom next-action rail and exercise overview.
