@@ -1,0 +1,9 @@
+# Uplift production build and promotion
+
+The production source branch is `codex/focused-workout-overlay`. Its new push-triggered `worker-release.yml` verifies the frontend, locale/source strings, Garmin Worker and static-only delivery contract, then packages prebuilt Worker/assets under a retained GitHub release.
+
+Repository variable `DEPLOY_REQUESTS_ENABLED=true` enables publication/request only. `DEPLOY_REQUEST_TOKEN` is a fine-grained Issues-write-only token on private `dafepro/deploy`; this public repository receives no Cloudflare deployment token. Cloud deployment occurs only after manual review and merge of the shared Uplift target's release PR in deploy.
+
+The Worker, custom domain, Garmin Durable Object identity/migration and rate-limit namespaces are shared with the original Uplift rollback source. This repository does not create an independent environment. `dafepro/uplift` retains the legacy manual release controller until its `DEPLOY_AUTHORITY=central` switch is configured during verified cutover. Follow [central cutover](https://github.com/dafepro/deploy/blob/main/docs/cutover.md); preserve both apps' browser/Drive storage and existing Garmin pairing policy.
+
+This workflow intentionally has a push trigger: GitHub manual dispatch requires a workflow on the default branch, while upstream `main` is not this fork's production source. Publishing does not auto-promote a release. Real-device and synthetic live Garmin protocol qualification remain release requirements.

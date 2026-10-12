@@ -14,8 +14,9 @@ optional Google Drive sync, and support for the existing Uplift Garmin companion
 
 </div>
 
-This fork is developed under the Uplift name. It is not yet a replacement for the live
-`uplift.quicktrack.cc` site. Static Cloudflare hosting supports local/Drive storage and the
+This fork is developed under the Uplift name and is the selected source for
+`uplift.quicktrack.cc`. The staged [central deployment](docs/CENTRAL_DEPLOYMENT.md)
+process publishes tested build outputs and promotes them through a reviewed release PR. Static Cloudflare hosting supports local/Drive storage and the
 watch relay; passkey accounts, Coach, push and uploaded media require the separate Node server.
 The upstream documentation and release history below are retained as reference. Follow this
 fork’s source and releases for Uplift builds. Existing backup/storage identifiers are kept for

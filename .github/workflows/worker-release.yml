@@ -1,0 +1,71 @@
+name: Publish Uplift fork Worker release
+on:
+  push:
+    branches:
+      - codex/focused-workout-overlay
+concurrency:
+  group: uplift-worker-build-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  verify:
+    name: Verify Uplift Worker source
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+      - dcarrell-mac
+    if: github.ref == 'refs/heads/codex/focused-workout-overlay' && vars.DEPLOY_REQUESTS_ENABLED == 'true'
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.20.0
+      - name: Install and verify fork build
+        env:
+          TZ: UTC
+          WRANGLER_SEND_METRICS: "false"
+        run: |
+          npm ci
+          npm --prefix frontend ci
+          npm --prefix frontend test
+          node frontend/scripts/check-locales.mjs
+          node frontend/scripts/check-source-strings.mjs --strict
+          npm run test:worker
+          npm run build:worker
+          npm run check:worker
+          test ! -d frontend/dist/exercise-media
+          node scripts/package-worker.mjs opengym "$GITHUB_SHA" "$RUNNER_TEMP/uplift-release"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: uplift-release
+          path: ${{ runner.temp }}/uplift-release
+          if-no-files-found: error
+  publish:
+    name: Publish immutable Uplift Worker
+    needs: verify
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+      - dcarrell-mac
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: uplift-release
+          path: ${{ runner.temp }}/uplift-release
+      - name: Publish retained release and request a deployment PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_REQUEST_TOKEN: ${{ secrets.DEPLOY_REQUEST_TOKEN }}
+        run: python3 scripts/publish-release.py uplift production opengym "$RUNNER_TEMP/uplift-release"

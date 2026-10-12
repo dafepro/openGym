@@ -7,6 +7,7 @@ Pick the part that matches what you're doing. If you just have a question, try t
 
 | Guide | Read it when |
 |---|---|
+[central deployment](CENTRAL_DEPLOYMENT.md). The guides below describe upstream/self-hosted
 | [FAQ](FAQ.md) | You have a quick question: iPhone, cost, where your data goes, AI, the exercise media |
 | [Phone app](MOBILE.md) | You want the Android APK or the iPhone options, or to connect the app to your own server |
 | [Importing data](DATA_IMPORTS.md) | You're coming from FitNotes, Strong, Hevy or Apple Health, or sharing a plan with someone |
