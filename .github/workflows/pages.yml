@@ -1,59 +1,98 @@
-# Publishes the browser-only demo to GitHub Pages: https://duartesantos8.github.io/openGym/
-#
-# Dormant from 2026-08-19 to 2026-09-10 while the GitHub account was suspended; live again since.
-# The same build (same command, Vite's base is './') is also served from the project's own site at
-# https://opengym.ch/demo/, so the demo has two addresses with identical content.
-#
-# Pages serves static files only, so this build has no backend — VITE_DEMO=1 makes the app
-# boot straight into guest mode with a seeded example history (see frontend/src/lib/demo.js).
-# The exercise stills and animations (180 px) come from catalogue/media and are staged next to
-# the build by scripts/catalogue/stage-media.mjs, so the demo serves them from its own origin.
 name: Deploy demo to GitHub Pages
-
-on:
+"on":
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
-      - 'frontend/**'
-      - 'catalogue/**'
-      - 'scripts/catalogue/**'
-      - '.github/workflows/pages.yml'
-  workflow_dispatch:
-
+      - frontend/**
+      - catalogue/**
+      - scripts/catalogue/**
+      - .github/workflows/pages.yml
+  workflow_dispatch: null
 permissions:
   contents: read
   pages: write
   id-token: write
-
 concurrency:
   group: pages
   cancel-in-progress: true
-
 jobs:
   build:
-    runs-on: ubuntu-latest
-    steps:
+    runs-on: ubuntu-24.04
+    steps: &id001
       - uses: actions/checkout@v7
+      - name: Check whether GitHub-hosted startup permits a Mac fallback
+        id: runner_fallback
+        if: runner.environment == 'self-hosted'
+        uses: ./.github/actions/hosted-fallback
+        with:
+          job-name: build
+          root: .
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
+          cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
           cache-dependency-path: frontend/package-lock.json
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm ci
         working-directory: frontend
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm run build
         working-directory: frontend
         env:
-          VITE_DEMO: '1'
-      # The 180 px stills and animations from catalogue/media, served next to the demo
+          VITE_DEMO: "1"
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: node scripts/catalogue/stage-media.mjs frontend/dist
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: actions/configure-pages@v6
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: frontend/dist
-
+        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
+      - name: Record completed build
+        id: fallback_completed
+        run: echo "completed=true" >>"$GITHUB_OUTPUT"
+        working-directory: ${{ github.workspace }}
+    name: build
+    continue-on-error:
+      ${{ github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
+      == github.repository && github.event.pull_request.user.id == 313492551)) }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      actions: read
+      checks: read
+    outputs:
+      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
+  build_mac:
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+      - dcarrell-mac
+    steps: *id001
+    name: build (Mac fallback)
+    continue-on-error: false
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      actions: read
+      checks: read
+    outputs:
+      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
+    needs:
+      - build
+    if:
+      ${{ !cancelled() && (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
+      == github.repository && github.event.pull_request.user.id == 313492551))) && needs.build.result != 'skipped' && needs.build.outputs.fallback_completed != 'true'
+      }}
   deploy:
-    needs: build
+    needs:
+      - build
+      - build_mac
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -61,3 +100,4 @@ jobs:
     steps:
       - id: deploy
         uses: actions/deploy-pages@v5
+    if: ${{ !cancelled() && (needs.build.outputs.fallback_completed == 'true' || needs.build_mac.outputs.fallback_completed == 'true') && (true) }}
