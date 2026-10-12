@@ -4,13 +4,8 @@ import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const [variant, sha, output] = process.argv.slice(2);
-if (
-  !["original", "opengym"].includes(variant) ||
-  !/^[0-9a-f]{40}$/.test(sha ?? "")
-) {
-  throw new Error(
-    "A known Uplift variant and inspected source SHA are required.",
-  );
+if (variant !== "opengym" || !/^[0-9a-f]{40}$/.test(sha ?? "")) {
+  throw new Error("The openGym variant and inspected source SHA are required.");
 }
 if (!/^[0-9a-f]{40}$/.test(process.env.GITHUB_SHA ?? "")) {
   throw new Error("A trusted producer SHA is required.");
@@ -28,11 +23,9 @@ const result = spawnSync(
   },
 );
 if (result.status !== 0) throw new Error("Prebuilt Worker packaging failed.");
-await cp(
-  resolve(variant === "opengym" ? "frontend/dist" : "dist"),
-  resolve(bundle, "assets"),
-  { recursive: true },
-);
+await cp(resolve("frontend/dist"), resolve(bundle, "assets"), {
+  recursive: true,
+});
 await readFile(resolve(bundle, "worker/index.js"));
 await readFile(resolve(bundle, "assets/index.html"));
 const archive = resolve(directory, "worker.tgz");
