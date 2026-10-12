@@ -1,6 +1,6 @@
 # Uplift production build and promotion
 
-The production source branch is `codex/focused-workout-overlay`. Its new push-triggered `worker-release.yml` verifies the frontend, locale/source strings, Garmin Worker and static-only delivery contract, then packages prebuilt Worker/assets under a retained GitHub release.
+The production source branch is `codex/focused-workout-overlay`. Its push-triggered `worker-release.yml` runs build/publication on GitHub-hosted Ubuntu and verifies the frontend, locale/source strings, Garmin Worker and static-only delivery contract, then packages prebuilt Worker/assets under a retained GitHub release.
 
 Repository variable `DEPLOY_REQUESTS_ENABLED=true` enables publication/request only. `DEPLOY_REQUEST_TOKEN` is a fine-grained Issues-write-only token on private `dafepro/deploy`; this public repository receives no Cloudflare deployment token. Cloud deployment occurs only after manual review and merge of the shared Uplift target's release PR in deploy.
 

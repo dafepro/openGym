@@ -11,11 +11,7 @@ permissions:
 jobs:
   verify:
     name: Verify Uplift Worker source
-    runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
-      - dcarrell-mac
+    runs-on: ubuntu-24.04
     if: github.ref == 'refs/heads/codex/focused-workout-overlay' && vars.DEPLOY_REQUESTS_ENABLED == 'true'
     timeout-minutes: 30
     steps:
@@ -48,11 +44,7 @@ jobs:
   publish:
     name: Publish immutable Uplift Worker
     needs: verify
-    runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
-      - dcarrell-mac
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
