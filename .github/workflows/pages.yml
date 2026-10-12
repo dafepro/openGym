@@ -8,7 +8,17 @@ name: Deploy demo to GitHub Pages
       - catalogue/**
       - scripts/catalogue/**
       - .github/workflows/pages.yml
-  workflow_dispatch: null
+  workflow_dispatch:
+    inputs:
+      build_runner:
+        description: Use the repository preference, Mac, or GitHub-hosted Ubuntu
+        required: false
+        type: choice
+        default: default
+        options:
+          - default
+          - mac
+          - github
 permissions:
   contents: read
   pages: write
@@ -18,81 +28,38 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    runs-on: ubuntu-24.04
-    steps: &id001
+    runs-on:
+      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
+      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
+      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    steps:
       - uses: actions/checkout@v7
-      - name: Check whether GitHub-hosted startup permits a Mac fallback
-        id: runner_fallback
-        if: runner.environment == 'self-hosted'
-        uses: ./.github/actions/hosted-fallback
-        with:
-          job-name: build
-          root: .
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
           cache-dependency-path: frontend/package-lock.json
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm ci
         working-directory: frontend
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm run build
         working-directory: frontend
         env:
           VITE_DEMO: "1"
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: node scripts/catalogue/stage-media.mjs frontend/dist
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: actions/configure-pages@v6
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: frontend/dist
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
-      - name: Record completed build
-        id: fallback_completed
-        run: echo "completed=true" >>"$GITHUB_OUTPUT"
-        working-directory: ${{ github.workspace }}
     name: build
-    continue-on-error:
-      ${{ github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551)) }}
     permissions:
       contents: read
       pages: write
       id-token: write
       actions: read
       checks: read
-    outputs:
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-  build_mac:
-    runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
-      - dcarrell-mac
-    steps: *id001
-    name: build (Mac fallback)
-    continue-on-error: false
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-      actions: read
-      checks: read
-    outputs:
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-    needs:
-      - build
-    if:
-      ${{ !cancelled() && (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551))) && needs.build.result != 'skipped' && needs.build.outputs.fallback_completed != 'true'
-      }}
   deploy:
     needs:
       - build
-      - build_mac
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -100,4 +67,4 @@ jobs:
     steps:
       - id: deploy
         uses: actions/deploy-pages@v5
-    if: ${{ !cancelled() && (needs.build.outputs.fallback_completed == 'true' || needs.build_mac.outputs.fallback_completed == 'true') && (true) }}
+    if: ${{ !cancelled() && (needs.build.result == 'success') && (true) }}

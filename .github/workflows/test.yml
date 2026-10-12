@@ -35,7 +35,17 @@ name: Tests
       - website/api.html
       - api/coach/prompts/**
       - .github/workflows/test.yml
-  workflow_dispatch: null
+  workflow_dispatch:
+    inputs:
+      build_runner:
+        description: Use the repository preference, Mac, or GitHub-hosted Ubuntu
+        required: false
+        type: choice
+        default: default
+        options:
+          - default
+          - mac
+          - github
 permissions:
   contents: read
 concurrency:
@@ -43,228 +53,99 @@ concurrency:
   cancel-in-progress: true
 jobs:
   test:
-    runs-on: ubuntu-24.04
-    steps: &id001
+    runs-on:
+      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
+      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
+      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    steps:
       - uses: actions/checkout@v7
-      - name: Check whether GitHub-hosted startup permits a Mac fallback
-        id: runner_fallback
-        if: runner.environment == 'self-hosted'
-        uses: ./.github/actions/hosted-fallback
-        with:
-          job-name: test
-          root: .
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
           cache-dependency-path: frontend/package-lock.json
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm ci
         working-directory: frontend
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm test
         working-directory: frontend
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm run test:worker
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm run build
         working-directory: frontend
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: node scripts/check-locales.mjs
         working-directory: frontend
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: node scripts/check-source-strings.mjs
         working-directory: frontend
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm run test:fatigue-probe
         working-directory: frontend
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
-      - name: Record completed build
-        id: fallback_completed
-        run: echo "completed=true" >>"$GITHUB_OUTPUT"
-        working-directory: ${{ github.workspace }}
     name: test
-    continue-on-error:
-      ${{ github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551)) }}
     permissions:
       contents: read
       actions: read
       checks: read
-    outputs:
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-  test_mac:
-    runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
-      - dcarrell-mac
-    steps: *id001
-    name: test (Mac fallback)
-    continue-on-error: false
-    permissions:
-      contents: read
-      actions: read
-      checks: read
-    outputs:
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-    needs:
-      - test
-    if:
-      ${{ !cancelled() && (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551))) && needs.test.result != 'skipped' && needs.test.outputs.fallback_completed != 'true'
-      }}
   mcp:
-    runs-on: ubuntu-24.04
-    steps: &id002
+    runs-on:
+      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
+      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
+      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    steps:
       - uses: actions/checkout@v7
-      - name: Check whether GitHub-hosted startup permits a Mac fallback
-        id: runner_fallback
-        if: runner.environment == 'self-hosted'
-        uses: ./.github/actions/hosted-fallback
-        with:
-          job-name: mcp
-          root: .
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
           cache-dependency-path: mcp/package-lock.json
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm ci
         working-directory: mcp
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm test
         working-directory: mcp
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm run check:node-loadable
         working-directory: mcp
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
-      - name: Record completed build
-        id: fallback_completed
-        run: echo "completed=true" >>"$GITHUB_OUTPUT"
-        working-directory: ${{ github.workspace }}
     name: mcp
-    continue-on-error:
-      ${{ github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551)) }}
     permissions:
       contents: read
       actions: read
       checks: read
-    outputs:
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-  mcp_mac:
-    runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
-      - dcarrell-mac
-    steps: *id002
-    name: mcp (Mac fallback)
-    continue-on-error: false
-    permissions:
-      contents: read
-      actions: read
-      checks: read
-    outputs:
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-    needs:
-      - mcp
-    if:
-      ${{ !cancelled() && (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551))) && needs.mcp.result != 'skipped' && needs.mcp.outputs.fallback_completed != 'true'
-      }}
   api:
-    runs-on: ubuntu-24.04
-    steps: &id003
+    runs-on:
+      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
+      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
+      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    steps:
       - uses: actions/checkout@v7
-      - name: Check whether GitHub-hosted startup permits a Mac fallback
-        id: runner_fallback
-        if: runner.environment == 'self-hosted'
-        uses: ./.github/actions/hosted-fallback
-        with:
-          job-name: api
-          root: .
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
           cache-dependency-path: api/package-lock.json
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm ci --omit=optional
         working-directory: api
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm test
         working-directory: api
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: node scripts/build-coach-assets.mjs --check
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: npm ci
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: node scripts/build-api-docs.mjs --check
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: node api/scripts/check-core-loadable.mjs
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
-      - name: Record completed build
-        id: fallback_completed
-        run: echo "completed=true" >>"$GITHUB_OUTPUT"
-        working-directory: ${{ github.workspace }}
     name: api
-    continue-on-error:
-      ${{ github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551)) }}
     permissions:
       contents: read
       actions: read
       checks: read
-    outputs:
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-  api_mac:
-    runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
-      - dcarrell-mac
-    steps: *id003
-    name: api (Mac fallback)
-    continue-on-error: false
-    permissions:
-      contents: read
-      actions: read
-      checks: read
-    outputs:
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-    needs:
-      - api
-    if:
-      ${{ !cancelled() && (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551))) && needs.api.result != 'skipped' && needs.api.outputs.fallback_completed != 'true'
-      }}
   api-image:
-    runs-on: ubuntu-24.04
-    steps: &id004
+    runs-on:
+      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
+      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
+      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    steps:
       - uses: actions/checkout@v7
-      - name: Check whether GitHub-hosted startup permits a Mac fallback
-        id: runner_fallback
-        if: runner.environment == 'self-hosted'
-        uses: ./.github/actions/hosted-fallback
-        with:
-          job-name: api-image
-          root: .
       - run: docker build --target default -t opengym-api:default ./api
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: docker build --target coach   -t opengym-api:coach   ./api
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - run: docker build -t opengym-api:published ./api
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: the image published as :latest has no AI runtime either
         run: |
           docker run --rm opengym-api:published node -e \
             'import("@anthropic-ai/claude-agent-sdk").then(()=>{console.error("AI runtime present in the published image -- the last Dockerfile stage is no longer the runtime-free one");process.exit(1)},()=>process.exit(0))'
           ! docker run --rm opengym-api:published codex --version
           ! docker run --rm opengym-api:published bwrap --version
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: the default image boots and serves, with no AI runtime in it
         run: |
           docker run -d --name api-default -e DATA_DIR=/data -p 3000:3000 opengym-api:default
@@ -278,7 +159,6 @@ jobs:
           docker run --rm opengym-api:default node -e \
             'import("@anthropic-ai/claude-agent-sdk").then(()=>{console.error("AI runtime present in the default image");process.exit(1)},()=>process.exit(0))'
           docker rm -f api-default
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: the coach image carries a runnable Agent SDK
         run: |
           docker run --rm opengym-api:coach node --input-type=module -e '
@@ -287,57 +167,23 @@ jobs:
             if (!r.ok) { console.error(r.error); process.exit(1); }
             console.log(r.version);
           '
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: the coach image carries the Codex runtime and its sandbox
         run:
           "docker run --rm opengym-api:coach codex --version\ndocker run --rm opengym-api:coach bwrap --version\n# Owned by the user jobs drop to, and 0700 \u2014\
           \ a credential cache readable by anything\n# else in the container would undo the point of dropping privileges at all.\ntest \"$(docker run --rm opengym-api:coach\
           \ stat -c '%U %a' /coach-auth)\" = \"coach 700\"\n"
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: neither Codex nor its sandbox is in the default image
         run: |
           # bubblewrap is a Codex requirement, so an owner who never opted in should not be
           # carrying it. Both commands must fail.
           ! docker run --rm opengym-api:default codex --version 2>/dev/null
           ! docker run --rm opengym-api:default bwrap --version 2>/dev/null
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
       - name: the privilege drop can actually be performed in the image
         run:
           "# canDropPrivileges() fails closed, so a missing `coach` user disables every job \u2014\n# including the fixture provider. Cheaper to assert here than\
           \ to discover on an instance.\ndocker run --rm opengym-api:default id coach\n"
-        if: ${{ (true) && (runner.environment != 'self-hosted' || steps.runner_fallback.outputs.run != 'false') }}
-      - name: Record completed build
-        id: fallback_completed
-        run: echo "completed=true" >>"$GITHUB_OUTPUT"
-        working-directory: ${{ github.workspace }}
     name: api-image
-    continue-on-error:
-      ${{ github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551)) }}
     permissions:
       contents: read
       actions: read
       checks: read
-    outputs:
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-  api-image_mac:
-    runs-on:
-      - self-hosted
-      - macOS
-      - ARM64
-      - dcarrell-mac
-    steps: *id004
-    name: api-image (Mac fallback)
-    continue-on-error: false
-    permissions:
-      contents: read
-      actions: read
-      checks: read
-    outputs:
-      fallback_completed: ${{ steps.fallback_completed.outputs.completed }}
-    needs:
-      - api-image
-    if:
-      ${{ !cancelled() && (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551))) && needs.api-image.result != 'skipped' && needs.api-image.outputs.fallback_completed
-      != 'true' }}
