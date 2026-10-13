@@ -9,6 +9,10 @@ import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { finishWorkout, finishWorkoutSheet } from './sheets.jsx'
 import { EXDB } from './lib/exercises-data.js'
+import { completeLiveWorkout } from './lib/complete-live-workout.js'
+import { queueRemaining } from './lib/queue.js'
+
+globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const clone = v => JSON.parse(JSON.stringify(v))
 const S = () => useStore.getState().S
@@ -80,6 +84,33 @@ describe('finishing while a timed hold runs', () => {
     expect(useUI.getState().work).toBeNull()
     expect(() => vi.advanceTimersByTime(60_000)).not.toThrow()
     expect(held).not.toHaveBeenCalled()
+  })
+})
+
+describe('phone and watch finish the same live record', () => {
+  it.each([
+    ['warm-ups only', [{ w: 20, r: 5, phase: 'warmup', done: true }, { w: 40, r: 5, skipped: true }], true],
+    ['zero-rep work', [{ w: 40, r: 0, done: true }], false],
+    ['timed work', [{ w: 0, sec: 30, done: true }], false],
+    ['one completed side', [{ w: 0, r: null, done: false, sides: { L: { r: 5, w: 10, done: true }, R: { r: 5, w: 10, done: false } } }], false],
+  ])('%s preserves the record and queue credit', (_label, sets, warmupOnly) => {
+    install(sets)
+    const st = S()
+    st.routines = [{ id: 'r1', name: 'Core', ex: [] }]
+    st.queue = { ids: ['r1'], since: st.active.start - 1000, startsOn: st.active.d }
+    st.active.routineId = 'r1'
+    const watchState = clone(st)
+    const watchRecord = completeLiveWorkout(watchState, Date.now())
+
+    act(() => finishWorkout())
+    if (S().active) tapInTopSheet('Finish workout')
+
+    expect(S().active).toBeNull()
+    expect(S().workouts[0]).toEqual(watchRecord)
+    expect(S().workouts[0].warmupOnly === true).toBe(warmupOnly)
+    expect(queueRemaining(S())).toEqual(warmupOnly ? ['r1'] : [])
+    expect(S().exWeights).toEqual(watchState.exWeights)
+    expect(JSON.parse(localStorage.getItem('gym_state_v1')).workouts[0]).toEqual(watchRecord)
   })
 })
 

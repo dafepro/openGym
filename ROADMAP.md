@@ -2,6 +2,11 @@
 
 ## Fork integration status
 
+Upstream 1.4.1 is integrated through `5ec23d3b`, including same-day session imports, picker/search
+improvements and chart ranges. The seam review retains Focus/Drive/Garmin adapters and tightens
+native release selection and shared phone/watch finishing. See ADR 009 and
+[the integration review](docs/dev/UPSTREAM_SYNC.md). Central production promotion remains manual.
+
 This release adds confirmed watch re-pairing, readable guide insets, deliberate app updates, dynamic
 gym app shortcuts, StrongLifts CSV import and previewed Google Drive plan/backup imports (ADR 006).
 Physical watch reconnection and live optional Drive-link consent still need device validation.
