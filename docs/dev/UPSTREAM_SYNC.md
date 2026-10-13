@@ -47,3 +47,20 @@ a performance review as history grows; this sync changes neither snapshot format
 Update drifted descriptions: Mac-first trusted builds with manual central promotion, and Finish
 in the shared workout header. Physical Android/Connect IQ behavior and live Google consent
 remain distinct from automated checks.
+
+## Verification
+
+- Frontend: 424 files, 5,226 tests passed, including Focus/lifecycle, Drive convergence,
+  import idempotence/progression isolation, watch receipts, deliberate updates and new native
+  download/channel checks.
+- API: 597 tests passed, including upstream compatible-endpoint fallback. Worker: 9 tests passed.
+- Eighteen locale packs and strict source-string coverage agree; generated API docs agree.
+- Production local/no-media build and Worker dry-run pass. Progression/fatigue probes pass.
+- Chromium at 390 × 844: warm-up-only and zero-rep phone finishes preserve set meanings, local
+  records and queue behavior; offline reload renders the app and retains the completed record.
+  This uses only synthetic data and plain static `dist` hosting, manually registering the built
+  worker on localhost because application registration is HTTPS-only. Vite preview adds
+  `Vary: Origin`, so its responses are not a representative offline cache fixture.
+
+No production promotion, physical Garmin sync, native Android build or live Google consent is
+part of this verification. Existing build warnings concern chunk sizes and dynamic imports.
