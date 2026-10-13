@@ -32,7 +32,7 @@ const archive = resolve(directory, "worker.tgz");
 const tar = spawnSync(
   "tar",
   ["-czf", archive, "-C", bundle, "worker", "assets"],
-  { stdio: "inherit" },
+  { stdio: "inherit", env: { ...process.env, COPYFILE_DISABLE: "1" } },
 );
 if (tar.status !== 0) throw new Error("Worker archive failed.");
 const manifest = {
