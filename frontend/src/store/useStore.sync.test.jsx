@@ -35,6 +35,23 @@ afterEach(() => {
 })
 
 describe('pull against a revisioned server', () => {
+  it('keeps older-clock Drive records durably owed during an in-flight server pull', async () => {
+    const local = { ...clone(DEF), _ts: 300, workouts: [workout('server')] }
+    signedIn(local)
+    localStorage.setItem('gym_owner', 'user-1')
+    localStorage.setItem('gym_sync', JSON.stringify({ rev: 1, ts: 300 }))
+    let answer
+    api.mockReturnValueOnce(new Promise(resolve => { answer = resolve }))
+    const pulling = useStore.getState().pullState()
+    useStore.getState().mergeCloudState({ ...clone(DEF), _ts: 100, workouts: [workout('drive')] })
+    expect(localStorage.getItem('gym_dirty')).toBe('1')
+    expect(JSON.parse(localStorage.getItem('gym_state_v1')).workouts.map(w => w.id)).toContain('drive')
+    api.mockResolvedValueOnce({ ok: true, rev: 3 })
+    answer({ state: { ...clone(DEF), _ts: 400, workouts: [workout('server'), workout('new-server')] }, rev: 2 })
+    await pulling
+    expect(useStore.getState().S.workouts.map(w => w.id).sort()).toEqual(['drive', 'new-server', 'server'])
+    expect(puts()[0].state.workouts.map(w => w.id).sort()).toEqual(['drive', 'new-server', 'server'])
+  })
   it('adopts the server copy when only the server moved, and records its revision', async () => {
     const local = { ...clone(DEF), _ts: 100, workouts: [workout('w1')], active: { id: 'running' } }
     signedIn(local)

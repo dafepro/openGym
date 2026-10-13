@@ -139,6 +139,7 @@ const effortTail = s => {
 // `speedUnit` is the profile's (lib/speed.js speedUnitOf); without one a cardio set reads km/h.
 const EXPLICIT_MODES = new Set(['reps', 'time', 'cardio'])
 export function setLabel(id, s, cfg, speedUnit) {
+  if (s.skipped && !s.done) return t('Skipped')
   // The id is the caller's when the config does not carry one: a freestyle target is built
   // without it, and modeOf would then fall back to 'reps' and print a run as "0×0".
   const c = cfg ? { ...cfg, id: cfg.id ?? id } : { id }
@@ -367,6 +368,7 @@ function lastEntryIn(S, exId, rid) {
   const workouts = S.workouts || []
   for (let i = workouts.length - 1; i >= 0; i--) {
     const w = workouts[i]
+    if (w.source === 'StrongLifts') continue // Imported records are not a current load prescription.
     const en = entryIn(w, exId, rid)
     if (!en) continue
     // A session that does not count — a planned deload, or a rehab block merged into a real

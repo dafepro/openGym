@@ -27,6 +27,7 @@
 // is fulfilled (`pinState === 'done'`) and reads as no override at all. Pins change which session
 // is NEXT, never what counts as DONE, so the tally a planner reads is untouched.
 function routineIdsOf(w) {
+  if (w.warmupOnly) return [];
   return Array.isArray(w.routineIds) ? w.routineIds : (w.routineId ? [w.routineId] : []);
 }
 function nameParts(w) {

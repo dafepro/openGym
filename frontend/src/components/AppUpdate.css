@@ -1,0 +1,5 @@
+.app-update { position: fixed; z-index: 140; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(520px, calc(100% - 24px)); display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--acc); border-radius: 18px; box-shadow: 0 12px 36px #0006; }
+.app-update > div { flex: 1; min-width: 0; }
+.app-update p { font-size: 12px; margin: 4px 0 0; }
+.app-update .btn { width: auto; flex: none; margin: 0; min-height: 44px; }
+.app-update > svg { color: var(--acc); flex: none; }

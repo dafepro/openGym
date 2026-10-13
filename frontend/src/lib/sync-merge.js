@@ -81,6 +81,31 @@ import { readDayNote as readNote } from './day-notes.js'
 
 const clone = o => JSON.parse(JSON.stringify(o))
 const list = v => (Array.isArray(v) ? v : [])
+// Cloud peers have no authoritative server copy on equal clocks. Stable values
+// break those ties. Missing stamps remain zero: an unrelated document clock
+// must never outrank a real field edit. Zero markers retain that distinction.
+const stableValue = v => v === undefined ? '' : JSON.stringify(v, (_, x) => x && typeof x === 'object' && !Array.isArray(x)
+  ? Object.fromEntries(Object.keys(x).sort().map(k => [k, x[k]])) : x)
+const winsTie = (a, b) => stableValue(a) > stableValue(b)
+function cloudProvenance(S) {
+  if (!S) return S
+  const out = clone(S), edited = { ...(out.edited || {}) }
+  for (const k of Object.keys(out)) {
+    if (OWN_MERGE.has(k)) continue
+    if (PER_KEY.has(k)) {
+      for (const key of Object.keys(isMap(out[k]) ? out[k] : {})) if (!(k + '.' + key in edited)) edited[k + '.' + key] = 0
+    } else if (!(k in edited)) edited[k] = 0
+  }
+  if (!('routineOrder' in edited)) edited.routineOrder = 0
+  out.edited = edited
+  for (const key of ['workouts', 'routines', 'customEx', 'equipProfiles', 'gymCards']) for (const entry of list(out[key])) {
+    if (!entry || typeof entry !== 'object') continue
+    const stamps = { ...(entry._f || {}) }
+    for (const k of Object.keys(entry)) if (!ENTRY_META.has(k) && !(k in stamps)) stamps[k] = 0
+    entry._f = stamps
+  }
+  return out
+}
 // The maps whose every entry carries its own edit time (mergeStampedMap). dayNotes is a day's
 // note on a day off (lib/day-notes.js), one entry per date.
 export const STAMPED_MAPS = ['balanceOverrides', 'loadKind', 'plates', 'dbLoad', 'dumbbells', 'dayNotes']
@@ -163,12 +188,12 @@ export function mergeWorkoutMedia(kept, other) {
 const byDayStart = (a, b) => (a.d === b.d ? (a.start || 0) - (b.start || 0) : a.d < b.d ? -1 : 1)
 
 /** One entry per day; where both have a day, the one edited later (`t`); sorted by day. */
-export function mergeBodyweight(a = [], b = []) {
+export function mergeBodyweight(a = [], b = [], deterministic = false) {
   const byDay = new Map()
   for (const e of [...list(a), ...list(b)]) {
     if (!e || e.d == null) continue
     const cur = byDay.get(e.d)
-    if (!cur || (e.t || 0) > (cur.t || 0)) byDay.set(e.d, e)
+    if (!cur || (e.t || 0) > (cur.t || 0) || (deterministic && (e.t || 0) === (cur.t || 0) && winsTie(e, cur))) byDay.set(e.d, e)
   }
   return [...byDay.values()].sort((x, y) => (x.d < y.d ? -1 : 1))
 }
@@ -178,11 +203,12 @@ export function mergeBodyweight(a = [], b = []) {
 // harder setting and taking the larger would hand back the help the other device just dropped
 // (issue #232). `beatsWeight` knows which way round each exercise runs; the date breaks a tie
 // on an exercise where both sides moved in the same direction.
-function mergeExWeights(n = {}, o = {}) {
+function mergeExWeights(n = {}, o = {}, deterministic = false) {
   const out = { ...(o || {}), ...(n || {}) }
   for (const k of Object.keys(o || {})) {
     if (!(n && n[k] && o[k])) continue
     if (beatsWeight(k, o[k].w || 0, n[k].w || 0)) out[k] = o[k]
+    else if (deterministic && o[k].w === n[k].w && winsTie(o[k], n[k])) out[k] = o[k]
   }
   return out
 }
@@ -340,7 +366,7 @@ export function stampEntry(old, x, now) {
  * Two versions of one entry: the version edited last (`_ts`; `a` on a tie), with every field the
  * other side changed later (`_f`) taken from that side, removal included. Returns a new object.
  */
-export function mergeEntry(a, b) {
+export function mergeEntry(a, b, deterministic = false) {
   const [n, o] = (Number(b?._ts) || 0) > (Number(a?._ts) || 0) ? [b, a] : [a, b]
   const out = clone(n)
   const f = { ...(isMap(o._f) ? o._f : {}) }
@@ -350,7 +376,8 @@ export function mergeEntry(a, b) {
   for (const k of new Set([...Object.keys(n), ...Object.keys(o), ...Object.keys(f)])) {
     if (ENTRY_META.has(k)) continue
     const tn = fieldTime(n, k), to = fieldTime(o, k)
-    const [side, at] = undoPick(tn, undoOf(n._u, k, tn), to, undoOf(o._u, k, to))
+    let [side, at] = undoPick(tn, undoOf(n._u, k, tn), to, undoOf(o._u, k, to))
+    if (!side && deterministic) side = winsTie(o[k], n[k]) ? 'y' : 'x'
     if (side === 'y') { if (k in o) out[k] = clone(o[k]); else delete out[k] }
     if (at > Math.max(tn, to)) { f[k] = at; bumped = Math.max(bumped, at) }
     const kept = side === 'y' ? undoOf(o._u, k, at) : side === 'x' ? undoOf(n._u, k, at) : undoOf(n._u, k, at) || undoOf(o._u, k, at)
@@ -371,11 +398,12 @@ export function mergeEntry(a, b) {
  * from the side that still had it. So a clear is written as a stamped entry, not a delete, and
  * wins like any other edit. On a tie, or with `prefer`, the newer (preferred) side's entry stays.
  */
-export function mergeStampedMap(newer, older, prefer) {
+export function mergeStampedMap(newer, older, prefer, deterministic = false) {
   const n = isMap(newer) ? newer : {}
   const o = isMap(older) ? older : {}
   const out = { ...o, ...n }
-  if (!prefer) for (const k of Object.keys(o)) if (k in n && stampOf(o[k]) > stampOf(n[k])) out[k] = o[k]
+  if (!prefer) for (const k of Object.keys(o)) if (k in n && (stampOf(o[k]) > stampOf(n[k]) ||
+    (deterministic && stampOf(o[k]) === stampOf(n[k]) && winsTie(o[k], n[k])))) out[k] = o[k]
   return out
 }
 
@@ -687,15 +715,20 @@ export function mergeEdits(a, b) {
  * copy that changed it last, removal included. A tie (but one an Undo wins, undoPick) or a field
  * nobody stamped stays as it is.
  */
-function applyEdits(out, n, o) {
+function applyEdits(out, n, o, deterministic = false) {
   const en = isMap(n.edited) ? n.edited : {}, eo = isMap(o.edited) ? o.edited : {}
   const bumps = {}
   for (const k of new Set([...Object.keys(en), ...Object.keys(eo)])) {
     const tn = Number(en[k]) || 0, to = Number(eo[k]) || 0
     const un = undoOf(n.undone, k, tn), uo = undoOf(o.undone, k, to)
-    if (tn === to && !un === !uo) continue
+    if (tn === to && !un === !uo && !deterministic) continue
     // An Undo's marker can hand the field to the side whose stamp is older (see "Undo" above).
-    const [side, at] = undoPick(tn, un, to, uo)
+    let [side, at] = undoPick(tn, un, to, uo)
+    if (!side && deterministic) {
+      const dot = k.indexOf('.')
+      const value = s => dot < 0 ? s[k] : s[k.slice(0, dot)]?.[k.slice(dot + 1)]
+      side = winsTie(value(o), value(n)) ? 'y' : 'x'
+    }
     if (at > Math.max(tn, to)) bumps[k] = at
     const src = side === 'y' ? o : n
     const dot = k.indexOf('.')
@@ -716,13 +749,15 @@ function applyEdits(out, n, o) {
 // `prefer` names the side whose settings, plan and per-exercise config win regardless of `_ts`:
 // on sign-in the server's profile is the truth and the device only contributes the entries it
 // logged while signed out. Without it the newer copy decides, as for a conflict between devices.
-export function mergeStates(a0, b0, { prefer } = {}) {
+export function mergeStates(a0, b0, { prefer, deterministic = false } = {}) {
+  if (deterministic && !prefer) { a0 = cloudProvenance(a0); b0 = cloudProvenance(b0) }
   if (!a0) return b0 ? clone(b0) : b0
   if (!b0) return clone(a0)
   let a = a0, b = b0
   // A reset seen by one copy only: the other keeps what was made after it, and the reset copy
   // decides the rest (the file's header).
   let side = prefer === 'a' || prefer === 'b' ? prefer : newerOf(a, b) === a ? 'a' : 'b'
+  if (!prefer && deterministic && (a._ts || 0) === (b._ts || 0)) side = winsTie(b, a) ? 'b' : 'a'
   const ra = Number(a.resetAt) || 0, rb = Number(b.resetAt) || 0
   if (!prefer) {
     if (ra > rb) { b = sinceReset(b, ra, a.resetIds); side = 'a' }
@@ -740,14 +775,16 @@ export function mergeStates(a0, b0, { prefer } = {}) {
   // One unit before anything is compared.
   let lead = null
   if (unitOf(a) !== unitOf(b)) {
-    lead = prefer || unitStamp(a) === unitStamp(b) ? (side === 'a' ? a : b) : unitStamp(a) > unitStamp(b) ? a : b
+    lead = !prefer && deterministic && unitStamp(a) === unitStamp(b)
+      ? winsTie({ unit: b.unit, unitSet: b.unitSet }, { unit: a.unit, unitSet: a.unitSet }) ? b : a
+      : prefer || unitStamp(a) === unitStamp(b) ? (side === 'a' ? a : b) : unitStamp(a) > unitStamp(b) ? a : b
     if (lead === a) b = inUnitOf(b, a); else a = inUnitOf(a, b)
   }
   const n = side === 'a' ? a : b
   const o = n === a ? b : a
   const out = clone(n)
   // The unit is the lead's by now; so is the record of choosing it.
-  const unitBy = lead || (unitStamp(a) >= unitStamp(b) ? a : b)
+  const unitBy = lead || (deterministic && unitStamp(a) === unitStamp(b) ? winsTie(b.unitSet, a.unitSet) ? b : a : unitStamp(a) >= unitStamp(b) ? a : b)
   if (unitBy.unitSet) out.unitSet = clone(unitBy.unitSet)
   out.workouts = unionById(n.workouts, o.workouts, workoutKey).map(clone)
   // A workout edited after it was logged keeps the version edited last, whichever copy is newer
@@ -764,7 +801,7 @@ export function mergeStates(a0, b0, { prefer } = {}) {
       if (!alt) return w
       // Field by field (mergeEntry): the sets from the side that edited them last, the note from
       // the side that edited it last.
-      const kept = mergeEntry(w, alt)
+      const kept = mergeEntry(w, alt, deterministic)
       const [last, first, byLast, byFirst] = (alt._ts || 0) > (w._ts || 0) ? [alt, w, o, n] : [w, alt, n, o]
       if ((last._ts || 0) !== (first._ts || 0) && JSON.stringify(last.entries) !== JSON.stringify(first.entries)) {
         const by = JSON.stringify(kept.entries) === JSON.stringify(first.entries) ? byFirst : byLast
@@ -796,7 +833,8 @@ export function mergeStates(a0, b0, { prefer } = {}) {
   // The routines in the order chosen last (`edited.routineOrder`), the newer copy's without a
   // stamp to tell; one only the other copy has still goes next to its neighbour there. Each entry
   // is still the newer copy's version here, merged with the other's below.
-  if (!prefer && out.routines && (Number(o.edited?.[ORDER_KEY]) || 0) > (Number(n.edited?.[ORDER_KEY]) || 0)) {
+  if (!prefer && out.routines && ((Number(o.edited?.[ORDER_KEY]) || 0) > (Number(n.edited?.[ORDER_KEY]) || 0) ||
+    (deterministic && (o.edited?.[ORDER_KEY] || 0) === (n.edited?.[ORDER_KEY] || 0) && winsTie(list(o.routines).map(r => r.id), list(n.routines).map(r => r.id))))) {
     const mine = new Map(list(n.routines).filter(r => r?.id != null).map(r => [r.id, r]))
     out.routines = unionByNeighbours(o.routines, n.routines).map(r => clone(r?.id != null && mine.has(r.id) ? mine.get(r.id) : r))
   }
@@ -813,13 +851,13 @@ export function mergeStates(a0, b0, { prefer } = {}) {
       const other = new Map(list(o[f]).filter(x => x?.id != null).map(x => [x.id, x]))
       out[f] = out[f].map(x => {
         const alt = x?.id != null && other.get(x.id)
-        return alt ? mergeEntry(x, alt) : x
+        return alt ? mergeEntry(x, alt, deterministic) : x
       })
     }
   }
-  out.bodyweight = mergeBodyweight(n.bodyweight, o.bodyweight).map(clone)
+  out.bodyweight = mergeBodyweight(n.bodyweight, o.bodyweight, deterministic).map(clone)
   // A day's body measurements are one check-in, kept and merged the way a weigh-in is.
-  if (list(n.measurements).length || list(o.measurements).length) out.measurements = mergeBodyweight(n.measurements, o.measurements).map(clone)
+  if (list(n.measurements).length || list(o.measurements).length) out.measurements = mergeBodyweight(n.measurements, o.measurements, deterministic).map(clone)
   if (list(n.favEx).length || list(o.favEx).length) out.favEx = [...new Set([...list(n.favEx), ...list(o.favEx)])]
   // What either device removed stays removed (the `deleted` section above). A workout taken out
   // this way leaves its exercises' kept loads to be read again, as an edit of it would: from the
@@ -837,7 +875,7 @@ export function mergeStates(a0, b0, { prefer } = {}) {
       for (const src of by) editedBy.get(e.id).add(src)
     }
   }
-  out.exWeights = clone(mergeExWeights(n.exWeights, o.exWeights))
+  out.exWeights = clone(mergeExWeights(n.exWeights, o.exWeights, deterministic))
   for (const [id, sources] of editedBy) {
     const kept = correctedExWeight(id, out.workouts, sources)
     if (kept) out.exWeights[id] = clone(kept)
@@ -850,12 +888,12 @@ export function mergeStates(a0, b0, { prefer } = {}) {
   // a unit's plate inventory are each one choice, made on one device, that a later set logged on
   // the other must not undo.
   for (const f of STAMPED_MAPS) {
-    if (n[f] || o[f]) out[f] = clone(mergeStampedMap(n[f], o[f], prefer))
+    if (n[f] || o[f]) out[f] = clone(mergeStampedMap(n[f], o[f], prefer, deterministic))
   }
   // Each stamped setting and plan day from the copy that changed it last (the `edited` section
   // above). `prefer` (sign-in) keeps the preferred side's, stamps and all.
   if (!prefer) {
-    const bumps = applyEdits(out, n, o)
+    const bumps = applyEdits(out, n, o, deterministic)
     const edited = mergeEdits(n.edited, o.edited)
     if (edited) { Object.assign(edited, bumps); out.edited = edited } else delete out.edited
     // An Undo's markers that still describe the merged stamp of their setting.
@@ -877,6 +915,14 @@ export function mergeStates(a0, b0, { prefer } = {}) {
   delete out._wids
   delete out._unstamped   // the server's own notes (api/sync-stamps.js), never a client's
   delete out._prior
+  if (deterministic && !prefer) {
+    // Collections with no user-defined order need a stable representation too.
+    out.workouts.sort((a, b) => byDayStart(a, b) || String(workoutKey(a)).localeCompare(String(workoutKey(b))))
+    for (const f of ['customEx', 'equipProfiles', 'gymCards']) if (out[f]) out[f].sort((a, b) => String(a.id).localeCompare(String(b.id)))
+    if (out.favEx) out.favEx.sort()
+    if (out.resetIds) for (const value of Object.values(out.resetIds)) if (Array.isArray(value)) value.sort()
+    for (const w of out.workouts) if (Array.isArray(w.media)) w.media.sort((a, b) => String(a.hash).localeCompare(String(b.hash)))
+  }
   // The accent fields end up in CSS: whatever either copy brought, only a clean value goes on.
   sanitizeAccent(out)
   return out

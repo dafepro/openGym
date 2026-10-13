@@ -24,8 +24,10 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Modals from './components/Modals.jsx'
 import Toast from './components/Toast.jsx'
 import SyncBanner from './components/SyncBanner.jsx'
+import AppUpdate from './components/AppUpdate.jsx'
 import RestTimer from './components/RestTimer.jsx'
 import TimerFlash from './components/TimerFlash.jsx'
+import useFocusHistory from './components/useFocusHistory.js'
 import { openDeviceLinkRedeem } from './components/Passkeys.jsx'
 import Login from './views/Login.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
@@ -62,7 +64,7 @@ function applyPrefs(theme, accent) {
   de.dataset.theme = resolveTheme(theme)
   applyAccent(de, accent, de.dataset.theme)
   const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.content = de.dataset.theme === 'light' ? '#f2f2f7' : '#000000'
+  if (meta) meta.content = de.dataset.theme === 'light' ? '#f3f5ef' : '#101214'
   if (MOBILE) setSystemBarsLight(de.dataset.theme === 'light')
 }
 
@@ -81,6 +83,10 @@ function Shell() {
   useEffect(() => { setAlarmBuzzer(MOBILE && S.vibrate !== false && S.vibrateOnSilent ? buzzAsAlarm : null) }, [S.vibrate, S.vibrateOnSilent])
   const isGuest = useStore(s => s.isGuest())
   const needsMobileOnboarding = useStore(s => s.needsMobileOnboarding)
+  const focusOpen = useUI(s => s.focusDetailsOpen)
+  // The history owner outlives the focus layout: finishing a session can unmount
+  // that layout while its finish/summary sheet still owns the next history entry.
+  useFocusHistory(focusOpen, () => useUI.getState().dismissFocus())
   const langV = useLang()   // re-renders the whole shell when the language (pack) changes
   useEffect(() => { setNav(navigate) }, [navigate])
   const lastEditPath = useRef(loc.pathname)
@@ -175,17 +181,15 @@ function Shell() {
   }, [loc.pathname, navType])
   // bound to the workout, not to the route — checking Stats mid-session keeps the screen on
   useWakeLock(!!S.active && !S.active.editingWorkoutId && S.keepAwake !== false)
-  // A running workout has the whole screen (v1.3.11): no tab bar, and the rest bar docks to the
-  // bottom edge in its place. Its header's ⌄ goes back to the app, where the tab bar's Resume
-  // brings it back.
   const inWorkout = loc.pathname === '/workout' && !!S.active
+  // Navigation remains in the same place throughout a workout; Coach owns its composer.
+  const noTabs = loc.pathname === '/coach' || needsMobileOnboarding
   useEffect(() => {
-    document.body.classList.toggle('no-tabbar', inWorkout)
-    return () => document.body.classList.remove('no-tabbar')
+    if (!inWorkout) useUI.setState({ focusDetailsOpen: false, focusView: 'live', focusPane: null })
   }, [inWorkout])
-  // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
-  // The first-launch card has no tabs either: they changed the route behind it.
-  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding
+  useEffect(() => {
+    if (!S.active) useUI.setState({ focusDetailsOpen: false, focusPrepared: null, focusLastSet: null, focusView: 'live', focusPane: null })
+  }, [!!S.active])
 
   const authed = user || isGuest
   if (!ready && !authed) return (
@@ -200,17 +204,18 @@ function Shell() {
     <>
       {/* keyed on the route: a view that throws is contained, and switching tabs
           re-mounts the boundary, so the tab bar is always a way out */}
-      <div id="app" className="vfade" key={loc.pathname}>
-        <ErrorBoundary>
+      <div id="app">
+        <AppUpdate />
+        <ErrorBoundary key={loc.pathname}>
           {!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
-            <Routes>
+            <div className="vfade" key={loc.pathname}><Routes>
               <Route path="/home" element={<Home />} />
               {/* Gym check-in — switched off in Settings, the route falls through to the
                   catch-all redirect below. */}
               {S.checkIn !== false && <Route path="/checkin" element={<CheckIn />} />}
               <Route path="/plan" element={<Plan />} />
               <Route path="/plan/r/:id" element={<RoutineEdit />} />
-              <Route path="/workout" element={<Workout />} />
+              <Route path="/workout" element={S.active ? null : <Workout />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/history" element={<History />} />
               <Route path="/library" element={<Library />} />
@@ -229,9 +234,12 @@ function Shell() {
               <Route path="/coach/setup" element={<CoachSetup />} />
               <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
               <Route path="*" element={<Navigate to="/home" replace />} />
-            </Routes>
+            </Routes></div>
           )}
         </ErrorBoundary>
+        {/* The live controller survives route changes so its timer callbacks and focus
+            workspace keep ownership when the workout is minimized onto another page. */}
+        {authed && !needsMobileOnboarding && S.active && <ErrorBoundary><Workout hidden={!inWorkout} /></ErrorBoundary>}
       </div>
       {/* Outside #app: the view's fade-in animates a transform, and a fixed element inside it
           would ride along with the page for the length of it. Decides for itself when to show —

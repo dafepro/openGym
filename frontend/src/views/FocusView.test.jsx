@@ -22,7 +22,7 @@ function mount(entry, over = {}) {
   Object.assign(S, over)
   S.active = {
     id: 'focus-test', d: '2026-09-28', start: Date.now(), routineId: null,
-    name: 'Focus', bw: null, cur: 0, workoutView: 'focus', entries: [entry],
+    name: 'Focus', bw: null, cur: 0, workoutView: 'focus', backfill: true, entries: [entry],
   }
   useStore.setState({ S, user: null })
   container = document.createElement('div')
@@ -54,7 +54,7 @@ afterEach(() => {
   useUI.getState().stopRest()
 })
 
-describe('Focus workout view', () => {
+describe('Focus view for past workouts', () => {
   it('omits a plan that repeats the prescription and keeps plate guidance in the badge row', () => {
     mount({
       id: SQUAT,

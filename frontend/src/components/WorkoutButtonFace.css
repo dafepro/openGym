@@ -1,0 +1,47 @@
+.cir .wbf-surface,.cir .wbf-base,.cir .wbf-bloom,.cir .wbf-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.cir .wbf-surface {
+  overflow: hidden;
+}
+.cir .wbf-base,.cir .wbf-bloom {
+  background: var(--workout-color);
+}
+.cir .wbf-base {
+  transition: background-color 220ms var(--ease);
+}
+.cir .wbf-bloom {
+  opacity: 0;
+}
+.cir .wbf-halo {
+  inset: -7px;
+  z-index: -1;
+  background: var(--workout-color);
+  opacity: 0;
+}
+.cir[data-state="active"] .wbf-halo {
+  animation: workout-breathe 2.8s ease-in-out infinite;
+}
+.cir>.icn {
+  position: relative;
+  z-index: 1;
+}
+@keyframes workout-breathe {
+  0%,100% { transform: scale(1); opacity: .1; }
+  50% { transform: scale(1.12); opacity: .2; }
+}
+@keyframes workout-ring-arrive {
+  from { opacity: 0; transform: rotate(-90deg) scale(1.14); }
+  to { opacity: 1; transform: rotate(-90deg) scale(1); }
+}
+.cir .workout-timer-ring {
+  animation: workout-ring-arrive 420ms var(--ease) both;
+}
+@media(prefers-reduced-motion:reduce) {
+  .cir[data-state="active"] .wbf-halo { animation: none; opacity: .1; }
+  .cir .workout-timer-ring { animation: none; }
+  .cir .wbf-base { transition: background-color 140ms linear; }
+}

@@ -1,0 +1,168 @@
+/* Uplift's athletic visual system. Layout and state remain owned by openGym's components. */
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/fonts/barlow-condensed-latin-600.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+:root {
+  --display: 'Barlow Condensed','Arial Narrow',sans-serif;
+  --page-heading-size: clamp(40px,11vw,56px);
+  --bg: #101214;
+  --bg-el: #161a1c;
+  --surface: #1a1d20;
+  --surface-2: #252a2d;
+  --surface-3: #343a3d;
+  --label: #f3f5f1;
+  --label-2: #a6b1b5;
+  --label-3: #79868c;
+  --label-4: #556166;
+  --sep: #343a3d;
+  --sep-op: #343a3d;
+  --green: #d0f878;
+  --blue: #8bd0fa;
+  --orange: #f1c783;
+  --purple: #cab4fc;
+  --mint: #a9ebca;
+  --teal: #a2f1e0;
+  --indigo: #b8bdf7;
+  --red: #ff6861;
+  --pink: #f59abd;
+  --yellow: #efd686;
+  --grey: #a6b1b5;
+  --r-card: 20px;
+  --r-lg: 18px;
+  --r-xl: 26px;
+  --ease: cubic-bezier(.22,1,.36,1);
+  --fast: 150ms;
+  --med: 220ms;
+  color-scheme: dark;
+}
+:root[data-accent="lime"] { --acc-2: #8cba49; --on-acc: #152015; }
+:root[data-accent="sky"] { --acc-2: #3e8eba; --on-acc: #142a40; }
+:root[data-accent="orange"] { --acc-2: #ba914c; --on-acc: #32240f; }
+:root[data-accent="violet"] { --acc-2: #8f70c4; --on-acc: #292035; }
+:root[data-accent="pink"] { --acc-2: #b96187; --on-acc: #361c28; }
+:root[data-accent="red"] { --acc-2: #bf4843; --on-acc: #351515; }
+:root[data-accent="teal"] { --acc-2: #4b9e8d; --on-acc: #173d37; }
+:root[data-accent="gold"] { --acc-2: #ac9448; --on-acc: #30290f; }
+/* Existing Light and System preferences remain usable. Pastels become darker inks here. */
+:root[data-theme="light"] {
+  --bg: #f3f5ef;
+  --bg-el: #fafbf7;
+  --surface: #ffffff;
+  --surface-2: #e9ede4;
+  --surface-3: #d9e0d4;
+  --label: #202725;
+  --label-2: #56635f;
+  --label-3: #69776f;
+  --label-4: #9aa59d;
+  --sep: #cbd4c9;
+  --sep-op: #d9e0d4;
+  --green: #476316;
+  --blue: #195c8c;
+  --orange: #8b4e10;
+  --purple: #684895;
+  --mint: #27694d;
+  --teal: #226663;
+  --indigo: #515c9a;
+  --red: #b83230;
+  --pink: #a52b60;
+  --yellow: #725718;
+  --grey: #56635f;
+  color-scheme: light;
+}
+:root[data-theme="light"][data-accent] { --on-acc: #ffffff; }
+body {
+  font-family: Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background: radial-gradient(ellipse at 80% 0,color-mix(in srgb,var(--teal) 4%,transparent),transparent 55%),var(--bg);
+}
+.hdr h1,.whdr h1 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: var(--page-heading-size);
+  line-height: .98;
+  letter-spacing: -.5px;
+  text-transform: uppercase;
+}
+.uplift-brand { margin-bottom: 24px; }
+.uplift-wordmark { display: flex; align-items: center; justify-content: center; gap: 11px; }
+.uplift-wordmark h1 {
+  font-family: Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size: 32px;
+  font-weight: 650;
+  letter-spacing: -1.1px;
+  line-height: 1;
+  text-transform: none;
+  font-synthesis: none;
+}
+.uplift-wordmark h1>span { color: var(--acc); margin-inline-start: 3px; }
+.uplift-wordmark img { flex: none; }
+.uplift-brand.compact { margin: 0; }
+.uplift-brand.compact .uplift-wordmark { justify-content: flex-start; gap: 10px; }
+.uplift-brand.compact .uplift-wordmark h1 { font-size: var(--page-heading-size); }
+.uplift-brand.compact img { width: var(--page-heading-size); height: var(--page-heading-size); }
+.uplift-credit { display: inline-block; color: var(--label-2); font-size: 12px; margin-top: 8px; text-decoration: underline; text-underline-offset: 3px; }
+.sp-version .uplift-credit { margin: 0; font-size: inherit; }
+.hdr .sub { margin-top: 7px; font-size: 12px; color: var(--label-2); }
+.card,.sect-b {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--sep) 70%,transparent),0 12px 28px #0000000c;
+}
+.card { background: linear-gradient(120deg,color-mix(in srgb,var(--surface) 85%,var(--surface-2)),var(--surface)); }
+.sect-t { font-size: 12px; letter-spacing: .04em; }
+.lrow-i { background: color-mix(in srgb,var(--tint,var(--acc)) 13%,var(--surface)); color: var(--tint,var(--acc)); }
+.btn,.input,.stp,.seg,.iconbtn { transition-timing-function: var(--ease); }
+.btn.primary { box-shadow: inset 0 1px 0 #ffffff24,0 4px 16px color-mix(in srgb,var(--acc) 8%,transparent); }
+.btn.primary:active { transform: scale(.97); }
+.seg { border-radius: 16px; }
+.seg-sel { box-shadow: inset 0 0 0 1px var(--sep); }
+.sheet { border: 1px solid var(--sep); box-shadow: 0 -18px 64px #00000038; }
+#tabbar { background: color-mix(in srgb,var(--bg) 96%,transparent); border-color: var(--sep); }
+/* Work, rest and completion have distinct ownership. The nav button's halo handoff stays amber/blue. */
+.wf-page[data-phase="rest"] { --wf-ink: #142a40; }
+.wf-page[data-phase="complete"] { --wf-accent: var(--mint); --wf-ink: #15382c; }
+.wf-page[data-warmup="true"]:not([data-phase="rest"]) { --wf-accent: var(--purple); --wf-ink: #292035; }
+.wf-header h2 { font-family: var(--display); font-weight: 600; font-size: clamp(30px,8vw,38px); line-height: 1.02; text-transform: uppercase; letter-spacing: -.2px; }
+.wf-kicker { font-size: 11px; font-weight: 500; letter-spacing: .08em; }
+.wf-rep-input,.wf-live-timer>span,.wf-prep>strong { font-family: var(--display); font-weight: 600; letter-spacing: 0; }
+.wf-rep-input { line-height: 1; }
+.wf-rep-glow { background: radial-gradient(ellipse,var(--acc-soft),transparent 70%); }
+.wf-page[data-warmup="true"] .wf-rep-glow { background: radial-gradient(ellipse,color-mix(in srgb,var(--purple) 16%,transparent),transparent 70%); }
+.wf-prep>.wf-fields { border-radius: 24px; box-shadow: inset 0 0 0 1px var(--sep); }
+.wf-view-toggle,.wf-disclosure,.wf-stations>button { box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--sep) 80%,transparent); }
+.wf-primary { font-weight: 600; box-shadow: inset 0 1px 0 #ffffff24,0 6px 22px color-mix(in srgb,var(--wf-accent) 9%,transparent); }
+.wf-expander { transition: grid-template-rows var(--med) var(--ease),opacity var(--fast) var(--ease); }
+.wf-expander>div { transition-duration: var(--med); }
+.wf-phase { animation-duration: var(--med); }
+.wf-outgoing { animation-duration: var(--fast); }
+:root[data-theme="light"] .wf-page { --wf-ink: #ffffff; }
+:root[data-theme="light"] .wf-rep-input { color: var(--wf-accent); }
+:root[data-theme="light"] .wf-kicker { color: var(--wf-accent); }
+#tabbar button.start.resting .cir { color: #142a40; }
+:root[data-theme="light"] #tabbar button.start.resting .cir,:root[data-theme="light"] #tabbar button.start.rec .cir { color: #ffffff; }
+/* The ring ticks quietly; countdown updates never restart the state transition. */
+.workout-timer-ring .wtr-track { opacity: .16; }
+.workout-timer-ring .wtr-arc { transition: stroke-dashoffset 500ms linear; }
+.workout-timer-ring .wtr-tip { stroke: #b9e4ff; transition: stroke-dashoffset 500ms linear; animation: uplift-rest-tick 1s ease-out infinite; }
+.workout-timer-ring[data-mode="paused"] .wtr-tip { animation: none; }
+@keyframes uplift-rest-tick {
+  0%,100% { opacity: .65; filter: drop-shadow(0 0 0 transparent); }
+  22% { opacity: 1; filter: drop-shadow(0 0 3px #8bd0fa); }
+  65% { opacity: .65; filter: drop-shadow(0 0 0 transparent); }
+}
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after { animation: none!important; transition: none!important; scroll-behavior: auto!important; }
+}
+/* Condensed type is for hierarchy and numbers; settings prose keeps the regular text face. */
+.sp-root-title { font-family: var(--display); font-weight: 600; font-size: clamp(40px,11vw,48px); line-height: 1; letter-spacing: -.4px; text-transform: uppercase; }
+.card .big,.stat-v,.tile .v,.dw-read { font-family: var(--display); font-weight: 600; font-size: 36px; letter-spacing: 0; }
+.stp .num,#timer .t { font-family: var(--display); font-weight: 600; letter-spacing: 0; }
+.seg-sel,:root[data-theme="light"] .seg-sel { background: var(--acc); border-radius: 12px; }
+.seg button.on { color: var(--on-acc); }
+/* Pale status fills need dark glyphs; effort values use a quiet tint with full label contrast. */
+.pp-check { color: var(--on-acc); }
+.focus-failure,.setrow .n .failmark,.setrow-side>.n .failmark { color: #292035; }
+.plan-minus,.swpane.del:not(.dis) button { color: #351515; }
+.effpick.menu-list .menu-item .effpick-n { background: color-mix(in srgb,var(--bc) 14%,var(--surface)); color: var(--label); }
+:root[data-theme="light"] .focus-failure,:root[data-theme="light"] .setrow .n .failmark,:root[data-theme="light"] .setrow-side>.n .failmark,
+:root[data-theme="light"] .plan-minus,:root[data-theme="light"] .swpane.del:not(.dis) button { color: #ffffff; }

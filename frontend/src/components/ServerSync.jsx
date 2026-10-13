@@ -1,3 +1,4 @@
+import { localOnly } from '../lib/guest.js'
 // The connection to the server, as the screens show it and act on it: the persistent indicator
 // (SyncBanner.jsx), the "Server & sync" block in Settings, and the question a sign-out or a
 // disconnect asks when the server has not got everything yet. The store decides the state
@@ -21,7 +22,7 @@ const toast = m => ui().toast(m)
 // Whether this browser has a way to sign in at all: a passkey, or a password on an instance that
 // offers one (#118) — which is also what a browser without passkey support has left.
 const pwOn = () => passwordOn(useStore.getState?.()?.config)
-const canSignIn = () => webauthnOK() || pwOn()
+const canSignIn = () => !localOnly(useStore.getState?.()?.config) && (webauthnOK() || pwOn())
 
 // "gym.example.com" out of the base URL the store keeps (a subpath stays: it is part of which
 // server this is). Anything unparseable is shown as it is.
@@ -56,6 +57,10 @@ export function useOnline() {
    first. */
 export function connectionView(sync, { mobile = MOBILE, online = isOnline() } = {}) {
   if (!sync) return null
+  if (!mobile && localOnly(useStore.getState?.()?.config)) return {
+    tone: 'quiet', icon: 'lock', action: 'drive', label: t('Data & backup'),
+    line: t('Saved on this device.'), banner: t('Saved on this device.'),
+  }
   const err = sync.lastError || {}
   // A device that says it has no network is offline whatever the last request found: said the
   // moment it goes, not at the next sync attempt, which may be a poll away. Only the states that

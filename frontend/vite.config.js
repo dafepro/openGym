@@ -110,6 +110,7 @@ export default defineConfig({
     // server needs to be told the workspace is wider than frontend/.
     fs: { allow: ['..'] },
     proxy: {
+      '/api/garmin': { target: process.env.GARMIN_TARGET || 'http://127.0.0.1:8788', changeOrigin: true, headers: { Origin: process.env.GARMIN_TARGET || 'http://127.0.0.1:8788' } },
       '/api': { target: backend, changeOrigin: true, headers: { Origin: apiOrigin } },
       ...(media ? {
         '/exercise-media': { target: media, changeOrigin: true }

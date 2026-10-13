@@ -1,3 +1,4 @@
+import { withoutWatch } from './garmin.js'
 /* Backups that carry the photos and videos of custom exercises and of logged workouts.
  *
  * "Export backup (JSON)" stays what it always was: the state, with each exercise's small
@@ -28,7 +29,7 @@ import { t } from './i18n-core.js'
 export const BACKUP_JSON = 'opengym-backup.json'
 const MEDIA_ENTRY = /^media\/([0-9a-f]{64})\.(jpg|png|webp|gif|mp4|mov|webm)$/
 
-const README = `openGym backup with photos and videos
+const README = `Uplift backup with photos and videos
 =====================================
 
 opengym-backup.json  your data - the same file "Export backup (JSON)" writes.
@@ -36,7 +37,7 @@ media/               the photos, GIFs and videos of your own exercises and of yo
                      workouts, each named by its SHA-256, plus the small previews
                      shown in lists.
 
-To bring it back: openGym -> Settings -> Data & backup -> Import backup, and pick this .zip as it is.
+To bring it back: Uplift -> Settings -> Data & backup -> Import backup, and pick this .zip as it is.
 Do not unpack and re-zip it: the app reads zips that are stored, not compressed.
 `
 
@@ -66,7 +67,7 @@ export function sanitizeCustomMedia(state) {
  * fetchToStore). `missing` counts those that could not be had; the export goes ahead without them.
  */
 export async function exportBackupZip(S, { media = mediaStore, fetchOne = null, now } = {}) {
-  const entries = [{ name: BACKUP_JSON, blob: new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }) }]
+  const entries = [{ name: BACKUP_JSON, blob: new Blob([JSON.stringify(withoutWatch(S), null, 2)], { type: 'application/json' }) }]
   let missing = 0
   for (const f of referencedFiles(S)) {
     let rec = await media.get(f.hash)

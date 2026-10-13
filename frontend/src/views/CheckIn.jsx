@@ -12,6 +12,7 @@ import QrCanvas from '../components/QrCanvas.jsx'
 import CameraScan from '../components/CameraScan.jsx'
 import { Button, TextField } from '../components/ui.jsx'
 import { confirmSheet } from '../sheets.jsx'
+import { CLUB_ELITE, gymAppUrl, gymAppDestination } from '../lib/gym-app.js'
 
 // Move the card at `from` to sit at index `to`, returning a new array (the input is left alone).
 // Backs the on-card ◀ ▶ reorder buttons. Out-of-range or no-op moves return an unchanged copy
@@ -36,13 +37,18 @@ export function moveGymCard(cards, from, to) {
 // or importing a photo only — never by typing a code, which is too easy to fat-finger into a
 // code that silently fails at the turnstile. An existing card can be edited (rename, re-scan), and
 // with more than one card each carries ◀ ▶ buttons to nudge its position along the rail.
+// Use the real slide pitch, including the gap and rail insets.
+const slideStep = rail => (rail.children[1]?.offsetLeft - rail.children[0]?.offsetLeft) || rail.clientWidth
+
 export default function CheckIn() {
   const nav = useNavigate()
   const cards = useStore(s => s.S.gymCards) || []
   const lastId = useStore(s => s.S.lastGymCardId)
   const update = useStore(s => s.update)
-  const railRef = useRef(null)
+  const railRef = useRef(null), rememberedHere = useRef(null)
+  const cardOrder = JSON.stringify(cards.map(c => c.id))
   const [active, setActive] = useState(0)
+  const hideSubtitle = cards.length > 0 && (active >= cards.length || cards[active]?.kind === 'app')
 
   // Open on the last-used card. Done once on mount (and whenever the saved id changes from
   // elsewhere) with layout effect so the jump happens before paint — no visible scroll from 0.
@@ -50,22 +56,31 @@ export default function CheckIn() {
   useLayoutEffect(() => {
     const rail = railRef.current
     if (!rail || !cards.length) return
+    const local = rememberedHere.current
+    rememberedHere.current = null
+    // Remembering a swipe must not interrupt the browser's drag/snap animation.
+    if (local?.id === lastId && local.order === cardOrder) return
     const idx = Math.max(0, cards.findIndex(c => c.id === lastId))
-    rail.scrollLeft = idx * rail.clientWidth
+    rail.scrollLeft = idx * slideStep(rail)
     setActive(idx)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastId, cards.length])
+  }, [lastId, cardOrder])
 
   // Which card the horizontal scroll has settled on — drives the dots and gets remembered as the
   // last-used card. Reading it off the scroll position keeps the rail itself the single control.
   const onScroll = () => {
     const rail = railRef.current
     if (!rail) return
-    const i = Math.round(rail.scrollLeft / rail.clientWidth)
+    const step = slideStep(rail)
+    if (!step) return
+    const i = Math.max(0, Math.min(cards.length, Math.round(rail.scrollLeft / step)))
     if (i === active) return
     setActive(i)
     const card = cards[i]
-    if (card && card.id !== lastId) update(s => { s.lastGymCardId = card.id }, false)
+    if (card && card.id !== lastId) {
+      rememberedHere.current = { id: card.id, order: cardOrder }
+      update(s => { s.lastGymCardId = card.id }, false)
+    }
   }
 
   return <div className="narrow">
@@ -73,9 +88,11 @@ export default function CheckIn() {
       <button className="iconbtn" onClick={() => nav('/home')} aria-label={t('Home')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1 }}>
         <h1 style={{ fontSize: 28 }}>{t('Check in')}</h1>
-        <div className="sub">{cards.length ? t('Show this at the gym') : t('Add your gym card')}</div>
+        <div className="sub ci-sub" style={{ visibility: hideSubtitle ? 'hidden' : undefined }} aria-hidden={hideSubtitle || undefined}>{cards.length ? t('Show this at the gym') : t('Add your gym card')}</div>
       </div>
     </div>
+
+    <Button icon="link" variant="tinted" onClick={() => useUI.getState().openSheet(close => <GymAppSheet close={close} />)}>{t('Add gym app')}</Button>
 
     <div className="ci-rail" ref={railRef} onScroll={onScroll}>
       {cards.map((card, i) => <CardFace
@@ -97,7 +114,7 @@ export default function CheckIn() {
     </div>}
 
     {!cards.length && <div className="muted small" style={{ textAlign: 'center', marginTop: 18, lineHeight: 1.5 }}>
-      {t('Import a photo of your membership card or scan it with the camera. No extra app needed at the gym, just open this screen.')}
+      {t('Use your gym app for a changing QR code. Save a card here only when its code stays the same.')}
     </div>}
   </div>
 }
@@ -109,6 +126,8 @@ export default function CheckIn() {
 // doesn't fight the rail's horizontal scroll the way a drag gesture did.
 function CardFace({ card, index, count }) {
   const update = useStore(s => s.update)
+  const appUrl = card.kind === 'app' ? gymAppDestination(card) : null
+  const appIntent = appUrl?.startsWith('intent:')
   const remove = () => confirmSheet({
     title: t('Remove this card?'),
     message: card.label,
@@ -122,18 +141,52 @@ function CardFace({ card, index, count }) {
   const move = to => update(s => { s.gymCards = moveGymCard(s.gymCards, index, to) })
   return <div className="ci-card">
     <div className="ci-card-hd">
-      <button className="iconbtn ci-card-btn" onClick={() => openEditCard(card)} aria-label={t('Edit')}><Icon name="pencil" /></button>
-      <div className="ci-label">{card.label}</div>
+      <button className="iconbtn ci-card-btn" onClick={() => card.kind === 'app' ? useUI.getState().openSheet(close => <GymAppSheet card={card} close={close} />) : openEditCard(card)} aria-label={t('Edit')}><Icon name="pencil" /></button>
+      <div className="ci-label" title={card.label}>{card.label}</div>
       <button className="iconbtn ci-card-btn" style={{ color: 'var(--red)' }} onClick={remove} aria-label={t('Remove')}><Icon name="trash" /></button>
     </div>
-    <div className="ci-qr-plate"><QrCanvas value={card.value} size={230} /></div>
-    <div className="ci-value">{card.value}</div>
+    {card.kind === 'app' ? <div className="ci-card-body ci-app">
+      <Icon name="link" />
+      <p>{t('Get the current check-in code in your gym app.')}</p>
+      {appUrl && <a className="btn primary" href={appUrl} target={appIntent ? '_self' : '_blank'} rel="noopener noreferrer">{t(card.provider === 'club-elite' && !appIntent ? 'Open app / store' : 'Open gym app')}<Icon name="chevronRight" /></a>}
+    </div> : <div className="ci-card-body">
+      <div className="ci-qr-plate"><QrCanvas value={card.value} size={230} /></div>
+      <div className="ci-value">{card.value}</div>
+    </div>}
     {count > 1 && <div className="ci-reorder">
       <button className="iconbtn ci-card-btn" onClick={() => move(index - 1)} disabled={index === 0} aria-label={t('Move left')}><Icon name="chevronLeft" /></button>
       <span className="ci-pos">{index + 1} / {count}</span>
       <button className="iconbtn ci-card-btn" onClick={() => move(index + 1)} disabled={index === count - 1} aria-label={t('Move right')}><Icon name="chevronRight" /></button>
     </div>}
   </div>
+}
+
+function GymAppSheet({ card, close }) {
+  const [label, setLabel] = useState(card?.label || CLUB_ELITE.label)
+  const [url, setUrl] = useState(card?.url || CLUB_ELITE.url)
+  const [provider, setProvider] = useState(card?.provider || 'club-elite')
+  const [error, setError] = useState('')
+  const save = () => {
+    const safe = gymAppUrl(url)
+    if (!safe) { setError(t('Use a secure https:// link.')); return }
+    if (card && !useStore.getState().S.gymCards?.some(c => c.id === card.id)) { setError(t('That card was removed on another device')); return }
+    useStore.getState().update(s => {
+      const value = { id: card?.id || uid(), kind: 'app', label: label.trim() || t('Gym app'), url: safe, provider }
+      s.gymCards = card ? s.gymCards.map(c => c.id === card.id ? value : c) : [...(s.gymCards || []), value]
+      s.lastGymCardId = value.id
+    })
+    close()
+  }
+  return <>
+    <h3>{t('Gym app')}</h3>
+    <p className="small muted">{t('Dynamic codes stay in your gym app. Uplift saves a shortcut, not your gym login or QR code.')}</p>
+    <Button variant="tinted" onClick={() => { setProvider('club-elite'); setLabel(CLUB_ELITE.label); setUrl(CLUB_ELITE.url) }}>Club Elite + / Club Fitness</Button>
+    <label>{t('Label')}</label><TextField value={label} onChange={e => setLabel(e.target.value)} />
+    <label>{t('App or website link')}</label><TextField type="url" value={url} onChange={e => { setUrl(e.target.value); setProvider('custom') }} />
+    {error && <p role="alert">{error}</p>}
+    <Button variant="primary" onClick={save}>{t('Save')}</Button>
+    <Button variant="ghost" onClick={close}>{t('Cancel')}</Button>
+  </>
 }
 
 /* ------------------------------------------------------------- add/edit sheet -- */

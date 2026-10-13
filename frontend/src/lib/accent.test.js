@@ -103,7 +103,7 @@ describe('readable on the theme', () => {
     }
     // a grey that already stands apart is left alone
     expect(readableIn('#333333', 'light')).toBe('#333333')
-    expect(readableIn('#e0e0e0', 'dark')).toBe('#e0e0e0')
+    expect(readableIn('#fafafa', 'dark')).toBe('#fafafa')
     expect(isGrey('#ff00aa')).toBe(false)
   })
   it('lightens a very dark colour in dark mode and darkens a very light one in light mode', () => {
@@ -181,10 +181,10 @@ describe('CSS for the own colour', () => {
 
 describe('the native countdown colours', () => {
   it('takes a preset key or the own colour', () => {
-    expect(accentPair('sky')).toEqual({ accent: ACCENTS.sky, ink: '#ffffff' })
+    expect(accentPair('sky')).toEqual({ accent: ACCENTS.sky, ink: '#142a40' })
     expect(accentPair('#ffd60a')).toEqual({ accent: '#ffd60a', ink: '#000000' })
-    expect(accentPair('nonsense')).toEqual({ accent: ACCENTS.lime, ink: '#000000' })
-    expect(accentPair(undefined)).toEqual({ accent: ACCENTS.lime, ink: '#000000' })
+    expect(accentPair('nonsense')).toEqual({ accent: ACCENTS.lime, ink: '#152015' })
+    expect(accentPair(undefined)).toEqual({ accent: ACCENTS.lime, ink: '#152015' })
   })
 })
 

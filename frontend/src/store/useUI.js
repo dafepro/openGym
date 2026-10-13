@@ -211,6 +211,20 @@ export const useUI = create((set, get) => ({
   toastAction: null,   // { label, run, id } while the toast offers an action (Undo)
   swipeHint: null,     // { idx, i, id }: the set row showing the one-time swipe hint (Workout.jsx)
   setFlash: null,      // { idx, i, id }: the set row a copy or an undo just brought, flashed once
+  focusDetailsOpen: false, // only a disclosure/overview owns history; the Focus layout is a page
+  focusPrepared: null, // { sessionId, entries: [entry keys] }; one load check per exercise/session
+  focusSkippedWarmups: null, // presentation bypass only; never marks a warm-up recorded
+  focusView: 'live',
+  focusPane: null,
+  focusLastSet: null,
+  dismissFocus() {
+    const { focusPane, focusView, focusDetailsOpen } = get()
+    if (!focusDetailsOpen) return false
+    if (focusPane) set({ focusPane: null, focusDetailsOpen: focusView !== 'live' })
+    else if (focusView !== 'live') set({ focusView: 'live', focusDetailsOpen: false })
+    else set({ focusDetailsOpen: false })
+    return true
+  },
   timer: null,         // rest countdown between sets — { left, total, endsAt, forIdx, ready?, paused?, kind? }
                        // kind: 'switch' for the short pause between the two sides of a timed set
                        // forIdx: index of the active entry whose set started the rest (undefined when unknown)

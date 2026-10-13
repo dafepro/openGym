@@ -59,6 +59,23 @@ const shellHtml = '<html><head><script src="./assets/index-new.js"></script></he
 beforeEach(() => { delete globalThis.self })
 
 describe('sw.js install and activate', () => {
+  it('fetches the canonical scope root, avoiding Cloudflare’s index.html redirect', async () => {
+    await loadSW()
+    const asked = []
+    globalThis.fetch = async u => {
+      asked.push(String(u))
+      return String(u) === './'
+        ? { ok: true, status: 200, redirected: false, text: async () => shellHtml }
+        : String(u) === 'index.html'
+          ? { ok: true, status: 200, redirected: true, text: async () => shellHtml }
+          : { ok: true, status: 200, clone: () => ({}) }
+    }
+    await fire('install')
+    expect(asked[0]).toBe('./')
+    expect(skipWaiting).toBe(1)
+    expect(await (await globalThis.caches.open(CACHE)).match('index.html')).toBeTruthy()
+  })
+
   it('a precache that cannot reach the server fails the install and keeps the build on the device', async () => {
     await loadSW()
     const old = await previousBuild()
@@ -95,7 +112,7 @@ describe('sw.js install and activate', () => {
   it('a chunk that will not cache fails the install, so the build on the device stays', async () => {
     await loadSW()
     const old = await previousBuild()
-    globalThis.fetch = async u => (String(u) === 'index.html'
+    globalThis.fetch = async u => (String(u) === './'
       ? { ok: true, status: 200, redirected: false, text: async () => shellHtml }
       : { ok: false, status: 404 })
 
@@ -114,7 +131,7 @@ describe('sw.js install and activate', () => {
     // would have stored that HTML under the main bundle's URL.
     await loadSW()
     const old = await previousBuild()
-    globalThis.fetch = async u => (String(u) === 'index.html'
+    globalThis.fetch = async u => (String(u) === './'
       ? { ok: true, status: 200, redirected: false, text: async () => shellHtml }
       : { ok: true, status: 200, redirected: true, text: async () => '<html>sign in</html>' })
 
@@ -132,7 +149,7 @@ describe('sw.js install and activate', () => {
     await previousBuild()
     const withIcon = '<html><head><script src="./assets/index-new.js"></script>'
       + '<link rel="stylesheet" href="./assets/index-new.css"><link rel="icon" href="./icon-512.png"></head></html>'
-    globalThis.fetch = async u => (String(u) === 'index.html'
+    globalThis.fetch = async u => (String(u) === './'
       ? { ok: true, status: 200, redirected: false, text: async () => withIcon }
       : String(u).endsWith('.png') ? { ok: false, status: 404 } : { ok: true, status: 200, clone: () => ({}) })
 
@@ -148,7 +165,9 @@ describe('sw.js install and activate', () => {
   it('an install that got the shell takes over and drops the previous build', async () => {
     await loadSW()
     await previousBuild()
-    globalThis.fetch = async u => (String(u) === 'index.html'
+    const legacy = await globalThis.caches.open('workbox-precache-uplift')
+    await legacy.put('index.html', { body: 'original Uplift recovery shell' })
+    globalThis.fetch = async u => (String(u) === './'
       ? { ok: true, status: 200, redirected: false, text: async () => shellHtml }
       : { ok: true, status: 200, clone: () => ({}) })
 
@@ -156,8 +175,14 @@ describe('sw.js install and activate', () => {
     expect(skipWaiting).toBe(1)
     await fire('activate')
 
-    expect(await globalThis.caches.keys()).toEqual([CACHE])
+    expect(await globalThis.caches.keys()).toEqual(['workbox-precache-uplift', CACHE])
+    expect(await legacy.match('index.html')).toBeTruthy()
     expect((await globalThis.caches.open(CACHE)).keys()).toContain('index.html')
+    globalThis.fetch = async () => { throw new Error('offline') }
+    const request = new Request('https://gym.test/')
+    Object.defineProperty(request, 'mode', { value: 'navigate' })
+    const offline = await fire('fetch', { request })
+    expect(await (await offline._res).text()).toBe(shellHtml)
   })
 })
 
@@ -212,7 +237,7 @@ describe('sw.js re-registers a rotated push subscription with the page\'s device
     await loadSW()
     await previousBuild()
     await (await globalThis.caches.open(DEVICE_CACHE)).put(DEVICE_URL, new Response('dev1234abcd'))
-    globalThis.fetch = async u => (String(u) === 'index.html'
+    globalThis.fetch = async u => (String(u) === './'
       ? { ok: true, status: 200, redirected: false, text: async () => shellHtml }
       : { ok: true, status: 200, clone: () => ({}) })
     await fire('install')
@@ -220,4 +245,43 @@ describe('sw.js re-registers a rotated push subscription with the page\'s device
     expect((await globalThis.caches.keys()).sort()).toEqual([CACHE, DEVICE_CACHE].sort())
     expect(await (await (await globalThis.caches.open(DEVICE_CACHE)).match(DEVICE_URL)).text()).toBe('dev1234abcd')
   })
+})
+
+describe('the Uplift display font survives offline reopen', () => {
+  const font = 'fonts/barlow-condensed-latin-600.woff2'
+  const withFont = '<html><link rel="preload" href="' + font + '" as="font"><script src="assets/main.js"></script></html>'
+  it('stores the preloaded local font together with the complete shell', async () => {
+    await loadSW()
+    globalThis.fetch = async url => String(url) === './'
+      ? { ok: true, text: async () => withFont }
+      : { ok: true, redirected: false, status: 200, font: String(url) === font }
+    await fire('install')
+    const cache = await globalThis.caches.open(CACHE)
+    expect(await cache.match(font)).toMatchObject({ font: true })
+    expect(await cache.match('index.html')).toBeTruthy()
+  })
+  it('keeps the previous offline build if the required font download fails', async () => {
+    await loadSW()
+    await previousBuild()
+    globalThis.fetch = async url => String(url) === './'
+      ? { ok: true, text: async () => withFont }
+      : { ok: String(url) !== font, status: String(url) === font ? 503 : 200 }
+    await expect(fire('install')).rejects.toThrow(font)
+    await fire('activate')
+    expect(await globalThis.caches.keys()).toContain('opengym-rt-oldbuild')
+    expect(await (await globalThis.caches.open(CACHE)).match('index.html')).toBeFalsy()
+  })
+})
+
+
+it('keeps an installed update waiting until explicitly accepted', async () => {
+  await loadSW()
+  self.registration.active = {}
+  globalThis.fetch = async u => String(u) === './' ? { ok: true, text: async () => shellHtml } : { ok: true }
+  await fire('install')
+  expect(skipWaiting).toBe(0)
+  await fire('message', { data: { type: 'UNKNOWN' } })
+  expect(skipWaiting).toBe(0)
+  await fire('message', { data: { type: 'UPLIFT_ACTIVATE' } })
+  expect(skipWaiting).toBe(1)
 })

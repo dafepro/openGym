@@ -115,7 +115,7 @@ in
 
     rpName = lib.mkOption {
       type = lib.types.str;
-      default = "openGym";
+      default = "Uplift";
       description = "Display name for passkey registration prompts.";
     };
 

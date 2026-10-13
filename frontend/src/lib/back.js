@@ -23,10 +23,11 @@ export function decideBack({ top, canGoBack, exitArmed }) {
   return exitArmed ? 'exit' : 'arm-exit'
 }
 
-export function makeBackHandler({ getSheets, closeSheet, toast, goBack, exit, now = Date.now }) {
+export function makeBackHandler({ getSheets, closeSheet, dismissFocus = () => false, toast, goBack, exit, now = Date.now }) {
   let armedAt = -Infinity
   return (ev = {}) => {
     const sheets = getSheets()
+    if (!sheets.length && dismissFocus()) { armedAt = -Infinity; return 'focus' }
     const action = decideBack({
       top: sheets[sheets.length - 1],
       canGoBack: !!ev.canGoBack,
@@ -50,6 +51,7 @@ export async function initBackButton() {
     const handler = makeBackHandler({
       getSheets: () => useUI.getState().sheets,
       closeSheet: id => useUI.getState().closeSheet(id),
+      dismissFocus: () => useUI.getState().dismissFocus(),
       toast: msg => useUI.getState().toast(msg),
       goBack: () => window.history.back(),
       exit: () => App.exitApp(),

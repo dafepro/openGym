@@ -340,6 +340,7 @@ export function sessionsFor(S, exId, fallback, rid) {
 function sessionsIn(S, exId, fallback, rid) {
   const out = []
   ;(S.workouts || []).forEach(w => {
+    if (w.source === 'StrongLifts') return
     const entry = (w.entries || []).find(e => e && e.id === exId && (!rid || entryRoutineId(w, e) === rid))
     if (!entry) return
     // A session that does not count for this exercise cannot become the baseline for its next

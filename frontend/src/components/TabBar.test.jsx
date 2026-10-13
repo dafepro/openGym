@@ -6,6 +6,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TabBar from './TabBar.jsx'
+import { useUI } from '../store/useUI.js'
 import { DEF, useStore } from '../store/useStore.js'
 
 vi.mock('react-router-dom', () => ({
@@ -18,6 +19,8 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 let host, root, originalS, originalUser
 
 beforeEach(() => {
+  useUI.getState().stopRest()
+  useUI.getState().stopWork()
   const store = useStore.getState()
   originalS = store.S
   originalUser = store.user
@@ -30,12 +33,75 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount())
   host.remove()
+  useUI.getState().stopRest()
+  useUI.getState().stopWork()
   useStore.setState({ S: originalS, user: originalUser })
 })
 
 const tabs = () => [...host.querySelectorAll('#tabbar button')]
 
 describe('the tab bar across a store write', () => {
+  it('hands off color only on phase changes and keeps the face, glyph and timer through ticks and pause', () => {
+    vi.useFakeTimers()
+    const originalAnimate = Element.prototype.animate
+    const playing = []
+    Element.prototype.animate = vi.fn(() => { const animation = { cancel: vi.fn() }; playing.push(animation); return animation })
+    try {
+      act(() => root.render(<TabBar onStart={() => {}} />))
+      const start = tabs()[2], face = start.querySelector('.cir'), glyph = face.querySelector('.icn')
+      expect(Element.prototype.animate).not.toHaveBeenCalled() // no arrival flourish on reload
+      act(() => useStore.getState().update(s => { s.active = { id: 'motion', entries: [], cur: 0, start: Date.now() } }, false))
+      expect(face.dataset.state).toBe('active')
+      expect(Element.prototype.animate).toHaveBeenCalled()
+      const firstHandoff = [...playing]
+      act(() => useUI.getState().startRest(60, 0))
+      expect(face.dataset.state).toBe('rest')
+      firstHandoff.forEach(animation => expect(animation.cancel).toHaveBeenCalledOnce())
+      const calls = Element.prototype.animate.mock.calls.length
+      const ring = face.querySelector('.workout-timer-ring')
+      act(() => vi.advanceTimersByTime(10_000))
+      act(() => useUI.getState().pauseRest())
+      act(() => vi.advanceTimersByTime(10_000))
+      expect(Number(ring.querySelector('.wtr-arc').getAttribute('stroke-dashoffset'))).toBeCloseTo(100 * 50 / 60)
+      act(() => useUI.getState().resumeRest())
+      expect(Element.prototype.animate).toHaveBeenCalledTimes(calls)
+      expect(start.querySelector('.cir')).toBe(face)
+      expect(face.querySelector('.icn')).toBe(glyph)
+      expect(face.querySelector('.workout-timer-ring')).toBe(ring)
+      act(() => useUI.getState().stopRest())
+      expect(face.dataset.state).toBe('active')
+      expect(face.querySelector('.workout-timer-ring')).toBeNull()
+      expect(Element.prototype.animate.mock.calls.length).toBeGreaterThan(calls)
+      expect(tabs()[2]).toBe(start)
+    } finally {
+      if (originalAnimate) Element.prototype.animate = originalAnimate
+      else delete Element.prototype.animate
+      useUI.getState().stopRest(); vi.useRealTimers()
+    }
+  })
+
+  it('honors reduced motion while retaining the real rest ring and state colors', () => {
+    const originalAnimate = Element.prototype.animate
+    Element.prototype.animate = vi.fn()
+    const preference = { matches: true }
+    const media = vi.spyOn(window, 'matchMedia').mockReturnValue(preference)
+    try {
+      act(() => root.render(<TabBar onStart={() => {}} />))
+      act(() => useStore.getState().update(s => { s.active = { id: 'motion', entries: [], cur: 0, start: Date.now() } }, false))
+      const face = tabs()[2].querySelector('.cir')
+      expect(face.dataset.state).toBe('active')
+      act(() => useUI.getState().startRest(60, 0))
+      expect(face.dataset.state).toBe('rest')
+      expect(face.querySelector('.workout-timer-ring')).toBeTruthy()
+      expect(Element.prototype.animate).not.toHaveBeenCalled()
+    } finally {
+      media.mockRestore()
+      if (originalAnimate) Element.prototype.animate = originalAnimate
+      else delete Element.prototype.animate
+      useUI.getState().stopRest()
+    }
+  })
+
   it('keeps the very same buttons instead of rebuilding them every tick', () => {
     act(() => { root.render(<TabBar onStart={() => {}} />) })
     const before = tabs()
@@ -56,7 +122,7 @@ describe('the tab bar across a store write', () => {
     expect(tabs()[2].className).toBe('start')
 
     act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0 } }, false) })
-    expect(tabs()[2].className).toBe('start rec')
+    expect(tabs()[2].className).toBe('start')
     expect(tabs()[0].className).toBe('on')
   })
 })
@@ -85,7 +151,7 @@ describe('the connection dot on Home', () => {
 // play button whether or not a session runs, and Exercises is the dumbbell (no more generic list).
 describe('the tab icons and labels', () => {
   const icon = el => el.querySelector('svg')?.getAttribute('data-icon')
-  const label = el => el.querySelector('span:last-child').textContent
+  const label = el => el.querySelector(':scope > span:last-child').textContent
   it('labels every tab and uses one icon per concept', () => {
     act(() => { root.render(<TabBar onStart={() => {}} />) })
     expect(tabs().map(icon)).toEqual(['house', 'calendar', 'play', 'chart', 'dumbbell'])
@@ -96,22 +162,57 @@ describe('the tab icons and labels', () => {
     expect(label(tabs()[2])).toBe('Resume')
   })
 
-  it('shows a minimized session’s running time, still named Resume', () => {
+  it('restores the orange active signal outside rest and keeps saved editing normal', () => {
+    act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0, start: Date.now() - 754_000 } }, false) })
+    act(() => { root.render(<TabBar onStart={() => {}} />) })
+    const start = tabs()[2]
+    expect(label(start)).toBe('Resume')
+    expect(start.className).toBe('start rec')
+    expect(start.querySelector('.workout-timer-ring')).toBeNull()
+    act(() => { useStore.getState().update(s => { s.active.editingWorkoutId = 'w1' }, false) })
+    expect(label(tabs()[2])).toBe('Edit workout')
+    expect(tabs()[2]).toBe(start)
+    expect(start.className).toBe('start')
+    expect(start.querySelector('.workout-timer-ring')).toBeNull()
+    act(() => { useStore.getState().update(s => { delete s.active.editingWorkoutId; s.active.backfill = { date: '2026-10-09' } }, false) })
+    expect(start.className).toBe('start')
+    act(() => { useStore.getState().update(s => { s.active = null }, false) })
+    expect(start.className).toBe('start')
+    expect(label(start)).toBe('Start')
+  })
+
+  it('shows blue progress only during rest, freezes while paused and resets when rest ends', () => {
     vi.useFakeTimers()
     try {
-      vi.setSystemTime(new Date(2026, 9, 5, 18, 0, 0))
-      act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0, start: Date.now() - 754_000 } }, false) })
+      act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0, start: Date.now() } }, false) })
       act(() => { root.render(<TabBar onStart={() => {}} />) })
       const start = tabs()[2]
-      expect(label(start)).toBe('12:34')
-      expect(start.getAttribute('aria-label')).toBe('Resume')
-      act(() => { vi.advanceTimersByTime(2000) })
-      expect(label(start)).toBe('12:36')
-      expect(tabs()[2]).toBe(start)   // the same button, only its text ticks
-
-      // a past workout being edited has no clock running
-      act(() => { useStore.getState().update(s => { s.active.editingWorkoutId = 'w1' }, false) })
-      expect(label(tabs()[2])).toBe('Edit workout')
-    } finally { vi.useRealTimers() }
+      expect(start.querySelector('.workout-timer-ring')).toBeNull()
+      act(() => useUI.getState().startRest(100, 0))
+      const ring = start.querySelector('.workout-timer-ring')
+      const offset = () => Number(ring.querySelector('.wtr-arc').getAttribute('stroke-dashoffset'))
+      expect(start.classList.contains('resting')).toBe(true)
+      expect(start.classList.contains('rec')).toBe(false)
+      expect(ring.dataset.mode).toBe('rest')
+      expect(offset()).toBe(100)
+      act(() => vi.advanceTimersByTime(20_000))
+      expect(offset()).toBe(80)
+      act(() => useUI.getState().pauseRest())
+      expect(ring.dataset.mode).toBe('paused')
+      act(() => vi.advanceTimersByTime(10_000))
+      expect(offset()).toBe(80)
+      act(() => useUI.getState().resumeRest())
+      act(() => vi.advanceTimersByTime(80_000))
+      expect(start.querySelector('.workout-timer-ring')).toBeNull()
+      expect(start.classList.contains('resting')).toBe(false)
+      expect(start.classList.contains('rec')).toBe(true)
+      act(() => { useUI.getState().stopRest(); useUI.getState().startWork(50, 'Hold', () => {}) })
+      act(() => vi.advanceTimersByTime(25_000))
+      expect(start.classList.contains('resting')).toBe(false)
+      expect(start.classList.contains('rec')).toBe(true)
+      expect(tabs()[2]).toBe(start)
+      expect(start.querySelector('.workout-timer-ring')).toBeNull()
+      expect(label(start)).toBe('Resume')
+    } finally { useUI.getState().stopRest(); useUI.getState().stopWork(); vi.useRealTimers() }
   })
 })

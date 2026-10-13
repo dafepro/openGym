@@ -335,3 +335,10 @@ describe('queueOf — the shared normalization', () => {
     expect(queueView(st, TODAY).items.map(i => i.id)).toEqual(['d1', 'd2'])
   })
 })
+
+it('retains warmup-only history without crediting a routine or fulfilling its pin', () => {
+  const s = S({ workouts: [w({ routineIds: ['d1'], name: 'US W1 D1', warmupOnly: true })] })
+  expect(queueDone(s)).toEqual([])
+  expect(queueRemaining(s)).toEqual(['d1', 'd2', 'd3'])
+  expect(pinState(s, 'd1')).toBe('open')
+})

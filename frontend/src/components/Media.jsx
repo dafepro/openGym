@@ -30,7 +30,7 @@ function BuiltinMedia({ ex, id, compact, minimizable }) {
   const gifSize = useStore(s => s.S.gifSize)
   const body = useStore(s => figureOf(s.S))
   const update = useStore(s => s.update)
-  if (!ex.gif) return null
+  if (!ex.gif || !gifSrc(ex, body)) return null
   if (minimizable && gifSize === 'off') return null
   const mini = minimizable && gifSize === 'mini'
   const toggleSize = e => { e.stopPropagation(); update(s => { s.gifSize = mini ? 'full' : 'mini' }) }

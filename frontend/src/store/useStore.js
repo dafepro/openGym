@@ -1,11 +1,13 @@
 import { create } from 'zustand'
 import { api, setRemoteAuth } from '../lib/api.js'
+import { withoutWatch } from '../lib/garmin.js'
+import { cloudContent } from '../lib/cloud-sync.js'
 import { localTZ } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { registerCustom, healCustomEx } from '../lib/exercises.js'
 import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
 import { rememberDefaultLang } from '../lib/default-lang.js'
-import { guestAllowed } from '../lib/guest.js'
+import { guestAllowed, localOnly } from '../lib/guest.js'
 import { MOBILE, initReminderSync, nativeLoad, nativeSave, onAppActive, readJsonFile, syncReminder, writeAutoBackup, writeJsonFile } from '../lib/mobile.js'
 import { initHealthSync, syncHealth } from '../lib/health-sync.js'
 import { refillIfComplete } from '../lib/rotation.js'
@@ -545,7 +547,15 @@ export const useStore = create((set, get) => {
     const theirs = readSaved()
     if (!theirs) return null
     const touched = JSON.stringify(prev?.active ?? null) !== JSON.stringify(S?.active ?? null)
+    // A received watch result may already have been acknowledged and removed from the watch.
+    // A stale tab cannot replace that active session with its old draft while retaining its receipt.
+    const watchAdvanced = theirs._watch?.receipts?.some(r => !prev?._watch?.receipts?.some(old => old.id === r.id))
+    if (touched && watchAdvanced) {
+      import('./useUI.js').then(({ useUI }) => useUI.getState().toast(t('Workout updated from watch. Try that change again.'))).catch(() => {})
+      return theirs
+    }
     const merged = joinTabs(S, theirs, touched)
+    if (theirs._watch) merged._watch = clone(theirs._watch)
     return sameCopy(merged, S) ? null : merged
   }
 
@@ -562,10 +572,16 @@ export const useStore = create((set, get) => {
     if (hasData(S)) keepAside(S, t('This device, before signing in'), staleUid).catch(() => {})
     return true
   }
-  const persist = (S, push = true, stamp = true) => {
-    if (refuseStale(S)) return
+  const persist = (S, push = true, stamp = true, watchWrite = false) => {
+    if (!watchWrite) {
+      const deviceWatch = get()?.S?._watch
+      delete S._watch
+      if (deviceWatch && deviceWatch.owner === (readOwner() || '')) S._watch = deviceWatch
+    }
+    if (refuseStale(S)) { if (watchWrite) throw new Error('Reload before receiving watch entries.'); return }
     const { base, owed } = metaOf()   // the copy being replaced; the new one stands where it stood
     const joined = joinSaved(S, get()?.S)
+    if (joined && watchWrite) throw new Error('Another tab changed this workout. Reload before receiving watch entries.')
     if (joined) S = joined
     // A join holds another tab's changes, which this copy then owes the server too.
     if (stamp || joined) S._ts = Math.max(Date.now(), (base?.ts || 0) + 1, Number(S._ts) || 0)
@@ -592,6 +608,7 @@ export const useStore = create((set, get) => {
       toldNoRoom = false
       if (storeLag) { storeLag = false; saveMarker(base) }   // the saved copy is this one again
     } catch (e) {
+      if (watchWrite) throw new Error('Watch entries remain queued: this device could not save them.')
       saved = false
       storeLag = true
       try { localStorage.removeItem(SYNC_KEY) } catch { /* nothing to take back */ }
@@ -717,7 +734,7 @@ export const useStore = create((set, get) => {
     // An older app's owed copy over the revision it read: the server stamps what that app changed
     // against the copy it holds, exactly as it would for that app (api/sync-stamps.js).
     const legacy = readLegacy()
-    const body = { state: S, stamped: !(legacy && legacy.owner === get().user?.id) }
+    const body = { state: withoutWatch(S), stamped: !(legacy && legacy.owner === get().user?.id) }
     if (asReplace != null) { body.baseRev = asReplace.rev; if (asReplace.wid) body.baseWid = asReplace.wid }
     else if (!force && base) { body.baseRev = base.rev; if (base.wid) body.baseWid = base.wid }
     try {
@@ -1300,6 +1317,36 @@ export const useStore = create((set, get) => {
     S: S0,
     user: user0,
     ready: false,
+    // Cloud links belong to the device's current saved owner, never to S. A
+    // profile handover/adoption must finish before another backend reads it.
+    cloudSyncOwner() {
+      if (handedOver || adoptHold) return null
+      const owner = readOwner() || ''
+      if (get().user && get().user.id !== owner) return null
+      return owner
+    },
+    async saveForUpdate() {
+      // Retry a refused local write before any update can reload the app. The
+      // ordinary persistence boundary joins concurrent tabs and preserves owners.
+      if (get().cloudSyncOwner() === null) throw new Error('Finish switching profiles before updating.')
+      persist(get().S, false, false)
+      if (get().cloudSyncOwner() === null) throw new Error('Finish switching profiles before updating.')
+      if (storeLag) throw new Error('Could not save locally. Export a backup before updating.')
+      if (MOBILE) await nativePersist(true)
+    },
+    mergeCloudState(remote) {
+      if (get().cloudSyncOwner() === null) return
+      const local = get().S
+      const next = sanitizeAccent(Object.assign(clone(DEF), mergeStates(local, remote, { deterministic: true })))
+      next.active = carryActive(local, next)
+      if (refillIfComplete(next)) next.edited = { ...(next.edited || {}), queue: Math.max(Date.now(), highestStamp(next) + 1) }
+      if (cloudContent(next) !== cloudContent(local)) {
+        // The new entries may carry older clocks than the server base. Owed is
+        // durable: a reload or an in-flight server GET must still merge them.
+        if (readOwner()) { markOwed(true); setSync({ pending: true }) }
+        persist(next, true, false)
+      }
+    },
     // The connection as the screens show it — see statusOf above for every field.
     sync: sync0,
     /* Instance capabilities from GET /api/config. `config.coach` is present only when the owner
@@ -1316,6 +1363,21 @@ export const useStore = create((set, get) => {
     coachLocal: null,
     async setCoachLocal(patch) {
       set({ coachLocal: coachDeviceSettings(await saveCoachDevice(patch)) })
+    },
+
+    // A single synchronous localStorage write contains watch results and their receipts.
+    // Refuse stale tabs and quota errors before publishing the draft or acknowledging the relay.
+    commitWatch(mut) {
+      if (!get().ready || get().cloudSyncOwner() === null) throw new Error('Watch transfer is paused for this profile.')
+      const prev = get().S
+      const stored = localStorage.getItem(KEY)
+      if (stored && JSON.stringify(JSON.parse(stored).active) !== JSON.stringify(prev.active)) throw new Error('Another tab changed this workout. Reload before receiving watch entries.')
+      const S = clone(prev)
+      const result = mut(S)
+      S._ts = stampChange(prev, S, Date.now())
+      persist(S, true, true, true)
+      if (localStorage.getItem(KEY) !== JSON.stringify(get().S)) throw new Error('Watch transfer is waiting for a local save.')
+      return result
     },
 
     // Mutate a draft of S via producer fn, then persist + schedule sync. Every routine the change
@@ -1930,6 +1992,14 @@ export const useStore = create((set, get) => {
       // boot. Ending the session needs a positive `allow_guest: false`; see lib/guest.js for why
       // an unreachable server must not be allowed to lock anyone out (#42).
       const cfg = await get().loadConfig()
+      if (localOnly(cfg)) {
+        // End server use without erasing its owner, pending changes or workout copy.
+        // This host has no account API, including during an offline cold launch.
+        get().setUser(null)
+        get().setGuest(true)
+        finishBoot()
+        return
+      }
       if (!guestAllowed(cfg)) get().setGuest(false)
       // A sign-out that could not reach the server: finish it first. Still unanswered, the
       // browser stays signed out rather than adopt the session it left behind.

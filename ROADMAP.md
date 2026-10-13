@@ -1,6 +1,25 @@
 # Roadmap
 
-Where openGym is going, in the order it is likely to land. Each block is a GitHub milestone; the
+## Fork integration status
+
+This release adds confirmed watch re-pairing, readable guide insets, deliberate app updates, dynamic
+gym app shortcuts, StrongLifts CSV import and previewed Google Drive plan/backup imports (ADR 006).
+Physical watch reconnection and live optional Drive-link consent still need device validation.
+Personal training plans are stored privately, never bundled into the application.
+
+The homepage wordmark now matches original Uplift's lowercase sans-serif text and lime slash.
+The existing Garmin companion's U-and-up-arrow vector replaces the barbell across the fork's
+web and native identity assets. See [the identity refinement](docs/decisions/004-companion-mark-and-wordmark.md).
+
+The live workout keeps its header and Finish pinned in every layout. An explicit full-width
+Workout details / Focused switch replaces the target icon and returns to the previous Cards,
+List or Compact layout. Focus retains its bottom next-action rail and exercise overview.
+View changes preserve preparation, skipped warm-ups, the current set and running timers.
+See [the workout view decision](docs/decisions/003-explicit-workout-views.md).
+
+This fork adds Focus, optional Google Drive snapshot sync, and compatibility with the owner’s existing Uplift Garmin companion. The interface is now branded Uplift, with its original charcoal/lime palette, local Barlow Condensed display font, phase colors, restrained motion and openGym attribution. The owner approved and deployed this fork at `uplift.quicktrack.cc`; the original implementation remains recoverable. Before a deployment, verify Google’s authorized origins and consent, pair the physical watch to the new phone adapter, and confirm working-set and phone-owned warm-up recovery. Static Cloudflare hosting supports local storage, Drive and the watch relay; Node account/Coach/media hosting remains separate. See [the integration decision](docs/decisions/001-uplift-watch-and-oauth.md).
+
+Upstream openGym roadmap (retained for reference), in the order it is likely to land. Each block is a GitHub milestone; the
 issues and pull requests attached to it are the plan, this file is the readable summary.
 
 **A release every two weeks, on a Sunday.** Each one is small on purpose: a handful of issues, one

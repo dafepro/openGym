@@ -1,0 +1,135 @@
+// @vitest-environment happy-dom
+import React, { act } from 'react'
+import { createRoot } from 'react-dom/client'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import App from './App.jsx'
+import { DEF, useStore } from './store/useStore.js'
+import { useUI } from './store/useUI.js'
+
+vi.mock('./lib/sound.js', () => ({
+  beep: vi.fn(), chime: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn(),
+  setPlayOnSilent: vi.fn(), setVibrate: vi.fn(), setAlarmBuzzer: vi.fn(),
+}))
+vi.mock('./lib/api.js', async importOriginal => ({
+  ...await importOriginal(), api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(),
+}))
+globalThis.IS_REACT_ACT_ENVIRONMENT = true
+let root, host, originalStore
+const tap = async (scope, name) => {
+  const control = [...scope.querySelectorAll('button')].find(el =>
+    !el.closest('[inert]') && !el.closest('[aria-hidden="true"]') && (el.getAttribute('aria-label') || el.textContent.trim()) === name)
+  expect(control, name).toBeTruthy()
+  await act(async () => control.click())
+}
+beforeEach(() => {
+  vi.useFakeTimers()
+  originalStore = useStore.getState()
+  window.history.replaceState(null, '', '/#/workout')
+  vi.spyOn(window.history, 'back').mockImplementation(() => {})
+  window.scrollTo = vi.fn()
+  const S = JSON.parse(JSON.stringify(DEF))
+  S.sound = false
+  S.active = { id: 'focus-lifecycle', name: 'Hold', workoutView: 'focus', start: Date.now(), cur: 0, entries: [{
+    id: '0043', target: { mode: 'time', sec: 45, sets: 2, weight: 40 },
+    sets: [{ w: 40, sec: 45, done: false }, { w: 40, sec: 45, done: false }],
+  }] }
+  useStore.setState({ S, user: null, ready: true, needsMobileOnboarding: false, isGuest: () => true, boot: vi.fn() })
+  useUI.getState().stopRest(); useUI.getState().stopWork()
+  useUI.setState({ sheets: [], focusDetailsOpen: false, focusPrepared: null, focusView: 'live', focusPane: null, focusLastSet: null })
+  host = document.createElement('div'); document.body.append(host)
+  root = createRoot(host)
+})
+afterEach(() => {
+  act(() => root.unmount())
+  host.remove()
+  useUI.getState().stopRest(); useUI.getState().stopWork()
+  useUI.setState({ sheets: [], focusDetailsOpen: false, focusPrepared: null, focusView: 'live', focusPane: null, focusLastSet: null })
+  useStore.setState(originalStore)
+  vi.clearAllTimers(); vi.useRealTimers(); vi.restoreAllMocks()
+})
+
+describe('the focus workspace across routes', () => {
+  it.each(['prep', 'working', 'rest'])('opens Finish from %s without ending or recording the session, and can cancel', async phase => {
+    await act(async () => root.render(<App />))
+    const dock = document.querySelector('.wf-page')
+    if (phase !== 'prep') {
+      await tap(dock, 'Start')
+      act(() => vi.advanceTimersByTime(2000))
+      if (phase === 'rest') await tap(dock, 'Done')
+    }
+    expect(dock.dataset.phase).toBe(phase)
+    const active = structuredClone(useStore.getState().S.active)
+    const workouts = structuredClone(useStore.getState().S.workouts)
+    const work = useUI.getState().work
+    const rest = useUI.getState().timer
+    const header = document.querySelector('.whdr')
+    const finish = header.querySelector('.whdr-finish')
+    expect(document.querySelectorAll('.whdr-finish')).toHaveLength(1)
+    expect(dock.querySelector('.wf-finish')).toBeNull()
+    await tap(header, 'Finish workout')
+    expect([...document.querySelectorAll('h3')].some(el => el.textContent === (phase === 'rest' ? 'Finish early?' : 'Nothing logged yet'))).toBe(true)
+    expect(document.body.textContent).toContain('Finish and save')
+    expect(useStore.getState().S.active).toEqual(active)
+    expect(useStore.getState().S.workouts).toEqual(workouts)
+    expect(useUI.getState().work).toBe(work)
+    expect(useUI.getState().timer).toBe(rest)
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(header.querySelector('.whdr-finish')).toBe(finish)
+    expect(dock.dataset.phase).toBe(phase)
+    expect(useStore.getState().S.active).toEqual(active)
+    expect(useUI.getState().work).toBe(work)
+    expect(useUI.getState().timer).toBe(rest)
+  })
+
+  it('keeps bottom navigation usable and preserves a timed hold through Home and Resume', async () => {
+    await act(async () => root.render(<App />))
+    const dock = document.querySelector('.wf-page')
+    await tap(dock, 'Start')
+    const endsAt = useUI.getState().work.endsAt
+    act(() => vi.advanceTimersByTime(4000))
+    expect(document.querySelector('button[aria-label="Minimize"]')).toBeNull()
+    await tap(document.getElementById('tabbar'), 'Home')
+    expect(window.location.hash).toBe('#/home')
+    expect(useUI.getState().work.endsAt).toBe(endsAt)
+    expect(document.querySelector('.wf-page')).toBeNull()
+    expect(document.getElementById('tabbar')).toBeTruthy()
+    await tap(document.getElementById('tabbar'), 'Resume')
+    expect(window.location.hash).toBe('#/workout')
+    act(() => vi.advanceTimersByTime(4000))
+    await tap(document.querySelector('.wf-page'), 'Done')
+    expect(useStore.getState().S.active.entries[0].sets).toMatchObject([
+      { sec: 8, done: true }, { sec: 45, done: false },
+    ])
+    expect(useUI.getState().work).toBeNull()
+    expect(useUI.getState().timer).toMatchObject({ forIdx: 0, forSet: 0 })
+  })
+
+  it('offers adding an exercise directly after completion without a misplaced navigation hint', async () => {
+    const S = structuredClone(useStore.getState().S)
+    S.active.entries[0].target = { mode: 'reps', reps: 5 }
+    S.active.entries[0].sets = [{ w: 40, r: 5, done: false }]
+    useStore.setState({ S })
+    await act(async () => root.render(<App />))
+    await tap(document.querySelector('.wf-page'), 'Start')
+    act(() => vi.advanceTimersByTime(601))
+    await tap(document.querySelector('.wf-page'), 'Done')
+    await tap(document.body, 'Add exercise')
+    expect([...document.querySelectorAll('h3')].some(el => el.textContent === 'Add exercise')).toBe(true)
+    expect(useStore.getState().S.active.entries[0].sets[0].done).toBe(true)
+    expect(useUI.getState().toastMsg).not.toContain('below')
+  })
+
+  it('keeps a stopped hold unrecorded and preserves both elapsed time and the retry plan', async () => {
+    await act(async () => root.render(<App />))
+    const dock = document.querySelector('.wf-page')
+    await tap(dock, 'Start')
+    act(() => vi.advanceTimersByTime(8000))
+    await tap(dock, 'Stop')
+    expect(useStore.getState().S.active.entries[0].sets[0]).toMatchObject({ sec: 8, planSec: 45, done: false })
+    expect(useUI.getState().work).toBeNull()
+    expect(useUI.getState().timer).toBeNull()
+    await tap(dock, 'Start')
+    expect(useUI.getState().work).toMatchObject({ total: 45, owner: { idx: 0, i: 0 } })
+  })
+})

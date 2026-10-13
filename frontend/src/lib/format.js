@@ -140,8 +140,8 @@ export const localTZ = () => { try { return Intl.DateTimeFormat().resolvedOption
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 // What each accent is called, for a screen reader (Settings' swatches carry no text).
 export const ACCENT_NAMES = { lime: 'Green', sky: 'Blue', orange: 'Orange', violet: 'Purple', pink: 'Pink', red: 'Red', teal: 'Teal', gold: 'Yellow' }
-export const ACCENTS = { lime: '#30d158', sky: '#0a84ff', orange: '#ff9f0a', violet: '#bf5af2', pink: '#ff375f', red: '#ff453a', teal: '#40c8e0', gold: '#ffd60a' }
+export const ACCENTS = { lime: '#d0f878', sky: '#8bd0fa', orange: '#f1c783', violet: '#cab4fc', pink: '#f59abd', red: '#ff6861', teal: '#a2f1e0', gold: '#efd686' }
 // Text drawn on top of that swatch. Matches the --on-acc values in index.css.
-export const ACCENT_INK = { lime: '#000000', sky: '#ffffff', orange: '#000000', violet: '#ffffff', pink: '#ffffff', red: '#ffffff', teal: '#000000', gold: '#000000' }
+export const ACCENT_INK = { lime: '#152015', sky: '#142a40', orange: '#32240f', violet: '#292035', pink: '#361c28', red: '#351515', teal: '#173d37', gold: '#30290f' }
 // Android color int, opaque. JS bitwise ops are signed, so the high bit is cleared back to unsigned.
 export const argb = hex => (0xff000000 | parseInt(hex.slice(1), 16)) >>> 0

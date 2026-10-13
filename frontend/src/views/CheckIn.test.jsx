@@ -165,6 +165,29 @@ describe('CheckIn — the rail reopens where you left it', () => {
     expect(mocks.writes).toEqual([{ push: false }])
   })
 
+  it('does not jump to the slide edge while a swipe is still moving', () => {
+    withRailWidth(300)
+    mocks.S = { gymCards: [card('a'), card('b')], lastGymCardId: 'a' }
+    mount()
+    scrollTo(180)
+    rerender()
+    expect(mocks.S.lastGymCardId).toBe('b')
+    expect(rail().scrollLeft).toBe(180)
+    mocks.S.lastGymCardId = 'a'; rerender()
+    expect(rail().scrollLeft).toBe(0)
+  })
+
+  it('uses the measured slide pitch including spacing when reopening a saved card', () => {
+    withRailWidth(300)
+    mocks.S = { gymCards: [card('a'), card('b'), card('c')], lastGymCardId: 'a' }
+    mount()
+    for (const [i, el] of [...rail().children].entries()) Object.defineProperty(el, 'offsetLeft', { configurable: true, value: 16 + i * 284 })
+    mocks.S.lastGymCardId = 'c'; rerender()
+    expect(rail().scrollLeft).toBe(568)
+    scrollTo(284)
+    expect(mocks.S.lastGymCardId).toBe('b')
+  })
+
   it('a nudge that settles back on the same card writes nothing — only a real swipe counts', () => {
     withRailWidth(300)
     mocks.S = { gymCards: [card('a'), card('b')], lastGymCardId: 'a' }
@@ -206,7 +229,7 @@ describe('CheckIn — the rail reopens where you left it', () => {
     mount()
     expect(dots()).toHaveLength(0)
     expect(faces()).toHaveLength(0)
-    expect(host.textContent).toContain('Import a photo of your membership card')
+    expect(host.textContent).toContain('Use your gym app for a changing QR code')
     expect(host.textContent).toContain('Add your gym card')
   })
 
@@ -601,5 +624,38 @@ describe('CheckIn — the sheet openers', () => {
     expect(sheetHost.querySelector('h3').textContent).toBe('Edit card')
     expect(labelField().value).toBe('Zenith')
     expect(sheetHost.querySelector('[data-qr]').getAttribute('data-qr')).toBe('Z-1')
+  })
+})
+
+
+describe('dynamic gym app shortcuts', () => {
+  it('keeps the Android intent in the current tab for a direct user-gesture handoff', () => {
+    const ua = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Android')
+    try {
+      mocks.S = { gymCards: [{ id: 'club', kind: 'app', label: 'Club Elite+', provider: 'club-elite' }], lastGymCardId: 'club' }
+      mount()
+      const link = host.querySelector('.ci-app a')
+      expect(link.getAttribute('href')).toContain('intent://widget.dash.open#Intent;scheme=trainerize;package=com.trainerize.clubfitness;')
+      expect(link.target).toBe('_self')
+      expect(link.textContent).toContain('Open gym app')
+      expect(host.querySelector('[data-qr]')).toBeNull()
+    } finally { ua.mockRestore() }
+  })
+  it('opens the official app destination without fabricating or storing a QR', () => {
+    mocks.S = { gymCards: [{ id: 'club', kind: 'app', label: 'Club Elite+', provider: 'club-elite', url: 'https://www.clubfitness.us/app/' }], lastGymCardId: 'club' }
+    mount()
+    const link = host.querySelector('.ci-app a')
+    expect(link.href).toBe('https://www.clubfitness.us/app/')
+    expect(link.rel).toContain('noopener')
+    expect(host.querySelector('[data-qr]')).toBeNull()
+    expect(host.textContent).toContain('Get the current check-in code in your gym app.')
+  })
+  it('adds an app shortcut while preserving existing static cards', async () => {
+    mocks.S = { gymCards: [card('a')], lastGymCardId: 'a' }; mount()
+    await tap([...host.querySelectorAll('button')].find(b => b.textContent === 'Add gym app')); await openSheet()
+    await tap(sheetBtn('Save'))
+    expect(mocks.S.gymCards[0]).toEqual(card('a'))
+    expect(mocks.S.gymCards[1]).toMatchObject({ kind: 'app', provider: 'club-elite' })
+    expect(mocks.S.gymCards[1]).not.toHaveProperty('value')
   })
 })

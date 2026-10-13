@@ -1,37 +1,28 @@
 <div align="center">
 
-<img src="assets/banner.png" alt="openGym" width="720">
+<img src="frontend/public/icon.svg" alt="" width="96">
 
-**A self-hosted gym and body-weight tracker you actually own.**
+# Uplift
 
-Plan your week, run guided workouts, log every set and your body weight,<br>
-on your phone, synced across your devices, behind your own passkey login.
+Strength training, recorded. **Powered by [openGym](https://github.com/DuarteSantos8/openGym)**.
 
-[![Discord](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscord.com%2Fapi%2Finvites%2Fe62jY6fwVb%3Fwith_counts%3Dtrue&query=%24.approximate_member_count&suffix=%20members&label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge)](https://discord.gg/e62jY6fwVb)
-[![Online](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscord.com%2Fapi%2Finvites%2Fe62jY6fwVb%3Fwith_counts%3Dtrue&query=%24.approximate_presence_count&suffix=%20online&label=&logo=discord&logoColor=white&color=3BA55C&style=for-the-badge)](https://discord.gg/e62jY6fwVb)
-[![GitHub stars](https://img.shields.io/github/stars/DuarteSantos8/openGym?style=for-the-badge&logo=github&logoColor=white&color=24292f)](https://github.com/DuarteSantos8/openGym/stargazers)
+A fork with Uplift’s charcoal/lime visual system, thumb-friendly Focus workouts,
+optional Google Drive sync, and support for the existing Uplift Garmin companion.
 
-<a href="https://trendshift.io/repositories/88268?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-88268" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/88268" alt="DuarteSantos8%2FopenGym | Trendshift" width="250" height="55"/></a>
-<a href="https://trendshift.io/repositories/88268?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-88268" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/88268/weekly?language=JavaScript" alt="DuarteSantos8%2FopenGym | Trendshift" width="250" height="55"/></a>
-
-[![Release](https://img.shields.io/github/v/release/DuarteSantos8/openGym?style=flat-square)](https://github.com/DuarteSantos8/openGym/releases)
-[![Downloads](https://img.shields.io/github/downloads/DuarteSantos8/openGym/total?style=flat-square&label=downloads)](https://github.com/DuarteSantos8/openGym/releases)
-[![Tests](https://img.shields.io/github/actions/workflow/status/DuarteSantos8/openGym/test.yml?branch=main&label=tests&style=flat-square)](https://github.com/DuarteSantos8/openGym/actions/workflows/test.yml)
-[![Pipeline](https://gitlab.com/DuarteSantos8/opengym/badges/main/pipeline.svg?style=flat-square)](https://gitlab.com/DuarteSantos8/opengym/-/pipelines)
-[![Coverage](https://gitlab.com/DuarteSantos8/opengym/badges/main/coverage.svg?job=test:frontend&style=flat-square)](https://gitlab.com/DuarteSantos8/opengym/-/pipelines?ref=main)
-[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-a3e635?style=flat-square)](LICENSE)
-
-[Website](https://opengym.ch) ·
-[Live demo](https://opengym.ch/demo/) ·
-[Android APK](https://github.com/DuarteSantos8/openGym/releases/latest) ·
-[Self-hosting guide](docs/SELF_HOSTING.md) ·
-[Roadmap](ROADMAP.md) ·
-[Changelog](CHANGELOG.md)
-
-<a href="https://buymeacoffee.com/duartesantos" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45" width="163"></a>
-<a href="https://ko-fi.com/opengym" target="_blank"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support openGym on Ko-fi" height="45"></a>
+[Source](https://github.com/dafepro/openGym) · [Self-hosting](docs/SELF_HOSTING.md) ·
+[Drive sync](docs/GOOGLE_DRIVE.md) · [Garmin](docs/GARMIN.md) · [Roadmap](ROADMAP.md)
 
 </div>
+
+This fork is developed under the Uplift name and is the selected source for
+`uplift.quicktrack.cc`. The staged [central deployment](docs/CENTRAL_DEPLOYMENT.md)
+process publishes tested build outputs and promotes them through a reviewed release PR. Static Cloudflare hosting supports local/Drive storage and the
+watch relay; passkey accounts, Coach, push and uploaded media require the separate Node server.
+The upstream documentation and release history below are retained as reference. Follow this
+fork’s source and releases for Uplift builds. Existing backup/storage identifiers are kept for
+compatibility; the original Uplift data graph is not automatically migrated.
+
+
 
 <table align="center">
 <tr>
@@ -160,7 +151,7 @@ Traefik and nginx, and there are separate guides for
 | `NGINX_PORT` | Port the web container listens on inside the container | `80` |
 | `BACKEND` | Name of the API service that `/api` is proxied to | `api` |
 | `PORT` | Port the API listens on; the web container proxies to the same value | `3000` |
-| `RP_NAME` | Name shown in the passkey prompt | `openGym` |
+| `RP_NAME` | Name shown in the passkey prompt | `Uplift` |
 | `SESSION_DAYS` | How long a sign-in lasts, in days | `90` |
 | `ADMIN_UIDS` | User ids that get the admin dashboard, comma-separated | *(none)* |
 | `FIRST_USER_ADMIN` | `1`: the first profile created on an empty instance becomes its admin | *(off)* |
@@ -258,6 +249,8 @@ The [documentation index](docs/README.md) sorts every guide by who it's for. The
 | Get a quick answer | [FAQ](docs/FAQ.md) |
 | Set up my own instance | [Self-hosting](docs/SELF_HOSTING.md) |
 | Use the Android or iPhone app | [Phone app](docs/MOBILE.md) |
+| Sync with Google Drive | [Drive sync](docs/GOOGLE_DRIVE.md) |
+| Connect the existing Uplift Garmin companion | [Garmin watch](docs/GARMIN.md) |
 | Bring my history from another app | [Importing data](docs/DATA_IMPORTS.md) |
 | Turn on the AI coach | [AI coach](docs/AI_COACH.md) |
 | Contribute code | [Contributing](CONTRIBUTING.md) |

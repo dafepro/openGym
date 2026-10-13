@@ -24,7 +24,7 @@
 import { isoOf, todayISO, uid } from './format.js'
 import { queueOf, queueView } from './queue.js'
 
-const routineIdsOf = w => (Array.isArray(w?.routineIds) ? w.routineIds : (w?.routineId ? [w.routineId] : []))
+const routineIdsOf = w => w?.warmupOnly ? [] : (Array.isArray(w?.routineIds) ? w.routineIds : (w?.routineId ? [w.routineId] : []))
 const dayAfter = iso => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + 1); return isoOf(d) }
 
 /** 'rotation' while a usable live queue exists, or once chosen with nothing built yet (S.scheduleMode). */

@@ -13,3 +13,6 @@
  * @returns {boolean} true when the guest entrance may be shown and used.
  */
 export const guestAllowed = config => !(config && config.allow_guest === false)
+
+// Worker builds remain local when reopened offline before config can answer.
+export const localOnly = config => import.meta.env.VITE_LOCAL_ONLY === '1' || config?.local_only === true

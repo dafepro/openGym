@@ -182,7 +182,16 @@ export default function Modals() {
   }, [sheets.length])
 
   useEffect(() => {
-    const onPop = () => {
+    const onPop = event => {
+      // A sheet closed while navigating deliberately left its entry behind. Once
+      // Back reaches that marker with no sheet to dismiss, skip the empty step.
+      // A focus marker can inherit old state, but still owns its own dismissal.
+      if (!sheets.length && event.state?.openGymSheet && !event.state?.openGymFocus) {
+        suppressPop.current = false
+        pushedEntries.current = Math.max(0, pushedEntries.current - 1)
+        history.go(-1)
+        return
+      }
       if (suppressPop.current) { suppressPop.current = false; return }
       if (pushedEntries.current <= 0) return
       pushedEntries.current--

@@ -46,7 +46,9 @@ const lazyAssets = () => { try { const a = JSON.parse(LAZY); return Array.isArra
 // manifest that would go stale the first time a chunk is renamed.
 async function precache() {
   const c = await caches.open(CACHE)
-  const res = await fetch('index.html', { cache: 'no-cache' })
+  // Cloudflare canonicalizes index.html with a redirect; the scope root is the shell.
+  // Fetch it directly so legitimate hosting redirects do not look like an auth redirect.
+  const res = await fetch('./', { cache: 'no-cache' })
   // Whatever came back is not the shell: the server was restarting mid-deploy (5xx), or the
   // request was answered by something else after a redirect — an auth proxy in front (Authelia,
   // Cloudflare Access; docs/SELF_HOSTING.md) sends its login page once the session there expires.
@@ -55,14 +57,14 @@ async function precache() {
   if (!res.ok || res.redirected) throw new Error('precache: index.html ' + res.status + (res.redirected ? ' redirected' : ''))
   const html = await res.text()
   const refs = [...new Set([...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(m => m[1])
-    .filter(u => /\.(?:js|css|png|svg|webmanifest|json)(?:\?|$)/.test(u) && !/^(?:https?:)?\/\//.test(u)))]
+    .filter(u => /\.(?:js|css|woff2|png|svg|webmanifest|json)(?:\?|$)/.test(u) && !/^(?:https?:)?\/\//.test(u)))]
   // The scripts and the stylesheets ARE the app. Every sub-resource used to be best-effort, so an
   // install that got index.html and lost one chunk to a flaky connection still activated, still
   // swept the build this device came from, and the next offline open was a shell with no code:
   // a blank page. A chunk that will not cache fails the install instead, which keeps the working
   // build and its cache exactly where they are. Images, icons and the manifest stay best-effort —
   // a missing icon is not a broken app.
-  const code = refs.filter(u => /\.(?:js|css)(?:\?|$)/.test(u))
+  const code = refs.filter(u => /\.(?:js|css|woff2)(?:\?|$)/.test(u))
   // Fetched by hand rather than with `cache.add`, for the same reason index.html is: `add` takes
   // a REDIRECT for an answer, and an auth proxy in front answers every request with its login
   // page once the session there expires. A 200 of HTML stored under the main bundle's URL is
@@ -88,7 +90,10 @@ async function precache() {
 }
 
 self.addEventListener('install', e => {
-  e.waitUntil(precache().then(() => self.skipWaiting()))
+  e.waitUntil(precache().then(() => { if (!self.registration.active) return self.skipWaiting() }))
+})
+self.addEventListener('message', e => {
+  if (e.data?.type === 'UPLIFT_ACTIVATE') e.waitUntil(self.skipWaiting())
 })
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
@@ -100,7 +105,8 @@ self.addEventListener('activate', e => {
     if (await c.match('index.html')) {
       // DEVICE_CACHE holds this browser's device id (the push re-register below needs it): not a
       // build, so an update never sweeps it.
-      const old = (await caches.keys()).filter(k => k !== CACHE && k !== MEDIA && k !== DEVICE_CACHE)
+      // Preserve original Uplift/Workbox caches for recovery and rollback on this origin.
+      const old = (await caches.keys()).filter(k => k.startsWith('opengym-') && k !== CACHE && k !== MEDIA && k !== DEVICE_CACHE)
       // A build from before MEDIA existed kept its media in its own cache: move it across first,
       // so the first update to this worker does not cost what the device already had offline.
       await Promise.all(old.map(k => adoptMedia(k).catch(() => {})))
@@ -211,7 +217,7 @@ self.addEventListener('push', e => {
     // the previous notification with the same tag is closed by hand first.
     const tag = data.tag || 'opengym'
     try { for (const n of await self.registration.getNotifications({ tag })) n.close() } catch {}
-    await self.registration.showNotification(data.title || 'openGym', {
+    await self.registration.showNotification(data.title || 'Uplift', {
       body: data.body || '',
       icon: 'icon-512.png',
       badge: 'icon-180.png',
@@ -274,8 +280,8 @@ self.addEventListener('fetch', e => {
   // abort used, does not exist before iOS 16: the handler threw before it answered at all, the
   // cache fallback with it). A request the cache cannot answer keeps waiting for the network, as
   // it always did; and the network's answer, whenever it comes, still refreshes the cache.
-  const fromCache = () => caches.match(e.request, { ignoreSearch: true }).then(hit =>
-    hit || (e.request.mode === 'navigate' ? caches.match('index.html') : undefined))
+  const fromCache = () => caches.open(CACHE).then(async c =>
+    await c.match(e.request, { ignoreSearch: true }) || (e.request.mode === 'navigate' ? c.match('index.html') : undefined))
   e.respondWith(new Promise(resolve => {
     const slow = setTimeout(() => fromCache().then(hit => { if (hit) resolve(hit) }, () => {}), NET_WAIT_MS)
     fetch(e.request).then(res => {
