@@ -34,7 +34,7 @@ import { setRestAccent } from '../lib/rest-alert.js'
 import { CUSTOM, accentKey, adjustedIn, applyAccent, cleanHex, inkOn, isGrey } from '../lib/accent.js'
 import { PoweredBy } from '../components/BrandMark.jsx'
 import { APP_NAME, FORK_SOURCE, RELEASES_PAGE } from '../lib/brand.js'
-import { checkForUpdate, downloadAndInstall } from '../lib/update.js'
+import { checkForUpdate, downloadAndInstall, fetchChecksum } from '../lib/update.js'
 import { forgetCoach } from '../lib/coach-api.js'
 import { REST_MAX, REST_PAUSE_MIN, REST_PAUSE_MAX, fmtRest, fmtDuration } from '../lib/duration.js'
 import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, equipmentProfileSheet, plateInventorySheet, dumbbellInventorySheet, menuSheet } from '../sheets.jsx'
@@ -167,7 +167,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     // The in-app updater installs an .apk, so it only applies to the native Android build.
     // On iOS and the web this check is skipped and the update row never appears. isAndroid()
     // already answers false off the mobile build; the MOBILE check on top keeps the web bundle
-    // from even asking (and from calling gitlab.com on every Settings visit). Only the pages
+    // from even asking (and from calling GitHub on every Settings visit). Only the pages
     // that show it ask: the root (for nothing but `android`) skips the release check.
     if (!MOBILE) return
     isAndroid().then(ok => { setAndroid(ok); if (ok && page === 'about') checkForUpdate().then(setUpdateInfo).catch(() => {}) })
@@ -206,7 +206,7 @@ export default function Settings({ page = null, find = null, via = null }) {
   }, [find])
 
   // The same check, on demand: the automatic one is silent when it finds nothing or cannot
-  // reach gitlab.com, and a person who taps "Check for updates" deserves an answer either way.
+  // reach GitHub, and a person who taps "Check for updates" deserves an answer either way.
   const checkNow = async () => {
     if (checking) return
     setChecking(true)
@@ -241,12 +241,7 @@ export default function Settings({ page = null, find = null, via = null }) {
             // The release always publishes the checksum next to the APK. Without it the file is
             // not installed — a sideloaded binary is exactly the thing that should be verified.
             let expectedHash = null
-            if (updateInfo.hashUrl) {
-              try {
-                const hashRes = await fetch(updateInfo.hashUrl)
-                if (hashRes.ok) expectedHash = (await hashRes.text()).split(/\s/)[0]
-              } catch (e) { /* reported below */ }
-            }
+            try { expectedHash = await fetchChecksum(updateInfo.hashUrl) } catch (e) { /* reported below */ }
             if (!/^[0-9a-f]{64}$/i.test(expectedHash || '')) throw new Error(t('Checksum not available, so not installing'))
             await downloadAndInstall(updateInfo.apkUrl, expectedHash, (received, total) => {
               if (setProgress) setProgress(received, total)
@@ -824,7 +819,7 @@ export default function Settings({ page = null, find = null, via = null }) {
       {/* Updates. On Android the row is always there: it checks on demand and installs when a
           release is newer (checksum verified, see onUpdateRowClick). On the web the app updates
           with its server, so the row links to the fork’s releases. iOS has no APK. */}
-      <Section footer={MOBILE ? (android ? t('Releases are checked on github.com. The download is verified against its checksum before the installer opens.') : null) : t('The web app updates together with your server. The Android app installs its own updates from here.')}>
+      <Section footer={MOBILE ? (android ? t('Releases are checked on GitHub. The download is verified against its checksum before the installer opens.') : null) : t('The web app updates together with your server. The Android app installs its own updates from here.')}>
         <Row icon="info" iconTint="var(--grey)" title={t('Version')} value={'v' + __APP_VERSION__} />
         {MOBILE
           ? android && <Row icon="download" iconTint="var(--green)"

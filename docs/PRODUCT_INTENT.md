@@ -37,3 +37,9 @@ tap inside Club Elite until an external barcode route is verified (ADR 008). Che
 card and control positions; remembering the selected card must not interrupt a swipe. StrongLifts CSV and Drive plan/backup imports
 preview before changing data; historical exports must not seed new working loads. Personal coaching plans
 remain private and distinguish source evidence from symptom-dependent assumptions. See ADR 006.
+
+Track `upstream/main` and merge its changes into Uplift's `main` and established release source
+branch. Focus uses the existing workout controller; Drive and Garmin remain separate adapters
+around the same local store. Phone and watch share finished-record construction and commit;
+warm-up-only sessions preserve their routine's place. Native updates use a fork-owned release
+channel alongside upstream's downloader. See ADR 009 and the upstream integration review.

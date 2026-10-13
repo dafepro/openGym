@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { checkForUpdate, sha256, resetUpdateCheck } from './update.js'
+import { checkForUpdate, sha256, resetUpdateCheck, fetchChecksum } from './update.js'
+import { fetchNativeRelease } from './release-channel.js'
+
+vi.mock('./release-channel.js', () => ({ fetchNativeRelease: vi.fn() }))
 
 // __APP_VERSION__ is defined at build time by vite.config.js (reads package.json).
 // In the test environment vitest applies the same define, so it's available here.
@@ -26,21 +29,24 @@ describe('sha256', () => {
 })
 
 describe('checkForUpdate', () => {
-  let originalFetch
-
-  beforeEach(() => { originalFetch = globalThis.fetch; resetUpdateCheck() })
-  afterEach(() => { globalThis.fetch = originalFetch })
+  beforeEach(() => { vi.mocked(fetchNativeRelease).mockReset(); resetUpdateCheck() })
 
   function mockFetch(body, status = 200) {
-    globalThis.fetch = vi.fn(() => Promise.resolve({
-      ok: status >= 200 && status < 300,
-      status,
-      json: () => Promise.resolve(body),
-    }))
+    if (status === 404) vi.mocked(fetchNativeRelease).mockResolvedValue(null)
+    else if (status >= 200 && status < 300) vi.mocked(fetchNativeRelease).mockResolvedValue(body)
+    else vi.mocked(fetchNativeRelease).mockRejectedValue(new Error(`GitHub API ${status}`))
   }
+  const asset = (name, url = 'https://github.com/x/releases/download/v9/' + name) => ({ name, browser_download_url: url })
+
+  it('checks the selected channel once per app session', async () => {
+    mockFetch({ tag_name: 'v' + __APP_VERSION__, assets: [] })
+    await checkForUpdate()
+    await checkForUpdate()
+    expect(fetchNativeRelease).toHaveBeenCalledTimes(1)
+  })
 
   it('reports no update when the latest release matches the current version', async () => {
-    mockFetch([{ tag_name: 'v' + __APP_VERSION__, assets: { links: [] } }])
+    mockFetch({ tag_name: 'v' + __APP_VERSION__, assets: [] })
     const result = await checkForUpdate()
     expect(result.hasUpdate).toBe(false)
     expect(result.latestVersion).toBe(__APP_VERSION__)
@@ -49,72 +55,65 @@ describe('checkForUpdate', () => {
   })
 
   it('reports no update when the latest release is older than current', async () => {
-    mockFetch([{ tag_name: 'v0.0.1', assets: { links: [] } }])
+    mockFetch({ tag_name: 'v0.0.1', assets: [] })
     const result = await checkForUpdate()
     expect(result.hasUpdate).toBe(false)
     expect(result.latestVersion).toBe('0.0.1')
   })
 
   it('reports an update when the latest release is newer', async () => {
-    mockFetch([{ tag_name: 'v99.0.0', assets: { links: [] } }])
+    mockFetch({ tag_name: 'v99.0.0', assets: [] })
     const result = await checkForUpdate()
     expect(result.hasUpdate).toBe(true)
     expect(result.latestVersion).toBe('99.0.0')
-  })
-
-  it('strips the v prefix from the tag name', async () => {
-    mockFetch([{ tag_name: 'v99.1.2', assets: { links: [] } }])
-    const result = await checkForUpdate()
-    expect(result.latestVersion).toBe('99.1.2')
   })
 
   it('handles tag names without a v prefix', async () => {
-    mockFetch([{ tag_name: '99.0.0', assets: { links: [] } }])
+    mockFetch({ tag_name: '99.1.2', assets: [] })
     const result = await checkForUpdate()
     expect(result.hasUpdate).toBe(true)
-    expect(result.latestVersion).toBe('99.0.0')
+    expect(result.latestVersion).toBe('99.1.2')
   })
 
-  it('only checks the owner fork and reads GitHub download assets', async () => {
-    mockFetch([{ tag_name: 'v99.0.0', assets: [
-      { name: 'uplift.apk.sha256', browser_download_url: 'https://github.com/dafepro/openGym/releases/download/v99.0.0/uplift.apk.sha256' },
-      { name: 'uplift.apk', browser_download_url: 'https://github.com/dafepro/openGym/releases/download/v99.0.0/uplift.apk' },
-    ] }])
+  // What api.github.com returned for releases/latest on 2026-10-10 (v1.4.0, trimmed): the APK
+  // and its checksum as release assets. The checksum file also ends in neither .apk nor
+  // anything else the APK match could take.
+  const REAL_RELEASE = {
+    tag_name: 'v1.4.0',
+    assets: [
+      { name: 'openGym-1.4.0.apk', browser_download_url: 'https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/openGym-1.4.0.apk' },
+      { name: 'openGym-1.4.0.apk.sha256', browser_download_url: 'https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/openGym-1.4.0.apk.sha256' },
+    ],
+  }
+
+  it('finds the APK and its checksum in a real GitHub release payload', async () => {
+    mockFetch(REAL_RELEASE)
     const result = await checkForUpdate()
-    expect(globalThis.fetch.mock.calls[0][0]).toBe('https://api.github.com/repos/dafepro/openGym/releases?per_page=30')
-    expect(result.apkUrl).toBe('https://github.com/dafepro/openGym/releases/download/v99.0.0/uplift.apk')
-    expect(result.hashUrl).toBe(result.apkUrl + '.sha256')
+    expect(result.latestVersion).toBe('1.4.0')
+    expect(result.apkUrl).toBe('https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/openGym-1.4.0.apk')
+    expect(result.hashUrl).toBe('https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/openGym-1.4.0.apk.sha256')
   })
 
-  it('does not offer draft, prerelease or non-version tags', async () => {
-    mockFetch([
-      { tag_name: 'v99.0.0', draft: true }, { tag_name: 'v99.0.0', prerelease: true },
-      { tag_name: 'nightly' }, { tag_name: 'v98.0.0', assets: [] },
-    ])
-    expect((await checkForUpdate()).latestVersion).toBe('98.0.0')
-  })
-
-  it('does not confuse another APK checksum with the selected APK', async () => {
-    mockFetch([{ tag_name: 'v99.0.0', assets: [
-      { name: 'uplift.apk', browser_download_url: 'https://example.test/uplift.apk' },
-      { name: 'other.apk.sha256', browser_download_url: 'https://example.test/other.apk.sha256' },
-    ] }])
-    expect((await checkForUpdate()).hashUrl).toBe(null)
-  })
-
-  it('leaves download URLs empty when no Android artifact has been published', async () => {
-    mockFetch([{ tag_name: 'v99.0.0', assets: [] }])
+  it('does not take the checksum for the APK when it is listed first', async () => {
+    mockFetch({ tag_name: 'v99.0.0', assets: [asset('a.apk.sha256'), asset('sbom.json'), asset('a.apk')] })
     const result = await checkForUpdate()
+    expect(result.apkUrl).toMatch(/\/a\.apk$/)
+    expect(result.hashUrl).toMatch(/\/a\.apk\.sha256$/)
+  })
+
+  it('returns null URLs when the release has no APK or checksum', async () => {
+    mockFetch({ tag_name: 'v99.0.0', assets: [asset('changelog.md')] })
+    const result = await checkForUpdate()
+    expect(result.hasUpdate).toBe(true)
     expect(result.apkUrl).toBe(null)
     expect(result.hashUrl).toBe(null)
   })
 
-  it('returns no update when the releases array is empty', async () => {
-    mockFetch([])
+  it('returns no update when the repository has no release yet (404)', async () => {
+    mockFetch({ message: 'Not Found' }, 404)
     const result = await checkForUpdate()
     expect(result.hasUpdate).toBe(false)
     expect(result.latestVersion).toBe(__APP_VERSION__)
-    expect(result.hashUrl).toBe(null)
   })
 
   it('throws when the API responds with an error status', async () => {
@@ -123,21 +122,41 @@ describe('checkForUpdate', () => {
   })
 
   it('throws on network failure', async () => {
-    globalThis.fetch = vi.fn(() => Promise.reject(new Error('Network error')))
+    vi.mocked(fetchNativeRelease).mockRejectedValue(new Error('Network error'))
     await expect(checkForUpdate()).rejects.toThrow('Network error')
+    vi.mocked(fetchNativeRelease).mockResolvedValue({ tag_name: 'v99.0.0', assets: [] })
+    expect((await checkForUpdate()).hasUpdate).toBe(true)
+  })
+
+  it('requires the checksum belonging to the selected APK', async () => {
+    mockFetch({ tag_name: 'v99.0.0', assets: [asset('uplift.apk'), asset('other.apk.sha256')] })
+    expect((await checkForUpdate()).hashUrl).toBeNull()
+  })
+})
+
+describe('fetchChecksum (web)', () => {
+  let originalFetch
+  beforeEach(() => { originalFetch = globalThis.fetch })
+  afterEach(() => { globalThis.fetch = originalFetch })
+  const serve = text => { globalThis.fetch = vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve(text) })) }
+
+  it('reads the hash out of a sha256sum line', async () => {
+    serve('EC2822' + 'a'.repeat(58) + '  openGym-1.4.0.apk\n')
+    expect(await fetchChecksum('https://x/a.apk.sha256')).toBe('ec2822' + 'a'.repeat(58))
+  })
+
+  it('gives null for anything that is not a SHA-256, or no URL', async () => {
+    serve('<html>not found</html>')
+    expect(await fetchChecksum('https://x/a.apk.sha256')).toBe(null)
+    expect(await fetchChecksum(null)).toBe(null)
   })
 })
 
 describe('semver comparison (via checkForUpdate behavior)', () => {
-  let originalFetch
-  beforeEach(() => { originalFetch = globalThis.fetch; resetUpdateCheck() })
-  afterEach(() => { globalThis.fetch = originalFetch })
+  beforeEach(() => { vi.mocked(fetchNativeRelease).mockReset(); resetUpdateCheck() })
 
   function mockRelease(tag) {
-    globalThis.fetch = vi.fn(() => Promise.resolve({
-      ok: true, status: 200,
-      json: () => Promise.resolve([{ tag_name: tag, assets: { links: [] } }]),
-    }))
+    vi.mocked(fetchNativeRelease).mockResolvedValue({ tag_name: tag, assets: [] })
   }
 
   // Versions are derived from the running __APP_VERSION__ so the suite never breaks

@@ -2,7 +2,7 @@
 
 Focus is the live workout page's current-step layout. It uses openGym's existing
 `workoutView: 'focus'` preference and session override. Cards, List and Compact remain
-available. The header layout toggle enters Focus and returns to the preceding layout;
+available. The shared header's Workout details / Focused switch enters Focus and returns to the preceding layout;
 Workout options → Layout and the saved workout settings offer the same choice.
 Historical editing and backfill retain their detailed set controls.
 
@@ -33,11 +33,11 @@ above the primary action in the bottom thumb rail. Workout/Live, the current act
 and Finish occupy three fixed positions when secondary actions change.
 Workout/Live toggles the exercise overview from the same position, while the current
 action and timer remain available.
-Finish stays visible at the right of the rail throughout preparation, sets, timed work,
+Finish stays visible in the shared pinned header throughout preparation, sets, timed work,
 rest, disclosures, overview and completion. It opens the existing finish confirmation;
 opening or canceling it never logs a row or stops an active timer. Sheets retain their
 own action ownership. Completion makes Add exercise the main action while keeping
-the same Finish anchor, without duplicate Finish controls.
+the same header Finish anchor, without duplicate Finish controls.
 
 Details, load, effort and last-set correction expand inline from their own buttons.
 Details grows below its fixed header anchor instead of recentering the whole page.

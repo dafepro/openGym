@@ -1509,6 +1509,8 @@ export const PT_BR_OVERRIDES = {
   'Skip rest': 'Pular descanso',
   'Total reps': 'Repetições totais',
   'Stop': 'Parar',
+  'Fewer than two workouts in this period. Pick a longer one.': 'Menos de dois treinos neste período. Escolha um mais longo.',
+  'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': 'As versões são verificadas no GitHub. O download é conferido pela soma de verificação antes de abrir o instalador.',
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES }
