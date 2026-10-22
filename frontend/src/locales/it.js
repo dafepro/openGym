@@ -1,5 +1,6 @@
 // Italian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Estimate from {0}": "Stima da {0}",
   // New release wording: explicit English fallback pending translation review.
   "Add gym app": "Add gym app",
   "App or website link": "App or website link",

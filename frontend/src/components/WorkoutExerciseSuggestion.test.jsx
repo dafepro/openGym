@@ -153,3 +153,33 @@ describe('live exercise suggestion', () => {
     expect(onPick).not.toHaveBeenCalled()
   })
 })
+
+it('pre-fills a recent imported exercise so Add does not open an empty setup form', () => {
+  render({
+    customEx: [catalog[2]],
+    unit: 'lb',
+    workouts: [
+      {
+        start: NOW - 86400000,
+        source: 'StrongLifts',
+        entries: [
+          {
+            id: catalog[2].id,
+            sets: [
+              { w: 15, r: 12, done: true, u: 'lb' },
+              { w: 15, r: 12, done: true, u: 'lb' }
+            ]
+          }
+        ]
+      }
+    ]
+  })
+  expect(host.querySelector('.suggestion-dose').textContent).toContain('2 × 12')
+  expect(host.querySelector('.suggestion-prescription').textContent).toContain('15 lb')
+  click('Add')
+  expect(onPick).toHaveBeenCalledWith(
+    expect.objectContaining({ id: catalog[2].id }),
+    true,
+    expect.objectContaining({ sets: 2, reps: 12, weight: 15 })
+  )
+})

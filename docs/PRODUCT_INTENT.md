@@ -17,10 +17,12 @@ Support existing appearance preferences with readable light and custom-color var
 Live workout Add offers one local exercise recommendation without requiring filters. Optional
 muscle targeting, non-repeating alternatives and the full library remain quick to reach. Use
 recent training, estimated fatigue, today's volume, familiarity and available equipment; show
-personalized sets, reps, load and rest before adding. Saved plans and recent app targets can
-inform the proposal, while old/imported records and historic-best caches cannot seed a load.
-Unknown weights remain explicit choices. Budget optional volume, preserve rest, and keep copy
-and motion compact. These are coaching heuristics, not recovery measurements (ADR 010).
+personalized sets, reps, load and rest before adding. Saved settings and recent performed work,
+including imports and today, inform the proposal. Old records and historic-best caches cannot
+seed a load or progression. Narrow estimates from matching free-weight variations name their
+source; unsupported weights remain explicit choices. Budget optional volume, preserve rest,
+and keep copy and motion compact. These are coaching heuristics, not recovery measurements
+(ADRs 010–011).
 
 Preserve workout history and distinguish unrecorded, skipped, zero-rep and timed sets. Keep
 rest intervals explicit. Local saving, account-server sync, Google Drive and Garmin transfer

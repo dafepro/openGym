@@ -58,3 +58,27 @@ desktop, not a phone SLA; the script is intentionally outside timing-sensitive C
 Recovery, spacing thresholds and the 21-day load-evidence window remain coaching heuristics.
 They do not measure physiological recovery or establish medical suitability. No private files,
 notes, analytics, network calls or persistent dismissal history feed the engine.
+
+## Performed-work setup follow-up (ADR 011)
+
+The owner reported a front raise opening at 2 × 10, zero load and default rest. The original
+prescription ignored imports, target-less sessions, optional work excluded from progression,
+and today's completed sets. It also left Browse additions on generic defaults. ADR 011
+replaces that evidence restriction for a reviewed proposal; old records and historic-best
+caches remain excluded, and imports/optional/live work never earn progression increases.
+
+Focused checks now cover recent imported actual reps/load, missing plan fields, current work,
+held progression exclusions, cold isolation/compound/hold defaults, unit stamps, bodyweight
+added load, exact exercise identity, narrow same-movement estimates, ambiguous bell meanings,
+single/two-bell conversion, legacy unilateral totals, and the configuration/commit seam.
+All 34 focused checks passed after the final domain changes; the full frontend suite passed
+before the two added unilateral regressions. Nine Worker tests, production build, locale
+parity and strict source-string checks passed. No backup/storage/protocol format changed.
+
+A Chrome check with synthetic recent imported front raises opened the real configuration
+sheet at **2 × 12, 15 lb, 1:30 rest**, then committed two rows with exactly those values.
+The same controller coverage verifies suggestion quick-add and preserves existing rows/timers.
+No personal workout data was used. The temporary preview files were removed before building.
+
+Latest synthetic desktop benchmark (5,632 exercises / 4,000 workouts): cold 48.64 ms, warm
+median 9.18 ms / p95 12.86 ms, alternatives median 0.13 ms / p95 0.32 ms. No phone SLA is implied.

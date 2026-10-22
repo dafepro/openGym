@@ -4,6 +4,7 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  "Estimate from {0}": "Estimativa com base em {0}",
   // New release wording: explicit English fallback pending translation review.
   "Add gym app": "Add gym app",
   "App or website link": "App or website link",

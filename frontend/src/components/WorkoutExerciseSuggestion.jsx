@@ -98,7 +98,9 @@ export default function WorkoutExerciseSuggestion({ onPick, onBrowse, close }) {
                   ? t('Saved plan')
                   : match.source === 'recent'
                     ? t('Recent training')
-                    : t('Choose weight')}
+                    : match.source === 'similar'
+                      ? t('Estimate from {0}', exerciseNameFor(match.sourceExercise))
+                      : t('Choose weight')}
               </span>
               <p>{t('Estimates from logged training, not a recovery measurement.')}</p>
               <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={() => choose(false)}>
@@ -124,7 +126,7 @@ export default function WorkoutExerciseSuggestion({ onPick, onBrowse, close }) {
                     ? `${t('Bodyweight')}${match.config.weight > 0 ? ` +${fmtNum(match.config.weight)} ${state.unit}` : ''}`
                     : match.needsWeight
                       ? t('Choose weight')
-                      : `${fmtNum(match.config.weight)} ${loadUnit}`}
+                      : `${match.source === 'similar' ? '~' : ''}${fmtNum(match.config.weight)} ${loadUnit}`}
                 </span>
                 <span>
                   {t('Rest')} · {fmtRest(match.config.restSec)}

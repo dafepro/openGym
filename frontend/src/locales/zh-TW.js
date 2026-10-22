@@ -1,4 +1,5 @@
 export default {
+  "Estimate from {0}": "根據 {0} 估算",
   // New release wording: explicit English fallback pending translation review.
   "Add gym app": "Add gym app",
   "App or website link": "App or website link",

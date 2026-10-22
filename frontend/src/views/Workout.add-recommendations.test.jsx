@@ -214,3 +214,41 @@ describe('workout Add controller seam', () => {
     })
   })
 })
+
+it('gives a manually browsed live addition the same intelligent setup', () => {
+  render({
+    routines: [],
+    workouts: [
+      {
+        start: NOW - 86400000,
+        d: '2026-10-21',
+        source: 'Hevy',
+        entries: [
+          {
+            id: '0025',
+            sets: [
+              { w: 35, r: 12, done: true },
+              { w: 35, r: 12, done: true }
+            ]
+          }
+        ]
+      }
+    ]
+  })
+  const picker = openAdd()
+  act(() => picker.props.onPick(EXIDX['0025'], false))
+  const config = useUI
+    .getState()
+    .sheets.at(-1)
+    .render(() => {})
+  expect(config.props.initial).toMatchObject({ sets: 2, reps: 12, weight: 35, restSec: 150 })
+  act(() => config.props.onSave(config.props.initial))
+  expect(active().entries[1]).toMatchObject({
+    target: { weight: 35, reps: 12 },
+    sets: [
+      { w: 35, r: 12, done: false },
+      { w: 35, r: 12, done: false }
+    ]
+  })
+  expect(active().entries[1].noProg).toBeUndefined()
+})
