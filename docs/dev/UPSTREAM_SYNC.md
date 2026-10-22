@@ -64,3 +64,18 @@ remain distinct from automated checks.
 
 No production promotion, physical Garmin sync, native Android build or live Google consent is
 part of this verification. Existing build warnings concern chunk sizes and dynamic imports.
+
+## Follow-up sync — 2026-10-22
+
+Fetched fork origin at `13923f57` and upstream main at
+`e348fc17c42c7e9a211c5972e573ad3698190ee2`. The only new upstream commit corrects CLA PR-comment
+handling and adds collection from upstream's pinned CLA issue. It changes no application,
+workout, storage, import, Drive or Garmin code.
+
+Merge that commit and extend ADR 009's upstream-only repository guard to the new issue workflow.
+Keep both `main` and `codex/focused-workout-overlay` aligned. Validate both workflow documents and
+their repository/event conditions, formatting, production local/no-media build and Worker dry-run.
+The archived original Uplift repository's main was verified through the connected GitHub account
+at `aa4c2838`, matching its preserved local checkout. Production promotion remains a separate
+manual action. Workflow conditions, formatting, all nine Worker tests, the production build and
+Worker dry-run passed for this follow-up.
