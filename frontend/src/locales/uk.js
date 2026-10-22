@@ -2347,4 +2347,21 @@ export default {
   'Skip rest': 'Пропустити відпочинок',
   'Total reps': 'Усього повторень',
   'Stop': 'Зупинити',
+  'All options seen': 'Усі варіанти переглянуто',
+  Another: 'Інший варіант',
+  'Any muscle': 'Будь-який м’яз',
+  'Browse exercises': 'Каталог вправ',
+  'Choose weight': 'Вибрати вагу',
+  'Common movement': 'Поширений рух',
+  'Saved plan': 'Збережений план',
+  'Estimates from logged training, not a recovery measurement.':
+    'Оцінки за записами тренувань, а не вимірювання відновлення.',
+  'Familiar movement': 'Знайомий рух',
+  'Less recent muscle work': 'М’язи, що довше не тренувалися',
+  'Lower estimated fatigue': 'Менша розрахункова втома',
+  'No suitable suggestion': 'Немає відповідної пропозиції',
+  'Recent training': 'Нещодавнє тренування',
+  'Start over': 'Почати знову',
+  'Suggested exercise': 'Рекомендована вправа',
+  'Why this exercise?': 'Чому ця вправа?'
 }

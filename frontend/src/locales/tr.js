@@ -2350,4 +2350,21 @@ export default {
   'Skip rest': 'Dinlenmeyi atla',
   'Total reps': 'Toplam tekrar',
   'Stop': 'Durdur',
+  'All options seen': 'Tüm seçenekler görüldü',
+  Another: 'Başka seçenek',
+  'Any muscle': 'Herhangi bir kas',
+  'Browse exercises': 'Egzersizlere göz at',
+  'Choose weight': 'Ağırlık seç',
+  'Common movement': 'Yaygın hareket',
+  'Saved plan': 'Kayıtlı plan',
+  'Estimates from logged training, not a recovery measurement.':
+    'Kayıtlı antrenmanlardan tahminlerdir, toparlanma ölçümü değildir.',
+  'Familiar movement': 'Tanıdık hareket',
+  'Less recent muscle work': 'Daha uzun süredir çalışılmayan kaslar',
+  'Lower estimated fatigue': 'Daha düşük tahmini yorgunluk',
+  'No suitable suggestion': 'Uygun öneri yok',
+  'Recent training': 'Son antrenman',
+  'Start over': 'Baştan başla',
+  'Suggested exercise': 'Önerilen egzersiz',
+  'Why this exercise?': 'Neden bu egzersiz?'
 }

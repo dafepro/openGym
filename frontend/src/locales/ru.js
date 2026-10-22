@@ -2354,4 +2354,21 @@ export default {
   'Skip rest': 'Пропустить отдых',
   'Total reps': 'Всего повторений',
   'Stop': 'Остановить',
+  'All options seen': 'Все варианты просмотрены',
+  Another: 'Другой вариант',
+  'Any muscle': 'Любая мышца',
+  'Browse exercises': 'Каталог упражнений',
+  'Choose weight': 'Выбрать вес',
+  'Common movement': 'Распространённое движение',
+  'Saved plan': 'Сохранённый план',
+  'Estimates from logged training, not a recovery measurement.':
+    'Оценки по записям тренировок, а не измерение восстановления.',
+  'Familiar movement': 'Знакомое движение',
+  'Less recent muscle work': 'Мышцы, которые дольше не тренировались',
+  'Lower estimated fatigue': 'Меньшая расчётная усталость',
+  'No suitable suggestion': 'Нет подходящего варианта',
+  'Recent training': 'Недавняя тренировка',
+  'Start over': 'Начать заново',
+  'Suggested exercise': 'Рекомендуемое упражнение',
+  'Why this exercise?': 'Почему это упражнение?'
 }

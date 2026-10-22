@@ -14,6 +14,14 @@ Brand the fork with the companion's U-and-up-arrow mark and the original lowerca
 Motion acknowledges taps and changes of phase, stays interruptible, and respects reduced motion.
 Support existing appearance preferences with readable light and custom-color variants.
 
+Live workout Add offers one local exercise recommendation without requiring filters. Optional
+muscle targeting, non-repeating alternatives and the full library remain quick to reach. Use
+recent training, estimated fatigue, today's volume, familiarity and available equipment; show
+personalized sets, reps, load and rest before adding. Saved plans and recent app targets can
+inform the proposal, while old/imported records and historic-best caches cannot seed a load.
+Unknown weights remain explicit choices. Budget optional volume, preserve rest, and keep copy
+and motion compact. These are coaching heuristics, not recovery measurements (ADR 010).
+
 Preserve workout history and distinguish unrecorded, skipped, zero-rep and timed sets. Keep
 rest intervals explicit. Local saving, account-server sync, Google Drive and Garmin transfer
 have separate, accurate status. Preserve durable local recovery and existing backup/protocol

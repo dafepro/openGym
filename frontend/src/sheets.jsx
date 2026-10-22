@@ -68,6 +68,7 @@ import { workoutCardModel, layoutWorkoutCard, drawWorkoutCard, viewAspect, CARD_
 import { copyText } from './lib/clipboard.js'
 import { queueRemaining, pinState } from './lib/queue.js'
 import { DAY_NOTE_TAGS, DAY_NOTE_LABEL, DAY_NOTE_ICON, dayNoteOf, dayNoteLine, canNoteDay, withDayNote } from './lib/day-notes.js'
+import WorkoutExerciseSuggestion from './components/WorkoutExerciseSuggestion.jsx'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -1429,6 +1430,19 @@ function ExercisePicker({ onPick, title, close, like }) {
 // `like` is the exercise a swap or a replace is away from: the picker then opens on the ones that
 // train the same muscle, same equipment first (#473).
 export const exercisePicker = (onPick, { title, like } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} close={close} />)
+
+// A live addition gets one local recommendation; routine editing and swaps keep the catalogue.
+export const workoutExercisePicker = (onPick) =>
+  ui().openSheet((close) => (
+    <WorkoutExerciseSuggestion
+      onPick={onPick}
+      close={close}
+      onBrowse={() => {
+        close()
+        exercisePicker(onPick)
+      }}
+    />
+  ))
 
 /** Start a safe swap for one exact active-workout occurrence. */
 export function swapActiveWorkoutExercise(index) {

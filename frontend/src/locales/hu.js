@@ -2353,4 +2353,21 @@ export default {
   'Skip rest': 'Pihenő kihagyása',
   'Total reps': 'Összes ismétlés',
   'Stop': 'Leállítás',
+  'All options seen': 'Minden lehetőséget láttál',
+  Another: 'Másik',
+  'Any muscle': 'Bármely izom',
+  'Browse exercises': 'Gyakorlatok böngészése',
+  'Choose weight': 'Súly kiválasztása',
+  'Common movement': 'Gyakori mozgás',
+  'Saved plan': 'Mentett terv',
+  'Estimates from logged training, not a recovery measurement.':
+    'Becslés a naplózott edzésekből, nem a regeneráció mérése.',
+  'Familiar movement': 'Ismerős mozgás',
+  'Less recent muscle work': 'Régebben edzett izmok',
+  'Lower estimated fatigue': 'Kisebb becsült fáradtság',
+  'No suitable suggestion': 'Nincs megfelelő javaslat',
+  'Recent training': 'Legutóbbi edzés',
+  'Start over': 'Újrakezdés',
+  'Suggested exercise': 'Javasolt gyakorlat',
+  'Why this exercise?': 'Miért ez a gyakorlat?'
 }

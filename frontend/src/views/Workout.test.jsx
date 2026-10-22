@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => {
     confirmSheet: vi.fn(),
     workoutCompleteSheet: vi.fn(),
     exercisePicker: vi.fn(),
+    workoutExercisePicker: vi.fn(),
     exConfigSheet: vi.fn(),
     toast: vi.fn(),
     scrollCalls: [],
@@ -85,6 +86,7 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.nav }))
 vi.mock('../sheets.jsx', () => ({
   startFlow: vi.fn(),
   exercisePicker: mocks.exercisePicker,
+  workoutExercisePicker: mocks.workoutExercisePicker,
   exConfigSheet: mocks.exConfigSheet,
   exerciseDetailSheet: vi.fn(),
   finishWorkout: vi.fn(),
@@ -221,19 +223,30 @@ async function rerender() {
   await act(async () => { root.render(React.createElement(Workout)) })
 }
 
-async function addExerciseThroughSheets(ex = { id: 'added-exercise' }, cfg = { mode: 'reps', sets: 1, reps: 5, weight: 0 }) {
-  const addButton = [...container.querySelectorAll('button')]
-    .find(button => button.textContent.trim() === 'Add exercise')
+async function addExerciseThroughSheets(
+  ex = { id: 'added-exercise' },
+  cfg = { mode: 'reps', sets: 1, reps: 5, weight: 0 }
+) {
+  const addButton = [...container.querySelectorAll('button')].find(
+    (button) => button.textContent.trim() === 'Add exercise'
+  )
   expect(addButton).toBeTruthy()
-  await act(async () => { addButton.dispatchEvent(new dom.Event('click', { bubbles: true })) })
+  await act(async () => {
+    addButton.dispatchEvent(new dom.Event('click', { bubbles: true }))
+  })
 
-  const pickerCall = mocks.exercisePicker.mock.calls.at(-1)
+  const historical = mocks.S.active.backfill || mocks.S.active.editingWorkoutId
+  const pickerCall = (historical ? mocks.exercisePicker : mocks.workoutExercisePicker).mock.calls.at(-1)
   expect(pickerCall?.[0]).toEqual(expect.any(Function))
-  await act(async () => { pickerCall[0](ex) })
+  await act(async () => {
+    pickerCall[0](ex)
+  })
 
   const configCall = mocks.exConfigSheet.mock.calls.at(-1)
   expect(configCall?.[2]).toEqual(expect.any(Function))
-  await act(async () => { configCall[2](cfg) })
+  await act(async () => {
+    configCall[2](cfg)
+  })
 }
 
 // The list's scroll-to-current waits for the next frame. linkedom has no requestAnimationFrame,
@@ -591,41 +604,64 @@ describe('Workout add exercise flow', () => {
 // routine) belongs to that block: its routine's own numbers, and no count toward progression.
 describe('adding an exercise to a block kept out of progression', () => {
   const BENCH = '0025'
-  const history = [{
-    d: '2026-08-27', routineIds: ['main'],
-    entries: [{ id: BENCH, rid: 'main', target: { sets: 1, reps: 5, weight: 100 }, sets: [{ w: 100, r: 5, done: true }] }],
-  }]
-  const routines = [{ id: 'rehab', name: 'Rehab', excludeFromProgression: true, ex: [] }, { id: 'main', name: 'Main', ex: [] }]
+  const history = [
+    {
+      d: '2026-08-27',
+      routineIds: ['main'],
+      entries: [
+        { id: BENCH, rid: 'main', target: { sets: 1, reps: 5, weight: 100 }, sets: [{ w: 100, r: 5, done: true }] }
+      ]
+    }
+  ]
+  const routines = [
+    { id: 'rehab', name: 'Rehab', excludeFromProgression: true, ex: [] },
+    { id: 'main', name: 'Main', ex: [] }
+  ]
 
   it('is kept out too, at the numbers typed for it', async () => {
     await mount([exercise('band-pull', [false], { rid: 'rehab', noProg: true })], 0, { routines, workouts: history })
     await addExerciseThroughSheets({ id: BENCH }, { mode: 'reps', sets: 1, reps: 12, weight: 40 })
     const added = mocks.S.active.entries[1]
     expect(added).toMatchObject({ id: BENCH, rid: 'rehab', noProg: true })
-    expect(added.plan.kind).toBe('off')
-    expect(added.sets.map(s => [s.w, s.r])).toEqual([[40, 12]])
+    expect(added.plan).toBeNull()
+    expect(added.sets.map((s) => [s.w, s.r])).toEqual([[40, 12]])
   })
 
-  it('still progresses when the block is a regular routine\'s', async () => {
+  it('retains progression eligibility in a regular block without overwriting the explicit live load', async () => {
     await mount([exercise('row', [false], { rid: 'main' })], 0, { routines, workouts: history })
     await addExerciseThroughSheets({ id: BENCH }, { mode: 'reps', sets: 1, reps: 5, weight: 40 })
     const added = mocks.S.active.entries[1]
     expect(added.noProg).toBeUndefined()
-    expect(added.plan.kind).toBe('up')
-    expect(added.sets.map(s => s.w)).toEqual([102.5])
+    expect(added.plan).toBeNull()
+    expect(added.sets.map((s) => s.w)).toEqual([40])
   })
 
   // #284 review: an exercise added to a workout logged into the past is built from what came
   // before that day, like the rest of it, not from a session logged after it.
   it('builds an exercise added to a workout logged into the past from the history before its day', async () => {
-    const later = [...history, {
-      d: '2026-08-31', routineIds: ['main'],
-      entries: [{ id: BENCH, rid: 'main', target: { sets: 1, reps: 5, weight: 102.5 }, sets: [{ w: 102.5, r: 5, done: true }] }],
-    }]
-    const past = { d: '2026-08-29', start: Date.parse('2026-08-29T18:00:00'), backfill: { durationMin: 60, replaceId: null } }
+    const later = [
+      ...history,
+      {
+        d: '2026-08-31',
+        routineIds: ['main'],
+        entries: [
+          {
+            id: BENCH,
+            rid: 'main',
+            target: { sets: 1, reps: 5, weight: 102.5 },
+            sets: [{ w: 102.5, r: 5, done: true }]
+          }
+        ]
+      }
+    ]
+    const past = {
+      d: '2026-08-29',
+      start: Date.parse('2026-08-29T18:00:00'),
+      backfill: { durationMin: 60, replaceId: null }
+    }
     await mount([exercise('row', [false], { rid: 'main' })], 0, { routines, workouts: later, active: past })
     await addExerciseThroughSheets({ id: BENCH }, { mode: 'reps', sets: 1, reps: 5, weight: 40 })
-    expect(mocks.S.active.entries[1].sets.map(s => s.w)).toEqual([102.5])
+    expect(mocks.S.active.entries[1].sets.map((s) => s.w)).toEqual([102.5])
   })
 
   it('does not pass on an exercise kept out by hand for today (its ⋯ menu)', async () => {
@@ -633,8 +669,8 @@ describe('adding an exercise to a block kept out of progression', () => {
     await addExerciseThroughSheets({ id: BENCH }, { mode: 'reps', sets: 1, reps: 5, weight: 40 })
     const added = mocks.S.active.entries[1]
     expect(added.noProg).toBeUndefined()
-    expect(added.plan.kind).toBe('up')
-    expect(added.sets.map(s => s.w)).toEqual([102.5])
+    expect(added.plan).toBeNull()
+    expect(added.sets.map((s) => s.w)).toEqual([40])
   })
 })
 
@@ -2990,7 +3026,7 @@ describe('the workout screen chrome (v1.3.11)', () => {
     await mount([exercise('plain-bench', [false])])
     await click(container.querySelector('button[aria-label="Workout options"]'))
     item('Add exercise').onClick()
-    expect(mocks.exercisePicker).toHaveBeenCalledOnce()
+    expect(mocks.workoutExercisePicker).toHaveBeenCalledOnce()
   })
 
   it('groups the exercise menu: today, look it up, settings, order, and Remove on its own', async () => {

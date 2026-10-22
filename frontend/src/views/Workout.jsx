@@ -45,6 +45,8 @@ import { isWarmupRow, isFailureSet, toggleFailure, isDropSet, isRestPauseSet, dr
 import { canMoveActiveWorkoutUnit, moveActiveWorkoutUnit, canMoveActiveWorkoutEntry, moveActiveWorkoutEntry } from '../lib/active-workout-order.js'
 import { nextOpenSet, workoutKeyAction } from '../lib/workout-keys.js'
 import { MUSCLE_NAME } from '../lib/muscles.js'
+import { buildWorkoutAddition } from '../lib/workout-addition.js'
+import { workoutExercisePicker } from '../sheets.jsx'
 import FocusView from './FocusView.jsx'
 import WorkoutFocus from '../components/WorkoutFocus.jsx'
 import { withMeaning, historyAs, dbLoadFor, entryDbLoad, bellsIn, ownedWeightsFor, stepOwned } from '../lib/dumbbells.js'
@@ -1383,54 +1385,95 @@ function ActiveWorkout({ hidden = false }) {
     workoutCompleteSheet()
   }
   // Adds an exercise after the current unit: the button under the session and the ⋯ menu's Add.
-  const addExercise = () => exercisePicker((ex, quick) => {
-    // A freehand add inherits the current unit's routine (its `rid`) so it lands in that
-    // routine's block in a combined session and gets a real prescription; a routine-less
-    // freestyle session has no `rid` to inherit. It inherits the block's `noProg` too: an
-    // exercise added to a rehab or deload routine's block is kept out of progression like the
-    // rest of it, the way a swap or an edit there is — it takes the routine's own numbers and
-    // never becomes the baseline the regular sessions progress from. An exercise kept out by
-    // hand (its ⋯ menu) is that exercise's own choice for today and is not passed on; a session
-    // kept out as a whole (the header ⋮) takes the new one with it (joinSessionNoProg).
-    const curEntry = A.entries[A.cur]
-    const curRid = curEntry?.rid
-    const routine = curRid ? S.routines.find(r => r.id === curRid) : null
-    const freestyle = !routine
-    const noProg = !freestyle && builtOutOfProgression(curEntry, routine)
-    // Freestyle has no routine prescription to apply: show the last target in the config
-    // sheet and carry its completed rows forward. A planned session uses its configured
-    // target when progression is off, while progression-enabled sessions keep their path.
-    const seed = freestyle ? freestyleConfig(sessionHistory(S), { id: ex.id, ...defaultConfig(ex.id) }) : null
-    const commit = cfg => {
-      if (focusMode) focusPointerEpoch.current++
-      update(s => {
-        const full = { ...cfg, id: ex.id }
-        // A planned session builds the exercise the way its routine would (prescription, reps
-        // source, target); freestyle reproduces what you did last time.
-        // Read from before the session's day when it is logged into the past (sessionHistory).
-        const past = sessionHistory(s)
-        // Freestyle stamps the meaning of a dumbbell weight and reads last time in it, the way
-        // buildPlannedEntry does for a planned exercise (lib/dumbbells.js).
-        const built = freestyle
-          ? { target: withMeaning(s, cfg, ex.id), plan: null, sets: applyIntensifierPlan(buildSets(historyAs(past, ex.id, dbLoadFor(s, full)), full, {
-            step: modeOf(full) === 'reps' ? (ownedWeightsFor(s, full) || weightIncrement(full, s.unit)) : defaultIncrement(ex.id, s.unit), preferLast: true,
-          }), full, dropGrid(s, full)) }
-          : buildPlannedEntry(past, full, routine, { noProg })
-        const insertAt = insertionIndexAfterCurrentUnit(supersetUnits(s.active.entries), s.active.cur, s.active.entries.length)
-        s.active.entries.splice(insertAt, 0, joinSessionNoProg(s.active, { id: ex.id, ...built, ...(curRid ? { rid: curRid } : {}), ...(noProg ? { noProg: true } : {}) }))
-        s.active.cur = insertAt
-        useUI.getState().shiftRestOwner(insertAt, 1)
-      })
-    }
-    // The "+" on a picker row reads as "add this now" — routed through the same detail
-    // sheet before, so it added nothing until you'd scrolled past it and found the real
-    // button. Quick-add commits with the same default (or, freestyle, last-session) config
-    // the sheet would have opened with; tapping the row still opens that sheet for anyone
-    // who wants to set sets/reps first.
-    if (quick) { commit(seed || defaultConfig(ex.id)); useUI.getState().toast(t('“{0}” added to {1}', exerciseNameText(ex), routine ? routine.name : t('Freestyle'))) }
-    // The confirm names what it changes: this workout, never the routine behind it.
-    else exConfigSheet(ex, null, commit, null, routine, seed, null, t('Add to this workout'))
-  })
+  const addExercise = () => {
+    const recommended = !A.backfill && !A.editingWorkoutId
+    const sessionId = A.id
+    const picker = recommended ? workoutExercisePicker : exercisePicker
+    picker((ex, quick, proposed) => {
+      // A freehand add inherits the current unit's routine (its `rid`) so it lands in that
+      // routine's block in a combined session and gets a real prescription; a routine-less
+      // freestyle session has no `rid` to inherit. It inherits the block's `noProg` too: an
+      // exercise added to a rehab or deload routine's block is kept out of progression like the
+      // rest of it, the way a swap or an edit there is — it takes the routine's own numbers and
+      // never becomes the baseline the regular sessions progress from. An exercise kept out by
+      // hand (its ⋯ menu) is that exercise's own choice for today and is not passed on; a session
+      // kept out as a whole (the header ⋮) takes the new one with it (joinSessionNoProg).
+      const curEntry = A.entries[A.cur]
+      const curRid = curEntry?.rid
+      const routine = curRid ? S.routines.find((r) => r.id === curRid) : null
+      const freestyle = !routine
+      const noProg = !freestyle && builtOutOfProgression(curEntry, routine)
+      // Live additions commit the visible proposal or explicit edits. Past logging retains
+      // its original historical prescription path.
+      const seed = recommended
+        ? proposed || defaultConfig(ex.id)
+        : freestyle
+          ? freestyleConfig(sessionHistory(S), { id: ex.id, ...defaultConfig(ex.id) })
+          : null
+      const commit = (cfg) => {
+        if (useStore.getState().S.active?.id !== sessionId) return false
+        if (focusMode) focusPointerEpoch.current++
+        update((s) => {
+          if (!s.active || s.active.id !== sessionId) return
+          const full = { ...cfg, id: ex.id }
+          // A planned session builds the exercise the way its routine would (prescription, reps
+          // source, target); freestyle reproduces what you did last time.
+          // Read from before the session's day when it is logged into the past (sessionHistory).
+          const past = sessionHistory(s)
+          // Freestyle stamps the meaning of a dumbbell weight and reads last time in it, the way
+          // buildPlannedEntry does for a planned exercise (lib/dumbbells.js).
+          const built = recommended
+            ? buildWorkoutAddition(s, full, { optional: !!proposed })
+            : freestyle
+              ? {
+                  target: withMeaning(s, cfg, ex.id),
+                  plan: null,
+                  sets: applyIntensifierPlan(
+                    buildSets(historyAs(past, ex.id, dbLoadFor(s, full)), full, {
+                      step:
+                        modeOf(full) === 'reps'
+                          ? ownedWeightsFor(s, full) || weightIncrement(full, s.unit)
+                          : defaultIncrement(ex.id, s.unit),
+                      preferLast: true
+                    }),
+                    full,
+                    dropGrid(s, full)
+                  )
+                }
+              : buildPlannedEntry(past, full, routine, { noProg })
+          const insertAt = insertionIndexAfterCurrentUnit(
+            supersetUnits(s.active.entries),
+            s.active.cur,
+            s.active.entries.length
+          )
+          s.active.entries.splice(
+            insertAt,
+            0,
+            joinSessionNoProg(s.active, {
+              id: ex.id,
+              ...built,
+              ...(curRid ? { rid: curRid } : {}),
+              ...(noProg ? { noProg: true } : {})
+            })
+          )
+          s.active.cur = insertAt
+          useUI.getState().shiftRestOwner(insertAt, 1)
+        })
+        return true
+      }
+      // The "+" on a picker row reads as "add this now" — routed through the same detail
+      // sheet before, so it added nothing until you'd scrolled past it and found the real
+      // button. Quick-add commits with the same default (or, freestyle, last-session) config
+      // the sheet would have opened with; tapping the row still opens that sheet for anyone
+      // who wants to set sets/reps first.
+      if (quick) {
+        if (commit(seed || defaultConfig(ex.id)))
+          useUI.getState().toast(t('“{0}” added to {1}', exerciseNameText(ex), routine ? routine.name : t('Freestyle')))
+      }
+      // The confirm names what it changes: this workout, never the routine behind it.
+      else exConfigSheet(ex, null, commit, null, routine, seed, null, t('Add to this workout'))
+    })
+  }
   // Ending the session without saving it. The ⋯ menu's last item since the header's ✕ became the
   // ⌄ that only leaves the screen (v1.3.11).
   const discardWorkout = () => confirmSheet({
