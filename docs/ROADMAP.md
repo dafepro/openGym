@@ -1,5 +1,10 @@
 # Roadmap
 
+- Implemented: local exercise recommendations for live workout Add, optional muscle targeting,
+  alternatives, equipment-aware personalized prescriptions, and compact Uplift presentation.
+  Ranking, performance, lifecycle, persistence and mobile/reduced-motion checks are recorded in
+  [the verification notes](dev/WORKOUT_ADD_RECOMMENDATIONS.md) (ADR 010).
+
 - Synced openGym 1.4.1 through upstream `5ec23d3b`; retain the Focus/Drive/Garmin adapter design,
   isolate native release selection, and share phone/watch finish records (ADR 009). Future upstream
   session-phase changes may warrant a shared row-command interface; no engine rewrite is planned.

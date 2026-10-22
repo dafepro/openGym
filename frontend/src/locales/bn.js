@@ -2429,4 +2429,21 @@ export default {
   'Skip rest': 'বিশ্রাম বাদ দিন',
   'Total reps': 'মোট পুনরাবৃত্তি',
   'Stop': 'থামান',
+  'All options seen': 'সব বিকল্প দেখা হয়েছে',
+  Another: 'আরেকটি',
+  'Any muscle': 'যেকোনো পেশি',
+  'Browse exercises': 'ব্যায়াম দেখুন',
+  'Choose weight': 'ওজন বাছুন',
+  'Common movement': 'প্রচলিত নড়াচড়া',
+  'Saved plan': 'সংরক্ষিত পরিকল্পনা',
+  'Estimates from logged training, not a recovery measurement.':
+    'নথিভুক্ত প্রশিক্ষণ থেকে অনুমান, পুনরুদ্ধারের পরিমাপ নয়।',
+  'Familiar movement': 'পরিচিত নড়াচড়া',
+  'Less recent muscle work': 'সম্প্রতি কম অনুশীলিত পেশি',
+  'Lower estimated fatigue': 'আনুমানিক ক্লান্তি কম',
+  'No suitable suggestion': 'উপযুক্ত পরামর্শ নেই',
+  'Recent training': 'সাম্প্রতিক প্রশিক্ষণ',
+  'Start over': 'আবার শুরু করুন',
+  'Suggested exercise': 'প্রস্তাবিত ব্যায়াম',
+  'Why this exercise?': 'এই ব্যায়াম কেন?'
 }

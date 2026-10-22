@@ -2350,4 +2350,21 @@ export default {
   'Skip rest': '휴식 건너뛰기',
   'Total reps': '총 반복 횟수',
   'Stop': '중지',
+  'All options seen': '모든 옵션을 확인했어요',
+  Another: '다른 옵션',
+  'Any muscle': '모든 근육',
+  'Browse exercises': '운동 찾아보기',
+  'Choose weight': '중량 선택',
+  'Common movement': '일반적인 동작',
+  'Saved plan': '저장된 계획',
+  'Estimates from logged training, not a recovery measurement.':
+    '기록된 훈련에 따른 추정치이며 회복 측정값이 아닙니다.',
+  'Familiar movement': '익숙한 동작',
+  'Less recent muscle work': '최근 덜 훈련한 근육',
+  'Lower estimated fatigue': '추정 피로가 더 낮음',
+  'No suitable suggestion': '적합한 추천 없음',
+  'Recent training': '최근 훈련',
+  'Start over': '다시 시작',
+  'Suggested exercise': '추천 운동',
+  'Why this exercise?': '이 운동을 추천한 이유는?'
 }

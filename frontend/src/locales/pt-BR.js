@@ -1511,6 +1511,23 @@ export const PT_BR_OVERRIDES = {
   'Stop': 'Parar',
   'Fewer than two workouts in this period. Pick a longer one.': 'Menos de dois treinos neste período. Escolha um mais longo.',
   'Releases are checked on GitHub. The download is verified against its checksum before the installer opens.': 'As versões são verificadas no GitHub. O download é conferido pela soma de verificação antes de abrir o instalador.',
+  'All options seen': 'Todas as opções vistas',
+  Another: 'Outra opção',
+  'Any muscle': 'Qualquer músculo',
+  'Browse exercises': 'Explorar exercícios',
+  'Choose weight': 'Escolher carga',
+  'Common movement': 'Movimento comum',
+  'Saved plan': 'Plano salvo',
+  'Estimates from logged training, not a recovery measurement.':
+    'Estimativas dos treinos registrados, não uma medição de recuperação.',
+  'Familiar movement': 'Movimento conhecido',
+  'Less recent muscle work': 'Músculos treinados há mais tempo',
+  'Lower estimated fatigue': 'Menor fadiga estimada',
+  'No suitable suggestion': 'Nenhuma sugestão adequada',
+  'Recent training': 'Treino recente',
+  'Start over': 'Recomeçar',
+  'Suggested exercise': 'Exercício sugerido',
+  'Why this exercise?': 'Por que este exercício?'
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES }

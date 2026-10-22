@@ -2350,4 +2350,21 @@ export default {
   'Skip rest': 'Passer le repos',
   'Total reps': 'Répétitions totales',
   'Stop': 'Arrêter',
+  'All options seen': 'Toutes les options vues',
+  Another: 'Autre option',
+  'Any muscle': 'Tous les muscles',
+  'Browse exercises': 'Parcourir les exercices',
+  'Choose weight': 'Choisir la charge',
+  'Common movement': 'Mouvement courant',
+  'Saved plan': 'Programme enregistré',
+  'Estimates from logged training, not a recovery measurement.':
+    'Estimations issues des entraînements enregistrés, sans mesure de récupération.',
+  'Familiar movement': 'Mouvement familier',
+  'Less recent muscle work': 'Muscles sollicités moins récemment',
+  'Lower estimated fatigue': 'Fatigue estimée plus faible',
+  'No suitable suggestion': 'Aucune suggestion adaptée',
+  'Recent training': 'Entraînement récent',
+  'Start over': 'Recommencer',
+  'Suggested exercise': 'Exercice suggéré',
+  'Why this exercise?': 'Pourquoi cet exercice ?'
 }
