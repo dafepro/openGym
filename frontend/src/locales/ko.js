@@ -1,5 +1,8 @@
 // Korean UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Starting estimate": "시작 추정치",
+  "Use your first set to adjust the estimate.": "첫 세트를 바탕으로 추정치를 조정하세요.",
+  "Estimate from {0}": "{0} 기반 추정",
   // New release wording: explicit English fallback pending translation review.
   "Add gym app": "Add gym app",
   "App or website link": "App or website link",

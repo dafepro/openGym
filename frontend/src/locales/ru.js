@@ -1,5 +1,8 @@
 // Russian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Starting estimate": "Начальная оценка",
+  "Use your first set to adjust the estimate.": "Скорректируйте оценку после первого подхода.",
+  "Estimate from {0}": "Оценка на основе {0}",
   // New release wording: explicit English fallback pending translation review.
   "Add gym app": "Add gym app",
   "App or website link": "App or website link",

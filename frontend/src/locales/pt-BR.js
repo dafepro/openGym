@@ -4,6 +4,9 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  "Starting estimate": "Estimativa inicial",
+  "Use your first set to adjust the estimate.": "Use sua primeira série para ajustar a estimativa.",
+  "Estimate from {0}": "Estimativa com base em {0}",
   // New release wording: explicit English fallback pending translation review.
   "Add gym app": "Add gym app",
   "App or website link": "App or website link",

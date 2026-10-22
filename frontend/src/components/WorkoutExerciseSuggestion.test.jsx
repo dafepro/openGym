@@ -121,13 +121,15 @@ describe('live exercise suggestion', () => {
       expect.objectContaining({ sets: 2, reps: 8, weight: 15, restSec: 180 })
     )
   })
-  it('asks for an unknown weight, exposes details on demand, and keeps Browse available', () => {
+  it('suggests a starting weight for unfamiliar work, exposes details and keeps Browse available', () => {
     render({ customEx: [catalog[2]] })
-    expect(host.textContent).toContain('Choose weight')
+    expect(host.querySelector('.suggestion-prescription').textContent).toContain('~2.5')
     click('Add')
-    expect(onPick.mock.calls[0][1]).toBe(false)
+    expect(onPick.mock.calls[0][1]).toBe(true)
+    expect(onPick.mock.calls[0][2]).toMatchObject({ weight: 2.5, dbLoad: 'each', sets: 1 })
     act(() => host.querySelector('[aria-label="Why this exercise?"]').click())
-    expect(host.textContent).toContain('Estimates from logged training')
+    expect(host.textContent).toContain('Starting estimate')
+    expect(host.textContent).toContain('Use your first set')
     click('Details')
     expect(onPick.mock.calls[1][1]).toBe(false)
     click('Browse exercises')
@@ -152,4 +154,34 @@ describe('live exercise suggestion', () => {
     expect(host.textContent).toBe('')
     expect(onPick).not.toHaveBeenCalled()
   })
+})
+
+it('pre-fills a recent imported exercise so Add does not open an empty setup form', () => {
+  render({
+    customEx: [catalog[2]],
+    unit: 'lb',
+    workouts: [
+      {
+        start: NOW - 86400000,
+        source: 'StrongLifts',
+        entries: [
+          {
+            id: catalog[2].id,
+            sets: [
+              { w: 15, r: 12, done: true, u: 'lb' },
+              { w: 15, r: 12, done: true, u: 'lb' }
+            ]
+          }
+        ]
+      }
+    ]
+  })
+  expect(host.querySelector('.suggestion-dose').textContent).toContain('2 × 12')
+  expect(host.querySelector('.suggestion-prescription').textContent).toContain('15 lb')
+  click('Add')
+  expect(onPick).toHaveBeenCalledWith(
+    expect.objectContaining({ id: catalog[2].id }),
+    true,
+    expect.objectContaining({ sets: 2, reps: 12, weight: 15 })
+  )
 })

@@ -98,9 +98,17 @@ export default function WorkoutExerciseSuggestion({ onPick, onBrowse, close }) {
                   ? t('Saved plan')
                   : match.source === 'recent'
                     ? t('Recent training')
-                    : t('Choose weight')}
+                    : match.source === 'similar'
+                      ? t('Estimate from {0}', exerciseNameFor(match.sourceExercise))
+                      : match.source === 'starting'
+                        ? t('Starting estimate')
+                        : t('Choose weight')}
               </span>
-              <p>{t('Estimates from logged training, not a recovery measurement.')}</p>
+              <p>
+                {match.source === 'starting'
+                  ? t('Use your first set to adjust the estimate.')
+                  : t('Estimates from logged training, not a recovery measurement.')}
+              </p>
               <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={() => choose(false)}>
                 {t('Details')}
               </Button>
@@ -124,7 +132,7 @@ export default function WorkoutExerciseSuggestion({ onPick, onBrowse, close }) {
                     ? `${t('Bodyweight')}${match.config.weight > 0 ? ` +${fmtNum(match.config.weight)} ${state.unit}` : ''}`
                     : match.needsWeight
                       ? t('Choose weight')
-                      : `${fmtNum(match.config.weight)} ${loadUnit}`}
+                      : `${['similar', 'starting'].includes(match.source) ? '~' : ''}${fmtNum(match.config.weight)} ${loadUnit}`}
                 </span>
                 <span>
                   {t('Rest')} · {fmtRest(match.config.restSec)}

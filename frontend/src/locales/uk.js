@@ -1,5 +1,8 @@
 // Ukrainian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Starting estimate": "Початкова оцінка",
+  "Use your first set to adjust the estimate.": "Скоригуйте оцінку після першого підходу.",
+  "Estimate from {0}": "Оцінка на основі {0}",
   // New release wording: explicit English fallback pending translation review.
   "Add gym app": "Add gym app",
   "App or website link": "App or website link",

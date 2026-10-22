@@ -46,6 +46,7 @@ import { canMoveActiveWorkoutUnit, moveActiveWorkoutUnit, canMoveActiveWorkoutEn
 import { nextOpenSet, workoutKeyAction } from '../lib/workout-keys.js'
 import { MUSCLE_NAME } from '../lib/muscles.js'
 import { buildWorkoutAddition } from '../lib/workout-addition.js'
+import { recommendationPrescription } from '../lib/recommendation-prescription.js'
 import { workoutExercisePicker } from '../sheets.jsx'
 import FocusView from './FocusView.jsx'
 import WorkoutFocus from '../components/WorkoutFocus.jsx'
@@ -1405,8 +1406,11 @@ function ActiveWorkout({ hidden = false }) {
       const noProg = !freestyle && builtOutOfProgression(curEntry, routine)
       // Live additions commit the visible proposal or explicit edits. Past logging retains
       // its original historical prescription path.
+      const suggestion = recommended && !proposed
+        ? recommendationPrescription(useStore.getState().S, { exercise: ex, fatigue: 0 })
+        : null
       const seed = recommended
-        ? proposed || defaultConfig(ex.id)
+        ? proposed || suggestion.config
         : freestyle
           ? freestyleConfig(sessionHistory(S), { id: ex.id, ...defaultConfig(ex.id) })
           : null
@@ -1466,7 +1470,7 @@ function ActiveWorkout({ hidden = false }) {
       // button. Quick-add commits with the same default (or, freestyle, last-session) config
       // the sheet would have opened with; tapping the row still opens that sheet for anyone
       // who wants to set sets/reps first.
-      if (quick) {
+      if (quick && !suggestion?.needsWeight) {
         if (commit(seed || defaultConfig(ex.id)))
           useUI.getState().toast(t('“{0}” added to {1}', exerciseNameText(ex), routine ? routine.name : t('Freestyle')))
       }

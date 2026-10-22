@@ -37,19 +37,18 @@ describe('personalized addition prescription', () => {
       config: { weight: 40, reps: 10, sets: 2, restSec: 150 }
     })
   })
-  it('keeps stale, future, imported-without-target and unrecorded loads unset', () => {
+  it('keeps stale, future, skipped, warm-up and unrecorded loads out of the starting estimate', () => {
     for (const record of [
       history(22 * DAY),
       history(-DAY),
-      history(DAY, { source: 'StrongLifts' }),
-      history(DAY, { source: 'Hevy' }),
-      history(DAY, { target: null }),
+      history(DAY, { row: { skipped: true } }),
+      history(DAY, { row: { phase: 'warmup' } }),
       history(DAY, { row: { done: false } })
     ])
       expect(propose(base({ workouts: [record] }))).toMatchObject({
-        needsWeight: true,
-        source: 'unset',
-        config: { weight: 0 }
+        needsWeight: false,
+        source: 'starting',
+        config: { weight: 20 }
       })
   })
   it('converts kg/lb stamps and respects available plates and dumbbells', () => {
@@ -141,7 +140,7 @@ describe('personalized addition prescription', () => {
     for (const row of [{ rir: 1 }, { rpe: 9 }, { r: 0 }]) {
       expect(propose(base({ restSec: 60, workouts: [history(DAY, { row })] }))).toMatchObject({
         hardLastTime: true,
-        config: { sets: 1, restSec: 120 }
+        config: { sets: 1, restSec: 150 }
       })
     }
   })
@@ -170,4 +169,210 @@ describe('personalized addition prescription', () => {
     expect(built.noProg).toBe(true)
     expect(JSON.stringify(s)).toBe(before)
   })
+})
+
+const byName = (name) => Object.values(EXIDX).find((ex) => ex.n === name)
+const front = byName('dumbbell front raise')
+const frontMatch = { exercise: front, fatigue: 0.1 }
+const recentWork = (ex, sets, extra = {}) => ({
+  start: NOW - DAY,
+  source: 'Hevy',
+  entries: [{ id: ex.id, sets }],
+  ...extra
+})
+const done = (w, r, more = {}) => ({ w, r, done: true, ...more })
+describe('evidence-based exercise setup', () => {
+  it('uses recent imported actual work without requiring an app target, never an old export', () => {
+    const s = base({
+      unit: 'lb',
+      workouts: [recentWork(front, [done(15, 12, { u: 'lb' }), done(15, 12, { u: 'lb' })])]
+    })
+    expect(propose(s, frontMatch)).toMatchObject({
+      needsWeight: false,
+      source: 'recent',
+      config: { sets: 2, reps: 12, weight: 15, restSec: 150 }
+    })
+    s.workouts[0].start = NOW - 22 * DAY
+    expect(propose(s, frontMatch)).toMatchObject({
+      source: 'starting',
+      needsWeight: false,
+      config: { weight: 5, dbLoad: 'each' }
+    })
+  })
+  it('uses completed work today and holds optional/non-progressing work without granting progression', () => {
+    const s = base({
+      routines: [{ id: 'r', prog: 'linear', ex: [{ id: ID, sets: 3, reps: 10, weight: 0 }] }],
+      workouts: [history()]
+    })
+    s.active.entries = [
+      { id: ID, noProg: true, target: { sets: 2, reps: 10 }, sets: [done(30, 10), done(999, 10, { done: false })] }
+    ]
+    expect(propose(s).config).toMatchObject({ sets: 2, weight: 30, reps: 10 })
+    s.active.entries = []
+    s.workouts.push({ ...history(0.5 * DAY, { row: { w: 25 } }), source: 'StrongLifts' })
+    expect(propose(s).config.weight).toBe(25)
+    s.workouts.at(-1).source = undefined
+    s.workouts.at(-1).entries[0].noProg = true
+    expect(propose(s).config.weight).toBe(25)
+  })
+  it('fills missing plan fields but preserves explicitly chosen reps and rest', () => {
+    const s = base({
+      routines: [{ id: 'r', ex: [{ id: ID, weight: 0, restSec: 180 }] }],
+      workouts: [history(DAY, { target: null, row: { r: 6 } })]
+    })
+    expect(propose(s).config).toMatchObject({ weight: 40, reps: 6, restSec: 180 })
+    s.routines[0].ex[0].reps = 12
+    expect(propose(s).config).toMatchObject({ reps: 12, restSec: 180 })
+    expect(propose(s).config.weight).toBeLessThan(40)
+  })
+  it('gives an unknown raise higher reps, a compound longer rest and a hold a duration', () => {
+    expect(propose(base({ restSec: 90 }), frontMatch)).toMatchObject({
+      needsWeight: false,
+      source: 'starting',
+      config: { sets: 1, reps: 12, weight: 2.5, dbLoad: 'each', restSec: 90 }
+    })
+    expect(propose(base({ restSec: 90 })).config).toMatchObject({ reps: 8, restSec: 150 })
+    const plank = byName('kneeling plank')
+    expect(propose(base(), { exercise: plank, fatigue: 0 })).toMatchObject({
+      needsWeight: false,
+      config: { mode: 'time', sec: 45 }
+    })
+    expect(propose(base({ restSec: 0 })).config.restSec).toBe(0)
+  })
+  it('normalizes target-less kg/lb work and ignores zero-rep attempts as a load baseline', () => {
+    const s = base({
+      workouts: [recentWork(EXIDX[ID], [done(100, 8, { u: 'lb' }), done(999, 0), done(999, 12, { skipped: true })])]
+    })
+    expect(propose(s)).toMatchObject({ hardLastTime: true, config: { weight: 45, reps: 8, sets: 1 } })
+    s.workouts[0].entries[0].sets = [done(100, 0)]
+    expect(propose(s)).toMatchObject({ source: 'starting', needsWeight: false, config: { weight: 20 } })
+  })
+  it('keeps recent bodyweight added loads and timed work in their own meanings', () => {
+    const push = byName('push-up')
+    expect(
+      propose(base({ workouts: [recentWork(push, [done(10, 8)])] }), { exercise: push, fatigue: 0 }).config
+    ).toMatchObject({ bodyweight: true, weight: 10, reps: 8 })
+    expect(propose(base({ workouts: [recentWork(EXIDX[ID], [{ sec: 30, w: 40, done: true }])] })).config).toMatchObject(
+      { mode: 'time', sec: 30, weight: 40 }
+    )
+  })
+  it('estimates only a matching free-weight movement, labels the donor and snaps down to owned bells', () => {
+    const donor = Object.values(EXIDX).find(
+      (ex) => ex.id !== front.id && ex.eq === 'dumbbell' && /front raise/.test(ex.n) && !/one arm|single arm/.test(ex.n)
+    )
+    expect(donor).toBeTruthy()
+    const s = base({
+      dumbbells: { kg: { weights: [5, 7.5, 10, 12.5] } },
+      workouts: [
+        recentWork(donor, [done(20, 12)], {
+          entries: [{ id: donor.id, target: { dbLoad: 'total', reps: 12 }, sets: [done(20, 12)] }]
+        })
+      ]
+    })
+    const before = JSON.stringify(s)
+    expect(propose(s, frontMatch)).toMatchObject({
+      source: 'similar',
+      sourceExercise: { id: donor.id },
+      needsWeight: false,
+      config: { weight: 7.5, reps: 12, dbLoad: 'each' }
+    })
+    expect(JSON.stringify(s)).toBe(before)
+    s.workouts[0].entries[0].target.dbLoad = 'as'
+    expect(propose(s, frontMatch)).toMatchObject({ source: 'starting', config: { weight: 5 } })
+    for (const name of [
+      'dumbbell bench press',
+      'dumbbell lateral raise',
+      'cable front raise',
+      'dumbbell lateral to front raise'
+    ]) {
+      const other = byName(name)
+      if (other) {
+        s.workouts[0].entries[0] = { id: other.id, target: { dbLoad: 'each' }, sets: [done(50, 12)] }
+        expect(propose(s, frontMatch)).toMatchObject({ source: 'starting', config: { weight: 5 } })
+      }
+    }
+  })
+})
+
+it('converts a single-bell variation to combined bells and respects legacy unilateral totals', () => {
+  const donor = byName('dumbbell one arm front raise')
+  const s = base({
+    dbLoad: { [front.id]: { mode: 'total' } },
+    dumbbells: { kg: { weights: [5, 7.5, 10] } },
+    workouts: [
+      recentWork(donor, [], { entries: [{ id: donor.id, target: { dbLoad: 'each', reps: 12 }, sets: [done(10, 12)] }] })
+    ]
+  })
+  expect(propose(s, frontMatch).config).toMatchObject({ dbLoad: 'total', weight: 15 })
+  s.workouts[0].entries[0].target.side = true
+  // Twelve total reps are six per arm, not twelve per arm at the same weight.
+  expect(propose(s, frontMatch).config.weight).toBe(10)
+})
+it('treats a legacy unilateral row as total reps and does not change its historical record', () => {
+  const s = base({ workouts: [history(DAY, { target: { sets: 3, reps: 12, weight: 40, side: true }, row: { r: 8 } })] })
+  const before = JSON.stringify(s)
+  expect(propose(s)).toMatchObject({ hardLastTime: true, config: { sets: 1, reps: 12 } })
+  expect(propose(s).config.weight).toBeLessThan(40)
+  expect(JSON.stringify(s)).toBe(before)
+})
+
+it('offers a starting trial for an unfamiliar exercise using the lightest owned bell and explicit meanings', () => {
+  const s = base({ unit: 'lb', dumbbells: { lb: { weights: [10, 5, 15] } } })
+  expect(propose(s, frontMatch)).toMatchObject({
+    source: 'starting',
+    needsWeight: false,
+    config: { sets: 1, reps: 12, weight: 5, dbLoad: 'each', restSec: 150 }
+  })
+  expect(buildWorkoutAddition(s, propose(s, frontMatch).config)).toMatchObject({
+    noProg: true,
+    sets: [{ w: 5, r: 12, done: false }]
+  })
+  s.dbLoad = { [front.id]: { mode: 'total' } }
+  expect(propose(s, frontMatch).config).toMatchObject({ weight: 10, dbLoad: 'total' })
+})
+it('starts at the empty known bar, preserving zero counterbalance and machine load steps', () => {
+  expect(propose(base())).toMatchObject({ source: 'starting', needsWeight: false, config: { weight: 20, sets: 1 } })
+  expect(propose(base({ barWeights: { [ID]: 0 } }))).toMatchObject({
+    source: 'starting',
+    needsWeight: false,
+    config: { weight: 0 }
+  })
+  const cable = byName('cable front raise')
+  expect(propose(base({ unit: 'lb' }), { exercise: cable, fatigue: 0 })).toMatchObject({
+    source: 'starting',
+    config: { weight: 5 }
+  })
+})
+it('starts unfamiliar assistance with more help using recent body mass, never added bodyweight load', () => {
+  const assisted = Object.values(EXIDX).find((ex) => /assisted/.test(ex.n) && ex.eq !== 'body weight')
+  const m = { exercise: assisted, fatigue: 0 }
+  const s = base({ bodyweight: [{ d: '2026-10-21', w: 80 }] })
+  expect(propose(s, m)).toMatchObject({ source: 'starting', config: { weight: 60 } })
+  s.bodyweight[0].d = '2025-01-01'
+  expect(propose(s, m).config.weight).toBe(40)
+})
+it('calibrates the next proposal from the completed starting set instead of repeating the generic starting load', () => {
+  const s = base({ unit: 'lb' })
+  const first = propose(s, frontMatch)
+  expect(first.config.weight).toBe(5)
+  const built = buildWorkoutAddition(s, first.config)
+  built.id = front.id
+  built.sets[0] = { w: 10, r: 12, rir: 3, done: true }
+  s.workouts = [{ start: NOW - DAY, entries: [built] }]
+  expect(propose(s, frontMatch)).toMatchObject({ source: 'recent', config: { weight: 10, reps: 12 } })
+})
+
+it('does not turn an evidenced light load into a heavier starting bell just to fit the inventory', () => {
+  const s = base({ dumbbells: { kg: { weights: [10, 15] } }, workouts: [recentWork(front, [done(5, 12)])] })
+  expect(propose(s, frontMatch)).toMatchObject({ source: 'unset', needsWeight: true, config: { weight: 0 } })
+})
+it('keeps a timed progression increment in seconds out of the load grid', () => {
+  const s = base({
+    workouts: [
+      recentWork(EXIDX[ID], [], {
+        entries: [{ id: ID, target: { mode: 'time', sec: 30, inc: 30 }, sets: [{ w: 40, sec: 30, done: true }] }]
+      })
+    ]
+  })
+  expect(propose(s).config).toMatchObject({ mode: 'time', inc: 30, sec: 30, weight: 40 })
 })
