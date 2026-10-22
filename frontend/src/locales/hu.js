@@ -1,5 +1,7 @@
 // Hungarian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Starting estimate": "Kezdő becslés",
+  "Use your first set to adjust the estimate.": "Az első sorozatod alapján módosítsd a becslést.",
   "Estimate from {0}": "Becslés ez alapján: {0}",
   // New release wording: explicit English fallback pending translation review.
   "Add gym app": "Add gym app",

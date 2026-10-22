@@ -1,5 +1,7 @@
 // Simplified Chinese UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Starting estimate": "起始估计",
+  "Use your first set to adjust the estimate.": "根据第一组的表现调整估计。",
   "Estimate from {0}": "根据 {0} 估算",
   // New release wording: explicit English fallback pending translation review.
   "Add gym app": "Add gym app",

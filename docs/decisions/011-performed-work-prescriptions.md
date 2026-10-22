@@ -22,11 +22,25 @@ does not round up to the lightest available bell.
 Without exact evidence, allow a named, visible estimate from a narrow family of the same
 free-weight movement and equipment: front raise, lateral raise, hammer curl, biceps curl,
 shoulder press or bench press. Do not transfer a shoulder press or lateral raise to a front
-raise, or use muscle overlap as load evidence. Explicit bell meanings are required for
+raise, or treat muscle overlap alone as a measured load. Explicit bell meanings are required for
 different variations. Discount a variation by 20%, adjust down for higher reps, and discount
 another 10% for high effort/fatigue before inventory snapping. These factors are conservative
 editorial heuristics, not validated strength ratios. The card marks estimates with `~`; its
-explanation names the source exercise. An unsupported weight still requires the user's choice.
+explanation names the source exercise.
+
+The owner then explicitly requests a suggested weight even for unfamiliar exercises. Without
+load evidence, propose a transparent **starting estimate**: the lightest owned dumbbell with
+an explicit per-bell/combined meaning, an empty known bar/sled (including a zero counterbalance),
+the smallest available plate load or one ordinary equipment load step. Assisted work starts
+with substantial help: 75% of a recent/current body weight, otherwise an editorial 40 kg / 90 lb
+trial. Assistance rounds toward more help; a missing feasible load does not become zero help.
+Use one calibration set and keep rest. A completed, adjusted set informs the next proposal
+through the same recent-work path, without progression credit. These are trial loads, not
+claims to know an unfamiliar exercise's working strength. Show `~` and Starting estimate;
+the explanation invites adjustment after the first set. A known load below the owned rack
+must not silently round up to a heavier starting bell; that equipment mismatch still needs
+a deliberate choice. No old strength records, body-mass-as-added-load or population strength
+standards supply the estimate.
 
 Cold setup distinguishes isolation work (12 reps), compound work (8 reps) and recognizable
 static holds (45 seconds). Missing rest uses at least the user's default and 150 seconds for

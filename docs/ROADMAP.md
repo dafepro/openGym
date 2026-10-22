@@ -3,7 +3,8 @@
 - Implemented: local exercise recommendations for live workout Add, optional muscle targeting,
   alternatives, equipment-aware personalized prescriptions, and compact Uplift presentation.
   Setup now includes recent performed imports and today's work, exercise-specific defaults,
-  missing plan fields and named estimates from narrowly matching variations (ADR 011).
+  missing plan fields, named estimates from narrowly matching variations and starting trials
+  for unfamiliar exercises (ADR 011).
   Ranking, performance, lifecycle, persistence and mobile/reduced-motion checks are recorded in
   [the verification notes](dev/WORKOUT_ADD_RECOMMENDATIONS.md) (ADR 010).
 

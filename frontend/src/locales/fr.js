@@ -1,5 +1,7 @@
 // French UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Starting estimate": "Estimation de départ",
+  "Use your first set to adjust the estimate.": "Utilise ta première série pour ajuster cette estimation.",
   "Estimate from {0}": "Estimation à partir de {0}",
   // New release wording: explicit English fallback pending translation review.
   "Add gym app": "Add gym app",

@@ -2,7 +2,7 @@
 // Current, explicit plan settings beat estimates. Recent performed work can inform a reviewed
 // proposal, including imports and today. Old records and PR caches cannot seed today's work.
 import { defaultConfig, entryExcluded, modeOf, workoutAt } from './history.js'
-import { nextPrescription, weightIncrement } from './progression.js'
+import { defaultIncrement, nextPrescription, weightIncrement } from './progression.js'
 import {
   bellsIn,
   dbLoadFor,
@@ -20,6 +20,7 @@ import { remainingWorkoutMinutes } from './exercise-recommendations.js'
 import { rirOf } from './effort.js'
 import { restSecFor } from './supersetFlow.js'
 import { recommendationName, recommendationProfile } from './recommendation-profile.js'
+import { usesBar } from './bar.js'
 
 const DAY = 86400000
 export const RECENT_LOAD_DAYS = 21
@@ -110,9 +111,42 @@ export function achievableRecommendationLoad(state, config, weight) {
     }
     return Math.max(...loads)
   }
-  const step = weightIncrement(config, state.unit || 'kg')
+  const step =
+    modeOf(config) === 'time'
+      ? defaultIncrement(config.id, state.unit || 'kg')
+      : weightIncrement(config, state.unit || 'kg')
   const steps = isAssisted(config) ? Math.ceil(weight / step - 1e-8) : Math.floor(weight / step + 1e-8)
   return Math.max(0, Math.round(steps * step * 100) / 100)
+}
+
+// No strength evidence is required for a transparent first-set trial. Start with the
+// lightest owned bell, an empty known bar/sled, or one ordinary load step. Assistance has
+// the opposite direction: begin with substantial help, using only a recent weigh-in.
+function startingLoad(state, config, exercise, now) {
+  const trial = { ...config }
+  if (exercise.eq === 'dumbbell' && dbLoadFor(state, trial) === 'as') trial.dbLoad = 'each'
+  const owned = ownedWeightsFor(state, trial)
+  if (owned?.length) return { weight: owned[0], dbLoad: trial.dbLoad }
+  if (isAssisted(trial)) {
+    const recent = (state.bodyweight || [])
+      .filter((row) => {
+        const at = workoutAt(row)
+        return finite(at) && at <= now && now - at <= RECENT_LOAD_DAYS * DAY && finite(row.w) && row.w > 0
+      })
+      .sort((a, b) => workoutAt(b) - workoutAt(a))[0]
+    const mass = state.active?.bw > 0 ? state.active.bw : recent?.w
+    const help = mass > 0 ? mass * 0.75 : state.unit === 'lb' ? 90 : 40
+    const weight = achievableRecommendationLoad(state, trial, help)
+    return weight > 0 ? { weight } : null
+  }
+  const base = baseWeightFor(state, config.id)
+  if (usesBar(exercise) || base > 0) return { weight: base, empty: base === 0 }
+  const kind = loadKindFor(state, trial)
+  if (kind === 'pairs' || kind === 'single') {
+    const plates = inventoryFor(state).filter((plate) => plate.n > 0 && plate.w > 0)
+    return plates.length ? { weight: Math.min(...plates.map((plate) => plate.w)) * (kind === 'pairs' ? 2 : 1) } : null
+  }
+  return { weight: defaultIncrement(config.id, state.unit || 'kg'), dbLoad: trial.dbLoad }
 }
 
 export function recommendationPrescription(state, match, { now = Date.now() } = {}) {
@@ -320,10 +354,30 @@ export function recommendationPrescription(state, match, { now = Date.now() } = 
   )
   delete config.setsMax // today's optional dose has a fixed cap, not the routine's set range
   if (mode === 'cardio') config.min = Math.min(config.min || 5, nearHour ? 3 : 5)
-  if (mode !== 'cardio') config.weight = achievableRecommendationLoad(state, config, config.weight)
+  if (mode !== 'cardio') {
+    const hadLoad = config.weight > 0
+    config.weight = achievableRecommendationLoad(state, config, config.weight)
+    // Do not round an evidenced load up to the lightest available bell. A genuinely new
+    // movement instead gets an explicit starting estimate and one calibration set.
+    if (!hadLoad && !config.bodyweight) {
+      const trial = startingLoad(state, config, match.exercise, now)
+      const attempts = recentRows.map((row) => row.w).filter((w) => finite(w) && w > 0)
+      const harderThanAttempt =
+        attempts.length &&
+        trial &&
+        (isAssisted(config) ? trial.weight < Math.max(...attempts) : trial.weight > Math.min(...attempts))
+      if (trial && finite(trial.weight) && trial.weight >= 0 && !harderThanAttempt) {
+        config.weight = trial.weight
+        if (trial.dbLoad) config.dbLoad = trial.dbLoad
+        config.sets = 1
+        source = 'starting'
+      }
+    }
+  }
   config = withMeaning(state, config, id)
-  const needsWeight = mode !== 'cardio' && config.bodyweight !== true && !(config.weight > 0)
+  const needsWeight = mode !== 'cardio' && config.bodyweight !== true && !(config.weight > 0) && source !== 'starting'
   if (needsWeight) source = 'unset'
+  else if (source === 'unset') source = 'starting'
   const workSeconds =
     mode === 'cardio'
       ? config.min * 60

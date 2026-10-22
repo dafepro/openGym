@@ -1,5 +1,7 @@
 // Turkish UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  "Starting estimate": "Başlangıç tahmini",
+  "Use your first set to adjust the estimate.": "Tahmini ayarlamak için ilk setini kullan.",
   "Estimate from {0}": "{0} temelinde tahmin",
   // New release wording: explicit English fallback pending translation review.
   "Add gym app": "Add gym app",

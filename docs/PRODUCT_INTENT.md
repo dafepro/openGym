@@ -20,7 +20,8 @@ recent training, estimated fatigue, today's volume, familiarity and available eq
 personalized sets, reps, load and rest before adding. Saved settings and recent performed work,
 including imports and today, inform the proposal. Old records and historic-best caches cannot
 seed a load or progression. Narrow estimates from matching free-weight variations name their
-source; unsupported weights remain explicit choices. Budget optional volume, preserve rest,
+source. Unfamiliar exercises get a labelled starting estimate from available equipment and a
+calibration set; completed work refines the next proposal. Budget optional volume, preserve rest,
 and keep copy and motion compact. These are coaching heuristics, not recovery measurements
 (ADRs 010–011).
 

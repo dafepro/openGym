@@ -67,12 +67,17 @@ and today's completed sets. It also left Browse additions on generic defaults. A
 replaces that evidence restriction for a reviewed proposal; old records and historic-best
 caches remain excluded, and imports/optional/live work never earn progression increases.
 
+The owner also explicitly requested a suggested load for unfamiliar exercises. These now get
+a labelled starting estimate and one calibration set from available equipment; performed
+results inform the next proposal. An unavailable known load never rounds up to a heavier
+starting bell. Assistance and meaningful zero counterbalances retain their directions/meaning.
+
 Focused checks now cover recent imported actual reps/load, missing plan fields, current work,
 held progression exclusions, cold isolation/compound/hold defaults, unit stamps, bodyweight
 added load, exact exercise identity, narrow same-movement estimates, ambiguous bell meanings,
-single/two-bell conversion, legacy unilateral totals, and the configuration/commit seam.
-All 34 focused checks passed after the final domain changes; the full frontend suite passed
-before the two added unilateral regressions. Nine Worker tests, production build, locale
+single/two-bell conversion, legacy unilateral totals, starting trials/calibration, assisted
+trials, timed seconds versus load steps, and the configuration/commit seam.
+All 5,278 frontend tests and 40 focused checks passed. Nine Worker tests, production build, locale
 parity and strict source-string checks passed. No backup/storage/protocol format changed.
 
 A Chrome check with synthetic recent imported front raises opened the real configuration
@@ -80,5 +85,5 @@ sheet at **2 × 12, 15 lb, 1:30 rest**, then committed two rows with exactly tho
 The same controller coverage verifies suggestion quick-add and preserves existing rows/timers.
 No personal workout data was used. The temporary preview files were removed before building.
 
-Latest synthetic desktop benchmark (5,632 exercises / 4,000 workouts): cold 48.64 ms, warm
-median 9.18 ms / p95 12.86 ms, alternatives median 0.13 ms / p95 0.32 ms. No phone SLA is implied.
+Latest synthetic desktop benchmark (5,632 exercises / 4,000 workouts): cold 43.61 ms, warm
+median 7.61 ms / p95 11.57 ms, alternatives median 0.14 ms / p95 0.24 ms. No phone SLA is implied.
