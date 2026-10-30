@@ -8,9 +8,11 @@ import useTrainingController from './controllers/useTrainingController.js'
 
 // Compile-time branching removes the sample module entirely from the default build.
 const DemoShell = __TRAINING_DEMO__ ? lazy(() => import('./demo/DemoShell.jsx')) : null
+const PrivatePreviewShell = __TRAINING_PRIVATE_PREVIEW__ ? lazy(() => import('./preview/PrivatePreviewShell.jsx')) : null
 
 export default function App() {
   const route = useHashRoute()
+  if (PrivatePreviewShell) return <Suspense fallback={<p role="status">Opening local private preview…</p>}><PrivatePreviewShell route={route} /></Suspense>
   if (DemoShell) return <Suspense fallback={<p role="status">Opening sample preview…</p>}><DemoShell route={route} /></Suspense>
   return <FamilyApplication route={route} />
 }

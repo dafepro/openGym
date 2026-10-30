@@ -12,15 +12,17 @@ export default function DrillDemonstration({ media, title, workActive = false, s
   const [start, setStart] = useState(0)
   const [end, setEnd] = useState(10)
   const [duration, setDuration] = useState(0)
+  const [portrait, setPortrait] = useState(false)
   const src = media?.url || media?.path
   const approvedPath = typeof media?.id === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(media.id) && src === `/media/${media.id}`
   const available = approvedPath && media?.status === 'approved'
-  useEffect(() => { setError(false); setLoading(false); setRepeat(false); setRate(1); setDuration(0); setStart(0); setEnd(10) }, [src, title, available])
+  useEffect(() => { setError(false); setLoading(false); setRepeat(false); setRate(1); setDuration(0); setStart(0); setEnd(10); setPortrait(!!video.current && video.current.videoHeight > video.current.videoWidth); if (video.current) video.current.playbackRate = 1 }, [src, title, available])
   useEffect(() => { if (workActive) video.current?.pause() }, [workActive])
   useEffect(() => { const player = video.current; return () => player?.pause() }, [src, title, available])
   const failed = () => { setError(true); setLoading(false); onPlaybackError?.() }
   const loaded = () => {
     const total = video.current?.duration || 0
+    setPortrait((video.current?.videoHeight || 0) > (video.current?.videoWidth || 0))
     setDuration(Number.isFinite(total) ? total : 0)
     setEnd(Math.min(10, total || 10)); setLoading(false)
   }
@@ -30,7 +32,7 @@ export default function DrillDemonstration({ media, title, workActive = false, s
   const retry = () => { setError(false); setLoading(true); video.current?.load() }
   return <section className="qt-demonstration" aria-label={`Demonstration: ${title}`}>
     {sample && available && <p className="qt-playback-sample">Playback test clip · not a drill demonstration</p>}
-    <div className="qt-media-frame">
+    <div className="qt-media-frame" data-portrait={portrait ? 'true' : undefined}>
       {available && <video ref={video} key={src} src={src} poster={media?.poster} controls playsInline preload="metadata" onError={failed} onLoadedMetadata={loaded} onCanPlay={() => setLoading(false)} onWaiting={() => setLoading(true)} onPlaying={() => setLoading(false)} onTimeUpdate={repeatTime} aria-label={`${title} demonstration`}>
         {media?.captions && <track kind="captions" src={media.captions} srcLang={media.captionLanguage || 'en'} label="Captions" default />}
       </video>}
