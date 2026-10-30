@@ -13,7 +13,7 @@ export default function PracticeView({ assignment, drill, drillIndex = 0, drillC
   const review = phase === 'review'
   const instructions = Array.isArray(drill.instructions) ? drill.instructions : drill.instructions ? [drill.instructions] : []
   const fraction = totalSeconds > 0 ? Math.max(0, Math.min(1, remainingSeconds / totalSeconds)) : 0
-  return <div className={`qt-view qt-practice qt-practice--${rest ? 'rest' : phase}`}>
+  return <div className={`qt-view qt-practice qt-practice--${rest ? 'rest' : phase}${reviewOnly ? ' qt-practice--video-review' : ''}`}>
     <header className="qt-practice-header"><button type="button" className="qt-icon-button" onClick={onBack} aria-label="Return to Today, keeping this practice"><Icon name="back" /></button><span>{assignment?.title || 'Practice'}</span>{onFinish && <button type="button" className="qt-finish-button" onClick={onFinish}><Icon name="flag" size={17} />Finish</button>}</header>
     <div className="qt-drill-heading"><p className="qt-eyebrow">{reviewOnly ? 'Video' : 'Drill'} {drillIndex + 1} of {drillCount || assignment?.drills?.length || 1}</p><h1>{drill.title}</h1></div>
     <DrillDemonstration media={drill.media} title={drill.title} workActive={working} sample={sample} onPlaybackError={onMediaError} />
