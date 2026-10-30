@@ -100,4 +100,13 @@ describe('portable private progress exports', () => {
     expect(() => validateProgress(valid)).not.toThrow()
     expect(valid.activeSession.rows[0].status).toBe('pending')
   })
+  it('rejects restored pending quantities and watch-only athletic results before any action', () => {
+    const state = activeState()
+    const backup = JSON.parse(exportProgress(state))
+    backup.progress.activeSession.rows[0].actual = 2
+    expect(() => parseProgressExport(JSON.stringify(backup))).toThrow('inconsistent')
+    backup.progress.activeSession.rows[0].actual = null
+    backup.progress.activeSession.rows.find(row => row.mode === 'watch').actual = 0
+    expect(() => parseProgressExport(JSON.stringify(backup))).toThrow('inconsistent')
+  })
 })
