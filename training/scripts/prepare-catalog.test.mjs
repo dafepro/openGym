@@ -47,3 +47,23 @@ test('rejects private metadata in child catalog and private staging in Git check
   const checkout = join(f.root, 'checkout'); await mkdir(checkout); await mkdir(join(checkout, '.git'))
   await assert.rejects(prepareCatalog(f.input, join(checkout, 'prepared')), /outside Git/)
 })
+test('refuses an envelope over the gateway limit even when the input itself fits', async t => {
+  const f = await fixture(t)
+  const template = structuredClone(syntheticCatalog.assignments[1])
+  f.data.catalog.assignments = Array.from({ length: 600 }, (_, i) => ({ ...structuredClone(template), id: `archive-${i}`, title: `Synthetic archive ${i}`, status: i === 0 ? 'current' : 'archived', drills: [{ ...structuredClone(template.drills[0]), instructions: 'x'.repeat(1000) }] }))
+  f.data.catalog.currentAssignmentId = 'archive-0'
+  f.data.catalog.currentAssignmentRevision = template.revision
+  f.data.media = []
+  let padding = 1024 * 1024 - 10 - Buffer.byteLength(JSON.stringify(f.data))
+  assert.ok(padding > 0)
+  for (const assignment of f.data.catalog.assignments) {
+    const added = Math.min(1000, padding)
+    assignment.drills[0].instructions += 'x'.repeat(added)
+    padding -= added
+    if (!padding) break
+  }
+  assert.equal(padding, 0)
+  await f.save()
+  await assert.rejects(prepareCatalog(f.input, f.output), /Prepared catalog exceeds 1 MiB/)
+  await assert.rejects(stat(join(f.output, 'publication-report.json')), { code: 'ENOENT' })
+})
