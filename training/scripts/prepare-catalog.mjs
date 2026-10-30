@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { validateCatalog } from '../src/domain/content.js'
 
-const MAX_INPUT = 2 * 1024 * 1024
+const MAX_INPUT = 1024 * 1024
 const MAX_MEDIA = 2 * 1024 * 1024 * 1024
 async function outsideRepository(path) {
   let cursor = await realpath(path)
@@ -44,7 +44,7 @@ export async function prepareCatalog(inputPath, outputPath) {
   const output = resolve(outputPath)
   await outsideRepository(input)
   await outsideRepository(dirname(output))
-  if ((await stat(input)).size > MAX_INPUT) throw new Error('Private input exceeds 2 MiB')
+  if ((await stat(input)).size > MAX_INPUT) throw new Error('Private input exceeds 1 MiB')
   const data = JSON.parse(await readFile(input, 'utf8'))
   const catalog = validateCatalog(data.catalog)
   if (!Array.isArray(data.media)) throw new Error('Private input needs a media inventory')
@@ -80,7 +80,7 @@ export async function prepareCatalog(inputPath, outputPath) {
   }
   const envelope = { schemaVersion: 1, revision: catalog.revision, catalog, media: registry }
   const bytes = JSON.stringify(envelope) + '\n'
-  if (Buffer.byteLength(bytes) > MAX_INPUT) throw new Error('Prepared catalog exceeds 2 MiB')
+  if (Buffer.byteLength(bytes) > MAX_INPUT) throw new Error('Prepared catalog exceeds 1 MiB')
   const sha256 = createHash('sha256').update(bytes).digest('hex')
   await writeFile(join(output, 'catalogs', `${catalog.revision}.json`), bytes, { mode: 0o600, flag: 'wx' })
   const receipt = { schemaVersion: 1, status: 'prepared-not-published', catalogRevision: catalog.revision, catalogSha256: sha256, media: registry, privateEvidence }
