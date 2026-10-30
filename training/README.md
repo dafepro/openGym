@@ -1,86 +1,79 @@
 # QuickTrack Training
 
-An isolated React/Vite application in the openGym fork. This foundation has a
-Today/History route shell only. Family authentication, private catalog delivery,
-media playback and workout persistence are not implemented yet. The default app
-truthfully shows that training is unavailable.
+An isolated soccer-training app inside the openGym fork. Today, Practice and
+History connect approved demonstration videos to repetition, timed, each-foot
+and watch-only prescriptions. Playback and set timing remain independent. Local
+resume, partial outcomes, immutable history, export/restore, single-tab ownership
+and interrupted-timer review are implemented.
 
-From the repository root (Node 22.12+):
+The default build uses the family-access API. The Worker implements signed
+sessions, private catalog delivery and authenticated MP4 range streaming from R2.
+This is implemented source, not a deployed service. Real trainer content,
+configured HTTPS/R2 browser qualification, release publication and physical-phone
+checks remain pending.
+
+## Local sample
+
+From the repository root, with Node 22.12+:
 
 ```sh
 npm --prefix training ci
-npm --prefix training run dev
-npm --prefix training test
+VITE_TRAINING_DEMO=1 npm --prefix training run dev
+```
+
+Open `http://127.0.0.1:4173/`. The sample uses visibly synthetic prescriptions and
+an original eight-second test pattern, **not soccer instruction**. Its separate
+`quicktrack-training-demo` database does not mix with real progress. The server
+binds localhost and fails if the port is occupied.
+
+Without demo mode, the app checks its same-origin family-access API. Plain Vite
+has no Worker, so the default local screen correctly reports that training is not
+connected. See [private hosting](docs/PRIVATE-HOSTING.md) for local Worker checks.
+
+## Verification and builds
+
+```sh
+npm --prefix training run test:all
 npm --prefix training run build
 npm --prefix training run check:build
 ```
 
-The regular Vite dev server is `http://127.0.0.1:4173/`; it fails if that port is
-occupied. It serves only the training root. `npm --prefix training run preview`
-serves the built application at the same port after stopping the dev server.
-The independent production output is `training/dist/`. No root/frontend scripts,
-dependencies, Uplift configuration or existing storage are modified.
-
-The default build excludes the demo module. Explicitly opt in for synthetic UI
-work, then inspect its visible sample warning:
+The content-preparation tests need FFmpeg/ffprobe and use only a synthetic clip.
+The independent output is `training/dist/`; no existing Uplift build, Worker,
+database or gym integration is modified. For an explicit sample distribution:
 
 ```sh
-VITE_TRAINING_DEMO=1 npm --prefix training run dev
 VITE_TRAINING_DEMO=1 npm --prefix training run build
 npm --prefix training run check:build -- --demo
 ```
 
-Before preparing a release, run the default build and `check:build` again. Build
-selection is compile-time: the browser cannot turn a normal build into a demo by
-changing its URL or storage. `APP_BUILD` optionally supplies the visible build ID;
-it must never contain a secret. Test runs use the default no-demo contract.
+Run the default build and guard again before preparing a release. The sample
+catalog/module and clip are absent from default artifacts; browser URLs/storage
+cannot enable them. `APP_BUILD` may identify a nonsecret build. No service worker
+or offline video cache is installed.
 
-## Source and integration boundaries
+## Contracts and operations
 
-- `src/main.jsx`: only browser mount and global stylesheet import.
-- `src/App.jsx`: integration entry; initially foundation-owned, then UI owner.
-- `src/config.js`: `APP_CONFIG` and `TRAINING_DEMO`, with independent identities
-  and same-origin catalog/media paths. These reserve names; they create no cloud,
-  storage, cache or service-worker resources.
-- `src/lib/routes.js`: `ROUTES`, `routeFromHash(hash)` and `useHashRoute()`. Known
-  route values are `today`, `history`, `practice`; anchors use `#/today`,
-  `#/history`, `#/practice`. Unknown locations fall back to Today. Navigation
-  does not own or initialize a session.
-- `src/domain/`, `src/storage/`: domain owner's pure contracts and native browser
-  persistence. Nothing in P0 initializes or reads a database or legacy gym keys.
-- `src/components/`, `src/views/`, `src/styles/`: interface owner. P0 provides only
-  `src/styles/index.css`; the UI owner can replace it with the shared design.
-- `src/demo/`: explicit opt-in UI reference. Future fixtures must be reachable
-  only through this compile-time branch. Domain fixtures remain synthetic.
-- `fixtures/media/`: reserved for the coordinator's synthetic media assets. Keep
-  them outside `public/`; only the explicit demo graph may import them.
-- `worker/`: reserved for later media/family access work. No existing Uplift
-  Worker, Garmin resources or uploader is imported.
+- [Domain and persistence](docs/domain-contract.md): immutable prescriptions,
+  actual-versus-target outcomes, timers, recovery and export validation.
+- [Private content workflow](docs/CONTENT-WORKFLOW.md): prepare permitted local
+  MP4s and a child-safe catalog outside Git, with hashes and private provenance.
+- [Private hosting](docs/PRIVATE-HOSTING.md): endpoints, cookies, media registry,
+  byte ranges, revocation, configuration and exact limitations.
+- [Release preparation](docs/RELEASE-PREPARATION.md): disabled deploy staging,
+  remaining producer/verifier work and launch/rollback gates.
+- [Upstream provenance](docs/UPSTREAM.md) and [notices](NOTICE.md): adaptation and
+  local font/license attribution.
 
-Vitest discovers colocated `src/**/*.test.js` and `src/**/*.test.jsx`, uses Node
-and resets mocks between tests. Pure domain tests need no simulated UI. The
-upstream `fake-indexeddb` development tool is available for native IDB tests.
-Runtime packages are React and ReactDOM; browser routing currently uses the
-native hash-change event. New dependencies/import boundaries need explicit review.
+Runtime packages are React and ReactDOM. Native hash routes keep the controller
+mounted above views. Web Locks prevent competing tabs; unsupported browsers show
+a read-only state. Storage failures retain work for retry/export without claiming
+it was saved. Clearing site data can erase progress; this version does not sync
+devices.
 
-`check:boundaries` validates literal JS/CSS imports against the isolated source
-and dependency boundary. It is a focused guard, not a JavaScript parser or a full
-privacy scanner. `check:build` verifies demo presence/absence, excludes source maps
-and inherited exercise media, and checks the font license is distributed.
-
-## Private content and scope
-
-This repository is public. Real trainer catalogs, prescriptions, videos, source
-tokens, permission evidence and athlete records must never enter public source,
-`public/`, JavaScript, source maps, CI logs or retained application artifacts.
-Keep real immutable catalogs/media in private R2 or deploy-controlled storage;
-only an authenticated runtime API may deliver them. `.private/` is ignored for
-local operations but is not a security boundary. Review the exact staged diff and
-build inventory before publication.
-
-No network calls, analytics, third-party font requests, authentication claims,
-service worker or athlete storage occur in the P0 shell. The reserved family
-access and resource names do not indicate a deployed or protected service.
-
-See [upstream provenance](docs/UPSTREAM.md), [notices](NOTICE.md), and the
-repository's [AGPL license](../LICENSE).
+This repository is public. Real catalogs, footage, permissions, source tokens and
+athlete records must never enter source, public assets, JavaScript, source maps,
+CI logs or retained application artifacts. Import/build checks are focused
+guards, not a complete private-data scanner. Review staged files and release
+inventories before publication. Real training content belongs behind private
+runtime endpoints.
