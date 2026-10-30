@@ -4,6 +4,10 @@ import DrillDemonstration from './DrillDemonstration.jsx'
 import PracticeView from '../views/PracticeView.jsx'
 import HistoryView from '../views/HistoryView.jsx'
 import TodayView from '../views/TodayView.jsx'
+import DrillMetadata from './DrillMetadata.jsx'
+import { SessionDetail } from '../views/HistoryDetails.jsx'
+
+const reviewAssignment = { id: 'review-test', revision: 'v1', title: 'Video review test', drills: [{ id: 'review-video', title: 'Reference video', instructions: 'Review this reference.', mode: 'watch', sets: 1, side: 'both', restSec: null, media: { id: 'unavailable-test', status: 'unavailable' } }] }
 
 describe('training presentation boundaries', () => {
   it('never turns an external or unapproved media reference into a player', () => {
@@ -46,5 +50,45 @@ describe('training presentation boundaries', () => {
     expect(html).toContain('earlier assignment edition')
     expect(html).toContain('Start practice')
     expect(html).not.toContain('Resume practice')
+  })
+
+  it('offers a video review without inventing athletic prescriptions on Today', () => {
+    const html = renderToStaticMarkup(<TodayView assignment={reviewAssignment} onStart={() => {}} />)
+    expect(html).toContain('Start review')
+    expect(html).toContain('does not record athletic work')
+    expect(html).not.toContain('Start practice')
+    expect(html).not.toContain('work through the sets')
+    expect(html).not.toContain('qt-assignment-art')
+  })
+
+  it('labels watch progress and completion as video review rather than athletic completion', () => {
+    const ready = renderToStaticMarkup(<PracticeView assignment={reviewAssignment} drill={reviewAssignment.drills[0]} sets={[{ id: 'row-test', mode: 'watch', status: 'pending' }]} />)
+    expect(ready).toContain('Video review')
+    expect(ready).not.toContain('Set 1')
+    const saved = renderToStaticMarkup(<PracticeView assignment={reviewAssignment} saved complete completedCount={1} totalCount={1} />)
+    expect(saved).toContain('Videos reviewed')
+    expect(saved).toContain('No athletic work was recorded')
+    expect(saved).not.toContain('Practice complete')
+    expect(saved).not.toContain('set recorded')
+    const detail = renderToStaticMarkup(<SessionDetail session={{ assignment: reviewAssignment, assignmentRevision: 'v1', status: 'completed', rows: [{ id: 'row-test', drillId: 'review-video', mode: 'watch', status: 'done', prescriptionMet: true, actual: null, setNumber: 1 }] }} />)
+    expect(detail).toContain('Videos reviewed')
+    expect(detail).toContain('Demonstration acknowledged')
+    expect(detail).not.toContain('Set 1')
+  })
+
+  it('retains practice/set semantics for mixed prescribed assignments', () => {
+    const mixed = { ...reviewAssignment, drills: [...reviewAssignment.drills, { ...reviewAssignment.drills[0], id: 'reps-test', mode: 'reps', reps: 4 }] }
+    const saved = renderToStaticMarkup(<PracticeView assignment={mixed} saved complete completedCount={2} totalCount={2} />)
+    expect(saved).toContain('Practice complete')
+    expect(saved).toContain('sets recorded')
+  })
+
+  it('displays canonical skills and explicit context without inventing requirements', () => {
+    const html = renderToStaticMarkup(<DrillMetadata metadata={{ version: 1, registryVersion: 1, tags: ['futbol:first_touch'], requirements: { equipment: ['ball'], participants: { min: 1, max: 1, roles: [] }, space: { lengthM: 3, widthM: 2 } } }} />)
+    expect(html).toContain('First touch')
+    expect(html).toContain('Solo')
+    expect(html).toContain('3 × 2 m')
+    expect(html).not.toContain('Outdoor')
+    expect(renderToStaticMarkup(<DrillMetadata />)).toBe('')
   })
 })

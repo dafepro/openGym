@@ -41,3 +41,4 @@ export function prescriptionLabel(drill) {
 }
 
 export const countLabel = (count, singular) => `${count} ${singular}${count === 1 ? '' : 's'}`
+export const isVideoReview = assignment => !!assignment?.drills?.length && assignment.drills.every(drill => drill.mode === 'watch')
