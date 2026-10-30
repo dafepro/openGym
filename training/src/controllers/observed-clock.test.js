@@ -30,6 +30,15 @@ describe('observed foreground clock', () => {
     expect(recovery.now).toBe(160000)
   })
 
+  it('expires rest after sleep even when the monotonic platform clock paused', () => {
+    let wall = 100000, mono = 0
+    const clock = createObservedClock({ wall: () => wall, monotonic: () => mono })
+    const rest = { timer: { kind: 'rest', deadline: 110000, paused: false } }
+    wall = 400000; mono = 1000
+    expect(clock.reconcileTime(rest).now).toBe(400000)
+    expect(clock.now()).toBe(400000)
+  })
+
   it('accepts a detected offset once so new work is not permanently interrupted', () => {
     let wall = 100000, mono = 0
     const clock = createObservedClock({ wall: () => wall, monotonic: () => mono })

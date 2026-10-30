@@ -15,9 +15,9 @@ export default function DrillDemonstration({ media, title, workActive = false, s
   const src = media?.url || media?.path
   const approvedPath = typeof media?.id === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(media.id) && src === `/media/${media.id}`
   const available = approvedPath && media?.status === 'approved'
-  useEffect(() => { setError(false); setLoading(false); setRepeat(false); setRate(1); setDuration(0); setStart(0); setEnd(10) }, [src, title])
+  useEffect(() => { setError(false); setLoading(false); setRepeat(false); setRate(1); setDuration(0); setStart(0); setEnd(10) }, [src, title, available])
   useEffect(() => { if (workActive) video.current?.pause() }, [workActive])
-  useEffect(() => { const player = video.current; return () => player?.pause() }, [src, title])
+  useEffect(() => { const player = video.current; return () => player?.pause() }, [src, title, available])
   const failed = () => { setError(true); setLoading(false); onPlaybackError?.() }
   const loaded = () => {
     const total = video.current?.duration || 0

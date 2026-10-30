@@ -4,7 +4,7 @@ import { createTrainingRepository, emptyProgress, exportProgress, mergeProgress,
 import { createObservedClock } from './observed-clock.js'
 
 // One durable controller lives above the routes. Views never own work clocks or writes.
-export default function useTrainingController({ databaseName }) {
+export default function useTrainingController({ databaseName, suspended = false }) {
   const repository = useMemo(() => createTrainingRepository({ name: databaseName }), [databaseName])
   const clock = useMemo(() => createObservedClock(), [])
   const [progress, setProgress] = useState(emptyProgress)
@@ -77,7 +77,7 @@ export default function useTrainingController({ databaseName }) {
       finally { if (!disposed) setReady(true) }
     }
     if (!navigator.locks?.request) {
-      setReadOnly(true); setError('This browser cannot protect an active practice across tabs. Open this preview in a browser with Web Locks support.')
+      setReadOnly(true); setError('This browser cannot protect an active practice across tabs. Open this practice in a browser with Web Locks support.')
       void load(false)
     } else {
       // Deferral lets React's development setup/cleanup probe cancel before acquiring a lock.
@@ -94,6 +94,8 @@ export default function useTrainingController({ databaseName }) {
 
   useEffect(() => {
     if (!ready || readOnly) return
+    if (suspended) { void command('BACKGROUND'); return }
+    void command('RECONCILE', { now: clock.reconcileTime(current.current.activeSession).now })
     const refresh = () => {
       setNow(clock.now())
       if (document.visibilityState === 'visible') {
@@ -110,7 +112,7 @@ export default function useTrainingController({ databaseName }) {
     document.addEventListener('visibilitychange', visibility)
     window.addEventListener('pagehide', pageHide)
     return () => { clearInterval(interval); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pagehide', pageHide) }
-  }, [clock, command, ready, readOnly])
+  }, [clock, command, ready, readOnly, suspended])
 
   const start = assignment => change(state => {
     if (state.activeSession) throw new Error('A practice is already in progress. Resume or finish it before starting another.')
