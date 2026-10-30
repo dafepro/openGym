@@ -295,3 +295,34 @@ describe('private catalog and media boundary', () => {
     expect(calls).toHaveLength(count)
   })
 })
+
+describe('open training access', () => {
+  async function openSetup() {
+    const state = await setup()
+    return { ...state, env: { ...state.env, TRAINING_ACCESS_MODE: 'open', FAMILY_ACCESS_SHA256: undefined, SESSION_SIGNING_KEY: undefined, LOGIN_LIMIT: undefined } }
+  }
+  it('serves the selected catalog and video without credentials or auth infrastructure', async () => {
+    const { env, catalog } = await openSetup()
+    const response = await handleRequest(request('/api/catalog'), env, NOW)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Set-Cookie')).toBeNull()
+    expect(await response.json()).toEqual(validateCatalog(catalog))
+    const head = await handleRequest(request('/media/synthetic-video-v1', { method: 'HEAD' }), env, NOW)
+    expect(head.status).toBe(200)
+    expect(head.headers.get('Content-Length')).toBe('10')
+    const range = await handleRequest(request('/media/synthetic-video-v1', { headers: { Range: 'bytes=2-4' } }), env, NOW)
+    expect(range.status).toBe(206)
+    expect(await range.text()).toBe('234')
+    expect((await handleRequest(request('/media/synthetic-video-v1', { headers: { Range: 'bytes=10-' } }), env, NOW)).status).toBe(416)
+  })
+  it('does not expose auth endpoints, mutations or unselected objects', async () => {
+    const { env } = await openSetup()
+    for (const path of ['/api/auth/session', '/api/auth/login', '/media/not-selected', '/api/catalog?key=anything', '/media/synthetic-video-v1?key=anything']) {
+      expect((await handleRequest(request(path), env, NOW)).status).toBe(404)
+    }
+    expect((await handleRequest(request('/api/catalog', { method: 'POST', body: {} }), env, NOW)).status).toBe(405)
+    expect((await handleRequest(new Request('https://wrong.example/api/catalog'), env, NOW)).status).toBe(403)
+    expect((await handleRequest(request('/api/catalog'), { ...env, TRAINING_ACCESS_MODE: 'typo' }, NOW)).status).toBe(503)
+    expect((await handleRequest(request('/api/catalog'), { ...env, APP_ORIGIN: undefined }, NOW)).status).toBe(503)
+  })
+})

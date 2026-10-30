@@ -13,16 +13,18 @@ describe('training foundation boundaries', () => {
     expect(APP_CONFIG.catalogPath).toBe('/api/catalog')
   })
 
-  it('renders an unavailable shell without claiming authentication or assigned work', () => {
+  it('renders a loading shell without a password or invented assignment', () => {
     const html = renderToStaticMarkup(<App />)
-    expect(html).toContain('Training is not connected yet')
-    expect(html).toContain('There are no assignments available in this build.')
+    expect(html).toContain('Opening your practice…')
+    expect(html).not.toContain('type="password"')
     expect(html).not.toContain('Sample assignment')
     expect(html).not.toContain('<video')
     expect(html).not.toContain('Practice complete')
   })
 
   it('routes only recognized local destinations and falls back to Today', () => {
+    expect(routeFromHash('#/build')).toBe('build')
+    expect(routeFromHash('#/shared/encoded-plan')).toBe('shared')
     expect(routeFromHash('#/history')).toBe('history')
     expect(routeFromHash('#/practice')).toBe('practice')
     expect(routeFromHash('#/today')).toBe('today')

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import DrillDemonstration from './DrillDemonstration.jsx'
 import PracticeView from '../views/PracticeView.jsx'
 import HistoryView from '../views/HistoryView.jsx'
+import BuildPracticeView from '../views/BuildPracticeView.jsx'
 import TodayView from '../views/TodayView.jsx'
 import DrillMetadata from './DrillMetadata.jsx'
 import { SessionDetail } from '../views/HistoryDetails.jsx'
@@ -10,6 +11,23 @@ import { SessionDetail } from '../views/HistoryDetails.jsx'
 const reviewAssignment = { id: 'review-test', revision: 'v1', title: 'Video review test', drills: [{ id: 'review-video', title: 'Reference video', instructions: 'Review this reference.', mode: 'watch', sets: 1, side: 'both', restSec: null, media: { id: 'unavailable-test', status: 'unavailable' } }] }
 
 describe('training presentation boundaries', () => {
+  it('labels link-selected work as shared and offers a personal copy', () => {
+    const html = renderToStaticMarkup(<TodayView assignment={reviewAssignment} kind="shared" onBuild={() => {}} />)
+    expect(html).toContain('Shared practice')
+    expect(html).toContain('Shared with you')
+    expect(html).toContain('Make a copy')
+    expect(html).not.toContain('Current assignment')
+  })
+
+  it('renders the independent builder with an empty draft and explicit add controls', () => {
+    const html = renderToStaticMarkup(<BuildPracticeView draft={{ title: '', drills: [] }} library={reviewAssignment.drills} saved={[]} history={[]} />)
+    expect(html).toContain('Build practice')
+    expect(html).toContain('Custom drill')
+    expect(html).toContain('Add drill')
+    expect(html).toContain('unsaved')
+    expect(html).not.toContain('Reps per set')
+  })
+
   it('never turns an external or unapproved media reference into a player', () => {
     for (const media of [{ status: 'approved', path: 'https://youtube.com/watch?v=abc' }, { status: 'unavailable', path: '/media/clip' }, { status: 'approved', path: '//example.com/media/clip' }]) {
       const html = renderToStaticMarkup(<DrillDemonstration title="Sample" media={media} />)

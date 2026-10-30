@@ -53,7 +53,7 @@ function exposures(history, activeSession, now) {
 /** Pure ranking of supplied, prescribed drills; nothing is inserted or prescribed. */
 export function rankTrainingDrills(drills, {
   now, history = [], activeSession = null, context = {}, focusSkills = [], requiredTags = [], excludedIds = [],
-  strategy = 'balanced', includeIneligible = false,
+  strategy = 'balanced', includeIneligible = false, plannedDrills = [],
 } = {}) {
   if (!Number.isFinite(now) || now < 0) throw new Error('Recommendation ranking requires an explicit valid timestamp')
   if (!Array.isArray(drills) || drills.length > 10000 || !Array.isArray(history) || history.length > 10000) throw new Error('Recommendation inputs must be bounded lists')
@@ -65,6 +65,11 @@ export function rankTrainingDrills(drills, {
   if (!Array.isArray(excludedIds) || excludedIds.some(id => !candidateIdentifier(id))) throw new Error('Excluded drill IDs must be valid identifiers')
   const omitted = new Set(excludedIds)
   const evidence = exposures(history, activeSession, now)
+  if (!Array.isArray(plannedDrills) || plannedDrills.length > 100) throw new Error('Planned drills must be a bounded list')
+  for (const drill of plannedDrills) {
+    if (!drill || !['watch', 'reps', 'time'].includes(drill.mode)) throw new Error('Planned drill mode is unsupported')
+    if (drill.mode !== 'watch') addSkills(evidence.pending, canonicalSkillTags(drill.metadata), 1)
+  }
   const seen = new Set()
   const ranked = []
   for (const input of drills) {
