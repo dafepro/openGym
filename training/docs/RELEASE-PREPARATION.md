@@ -1,129 +1,111 @@
-# Release preparation: disabled staging only
+# QuickTrack Training source releases
 
-Prepared October 30, 2026. This is a P8 handoff, not deployment readiness or a live
-release. The source training application and native Worker tests do not by
-themselves establish an immutable source producer, central integrity adapter,
-private-content publication, domain/resource ownership or phone acceptance.
+The source producer is `.github/workflows/training-release.yml` in
+`dafepro/openGym`. It publishes **public application code only** from
+`codex/quicktrack-training-release`. Private catalogues, videos, source evidence,
+family access credentials and runtime secrets stay outside this release.
+Deployment and private-content selection belong to `dafepro/deploy`; publishing
+a code release does not deploy it.
 
-The local `dafepro/deploy` checkout, branch `codex/quicktrack-training`, contains
-disabled staging commit `a112a468bcc403304ee0e652c5aafd997c19940c` on inspected
-base `bfb754c14d05f442b3a472d788fd19a5c69220dc`:
+## Trusted workflow
 
-- `apps/quicktrack-training/target-contract.json`: exact future source/artifact/
-  resource/content boundary and false execution capabilities.
-- `apps/quicktrack-training/wrangler.json`: curated prebuilt configuration base
-  with Worker-first assets, no routes/bindings/secrets and disabled workers.dev/
-  previews. It is deliberately incomplete for private service deployment.
-- `apps/quicktrack-training/content-selection.json`: null.
-- `releases/quicktrack-training/production.json`: null.
-- `apps/quicktrack-training/README.md` and isolated staging tests: evidence,
-  activation prerequisites and rejection checks.
+Pushes to the dedicated branch trigger on `training/**` or the producer workflow.
+Owner-only manual dispatch (actor ID `313492551`) is accepted on that same ref,
+when GitHub makes the workflow dispatchable. Both paths require repository
+variable `QUICKTRACK_TRAINING_PUBLISH_ENABLED=true`. The publisher independently
+checks the repository, full SHA, exact branch, exact workflow ref, event, manual
+actor and positive run identities.
 
-No shared deploy policy, workflow, runner, setting, credential or existing target
-was modified. The disabled staging is available for review in
-[deploy PR #49](https://github.com/dafepro/deploy/pull/49). This draft PR does not
-select or publish a release. No secret transfer, resource discovery, upload,
-provisioning or deployment occurred.
+The single job is named **Publish immutable QuickTrack Training Worker** and
+runs on GitHub-hosted Ubuntu 24.04. It installs locked dependencies, runs all
+training tests, checks the explicit synthetic build, then rebuilds the ordinary
+production app with `APP_BUILD=$GITHUB_SHA`. The production guard checks that
+sample/private-preview modules and media are absent. Wrangler performs only a
+local dry run. A smoke test runs the retained compiled Worker entry to check
+health, public source notice routing and failure closed without private runtime
+configuration.
 
-## Future producer decision
+The job retains the same local files through verification and publication; it
+does not use Actions upload/download artifacts or depend on that storage quota.
+The job has source `contents:write` permission; only its final publication step
+receives `GH_TOKEN` and the existing `DEPLOY_REQUEST_TOKEN` request capability.
+No Cloudflare token, runtime secret or deploy PR App key is provided. Existing
+Uplift workflows, branches and installed self-hosted runner policies are not
+changed. Do not push this work to `codex/focused-workout-overlay`, which has its
+own Uplift release trigger.
 
-Use `dafepro/openGym`, dedicated branch **`codex/quicktrack-training-release`**,
-new `.github/workflows/training-release.yml`, required job
-**`Publish immutable QuickTrack Training Worker`**. The branch/workflow is an
-explicitly uncreated proposal pending the complete reviewed implementation.
-Publication is separately gated by `QUICKTRACK_TRAINING_PUBLISH_ENABLED=false`.
-Trusted pushes are path-scoped to `training/**` and that new workflow; manual
-dispatch is owner-only on the same exact ref, subject to GitHub's default-branch
-workflow availability and the installed runner's reviewed exact-ref policy.
+## Retained artifact contract
 
-Uplift's current `.github/workflows/worker-release.yml` triggers on every overlay
-branch push, including changes confined to training files. Keep training release
-pushes off `codex/focused-workout-overlay`; do not alter/reuse the Uplift publisher
-or assume a path filter on another workflow suppresses it. Preserve Uplift's source
-and release authority. Upstream changes can be reviewed and merged deliberately
-into the dedicated training branch.
+Format **`quicktrack-training-worker-v1`** comprises permanent GitHub release
+assets `worker.tgz` and `release-manifest.json`. The immutable release tag is
+`deploy-production-<full-source-sha>-<run-id>-<run-attempt>`. Publication creates a
+new release without overwrite flags; retries must not replace retained assets.
 
-The existing openGym Mac guard does not authorize push-triggered builds on the
-proposed branch. Update both source policy and independently installed guard only
-as part of the reviewed producer setup, with the exact workflow/ref/event boundary
-and explicit hosted-runner override. No runner behavior is changed by this document.
+The schema-2 manifest contains:
 
-## Missing integrity and publication work
+- `format`, `sha`, `controllerSha` (both exact source SHA), `profile:production`
+  and `checksum` (the archive SHA-256).
+- `files`: exact regular-file path → SHA-256 inventory.
+- `runtime`: compatibility date `2026-10-03`, binding names
+  `ASSETS`, `TRAINING_CONTENT`, `LOGIN_LIMIT`, and `workerFirst:true`.
+- `audit`: `demoIncluded`, `privateContentIncluded`, `sourceMapsIncluded`, all
+  false.
+- `source`: repository `dafepro/openGym`, exact revision and
+  `path:assets/source.html`. The generated notice links corresponding source and
+  its archive at that immutable SHA, plus the included AGPL license.
 
-The new source packager must build/test the normal no-demo app, package the exact
-prebuilt Worker and assets under roots `worker/` and `assets/`, audit every file
-and private-content boundary, and retain immutable `worker.tgz` plus
-`release-manifest.json`. The proposed format is
-`quicktrack-training-worker-v1`, using existing schema-2 source/controller/profile/
-archive-digest identities plus an explicit training runtime, binding and audited
-file-inventory contract. The final fields and rejection tests must be implemented
-before registration; the staging format string alone is not a verifier.
+Only `worker/index.js`, the normal built `assets/index.html`, generated
+`assets/source.html`, hashed app assets, the local Barlow font/OFL notice and AGPL
+license are allowlisted. No catalogue JSON, media, environment file, Wrangler
+configuration, source map, link, special file or alternate archive root is
+accepted. Wrangler's local debug map and README are omitted; only its exact
+terminal debug-map reference is removed from the retained Worker entry before
+inventory/hash generation and compiled-entry smoke testing. No executable code
+is modified after those tests. Preview/demo environment modes cannot package a
+release. File inventory, archive digest and runtime/audit/source identities are
+revalidated before publication. Size bounds are 128 MiB compressed / 512 MiB
+expanded.
 
-The central `scripts/releases.py` currently allows specific existing producer
-tuples and has an Uplift-shaped fallback for its non-ZoomiGo/non-static bundle.
-Adding a training tuple alone would not validate its private-content/resource
-contract. Implement an explicit training verifier, source publisher policy and
-archive/provenance/tampering tests together. Then extend only the training code
-pointer path in `scripts/validate-release-pr.mjs`; leave content/config/workflow
-changes outside source release-request authority.
+After upload, the publisher checks the permanent release identity and both
+asset sizes/digests, writes `deploy-request.json` and records its public pointer
+in the Actions job summary. It submits the standard schema-1
+`quicktrack-training/production/training` pointer through the existing
+`dafepro-release-request-v1` issue convention. A request failure leaves the
+immutable release available for recovery from those identities. Central deploy
+independently verifies exact successful workflow/run/attempt, trusted branch
+ancestry, permanent asset IDs/digests, inventory and runtime compatibility.
 
-Source CI receives publication and the existing Issues-write request capability,
-never Cloudflare credentials or the deploy PR App key. Verify the existing source
-reader/request access and retained release/artifact capacity before promising an
-operational publication path. No dummy SHA/run/release/version IDs are selected.
+The manifest declares binding **names**, not resource ownership. The source
+Wrangler bucket/name/rate namespace are proposals for local compilation; they
+are not bundled or adopted by deployment. Central configuration owns actual
+resources, domain, secrets, content selection and version promotion. Source
+request authority cannot edit private selection or infrastructure policy.
 
-## Private content and resources
+## Local verification
 
-Real catalogue envelopes and videos remain in private storage. The future private
-content selector is `{schema:1,revision:<opaque ID>,sha256:<exact envelope digest>}`,
-selecting `catalogs/<revision>.json`. The one-MiB envelope contains the P2 child
-catalogue and server-only media records with immutable ID/SHA-256/byteLength/
-`video/mp4`; media keys are fixed `media/<id>`. See
-[private hosting](PRIVATE-HOSTING.md) for runtime metadata and authorization.
-Public source/build artifacts contain no real catalogue, prescriptions, media,
-provenance, access key or session secret.
-
-Before any first deployment, verify ownership/conflicts for Worker
-`quicktrack-training` and hostname `train.quicktrack.cc`, allocate a separate
-private `TRAINING_CONTENT` bucket and new `LOGIN_LIMIT` namespace, and configure
-family secret custody/epoch. The source namespace number is a proposal, not an
-allocation. The staged central config intentionally contains no adopted resource
-bindings. Never borrow Uplift's identities, Garmin resources or rate namespaces.
-
-Future deploy workflows must begin disabled under
-`QUICKTRACK_TRAINING_PRODUCTION_ENABLED` and
-`QUICKTRACK_TRAINING_PROVISIONING_ENABLED`, share a noncancelling target mutation
-group, and separate infrastructure operations from routine exact-version
-promotion. Deploy must pin code and private content selection from the same
-reviewed controller commit, revalidate retained bytes/compatibility immediately
-before promotion and use the exact version ID from its upload receipt. Routine
-promotion must not rebuild code, provision DNS/resources or delete media.
-
-Rollback needs retained source/artifact/content identities, the previous Worker
-deployment/version receipt, compatible local data schema, recoverable exports and
-retained media or explicit withdrawal handling. Reverting code cannot revert
-browser state or restore withdrawn footage. A first deployment has no predecessor;
-record that fact rather than inventing a rollback version.
-
-## Evidence and limits
-
-Deploy staging checks passed: seven new contract tests, 29 targeted Node release/
-App-PR/runner/Uplift tests, global Prettier formatting, null-pointer offline
-validation and all 45 Python tests using installed Python 3.13. The system Python
-3.9.6 run encounters five pre-existing static-live fixture failures in
-`urllib.error.HTTPError.geturl`; no shared code/settings were modified to hide them.
-
-Targeted commands from deploy:
+From the repository root (Node 22, Python 3, ffmpeg installed):
 
 ```sh
-node --test tests/quicktrack-training-staging.test.mjs
-/opt/homebrew/bin/python3.13 -m unittest discover -s tests -v
-python3 scripts/releases.py releases/quicktrack-training/production.json --offline
-npm run format:check
+npm ci
+npm --prefix training ci
+npm --prefix training run test:all
+APP_BUILD=$(git rev-parse HEAD) npm --prefix training run build
+APP_BUILD=$(git rev-parse HEAD) npm --prefix training run check:build
+# Output directory must not already exist; use a location outside the checkout.
+APP_BUILD=$(git rev-parse HEAD) python3 training/scripts/release_bundle.py build \
+  "$(git rev-parse HEAD)" /tmp/quicktrack-training-release
+python3 training/scripts/release_bundle.py verify \
+  "$(git rev-parse HEAD)" /tmp/quicktrack-training-release
 ```
 
-Tests also prove online null selection stops before asking for GitHub credentials,
-the shared release policy rejects training, release-App PRs cannot write the new
-pointer or private selector, and no executable training workflow/runner push
-authorization is implied. These are meaningful disabled-state boundaries, not a
-successful source publication, resource preflight, deployment or launch.
+`npm --prefix training run test:release` covers exact inventory preservation,
+source revision binding, map/preview/demo/media/catalog/config exclusions,
+symlinks and archive traversal/duplicates, tampering, trusted publication
+identity, immutable upload arguments and retained-asset verification. Publisher
+tests mock GitHub calls; they do not publish or submit requests.
+
+This implementation does not itself establish that a workflow has run, that
+retained release assets exist, that Cloudflare resources are configured, or that
+the phone has passed production acceptance. Record those receipts separately
+when central deployment executes. Private serving and withdrawal behavior are
+described in [PRIVATE-HOSTING.md](PRIVATE-HOSTING.md).

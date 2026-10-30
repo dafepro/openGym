@@ -1,0 +1,64 @@
+name: Publish QuickTrack Training Worker release
+"on":
+  push:
+    branches: [codex/quicktrack-training-release]
+    paths: [training/**, .github/workflows/training-release.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: quicktrack-training-source-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    name: Publish immutable QuickTrack Training Worker
+    if: >-
+      github.repository == 'dafepro/openGym' &&
+      github.ref == 'refs/heads/codex/quicktrack-training-release' &&
+      vars.QUICKTRACK_TRAINING_PUBLISH_ENABLED == 'true' &&
+      (github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.actor_id == '313492551'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      TZ: UTC
+      WRANGLER_SEND_METRICS: "false"
+      APP_BUILD: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            training/package-lock.json
+      - name: Install isolated build and test dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          npm ci
+          npm --prefix training ci
+      - name: Verify training logic, access boundaries and release tooling
+        run: npm --prefix training run test:all
+      - name: Verify sample build cannot enter a production release
+        run: |
+          VITE_TRAINING_DEMO=1 npm --prefix training run build
+          npm --prefix training run check:build -- --demo
+      - name: Build and retain exact public production bytes
+        run: |
+          npm --prefix training run build
+          npm --prefix training run check:build
+          python3 training/scripts/release_bundle.py build "$GITHUB_SHA" "$RUNNER_TEMP/training-release"
+          python3 training/scripts/release_bundle.py verify "$GITHUB_SHA" "$RUNNER_TEMP/training-release"
+      # One job retains the tested filesystem bytes, independent of Actions artifact quota.
+      # No Cloudflare/deploy App credentials are available to this source workflow.
+      - name: Publish retained release and request central deployment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_REQUEST_TOKEN: ${{ secrets.DEPLOY_REQUEST_TOKEN }}
+          QUICKTRACK_TRAINING_PUBLISH_ENABLED: ${{ vars.QUICKTRACK_TRAINING_PUBLISH_ENABLED }}
+        run: python3 training/scripts/publish-release.py "$RUNNER_TEMP/training-release"
