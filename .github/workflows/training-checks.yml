@@ -1,0 +1,43 @@
+name: QuickTrack Training checks
+"on":
+  pull_request:
+    paths:
+      - training/**
+      - .github/workflows/training-checks.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: training-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    name: Verify isolated training app
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: training
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: training/package-lock.json
+      - name: Install synthetic media test dependency
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm ci
+      - run: npm run test:all
+      - name: Verify sample build boundary
+        run: |
+          VITE_TRAINING_DEMO=1 npm run build
+          npm run check:build -- --demo
+      - name: Verify default build excludes sample content
+        env:
+          APP_BUILD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          npm run build
+          npm run check:build

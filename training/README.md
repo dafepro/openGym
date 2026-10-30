@@ -39,6 +39,9 @@ npm --prefix training run check:build
 ```
 
 The content-preparation tests need FFmpeg/ffprobe and use only a synthetic clip.
+The isolated `training-checks.yml` PR workflow runs these tests and both build
+guards on a hosted runner with read-only repository permissions. It publishes
+no release and receives no application secrets.
 The independent output is `training/dist/`; no existing Uplift build, Worker,
 database or gym integration is modified. For an explicit sample distribution:
 
