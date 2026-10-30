@@ -1,0 +1,26 @@
+{
+  "name": "quicktrack-training",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/check-boundaries.mjs && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "check:build": "node scripts/check-build.mjs"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.0.4",
+    "fake-indexeddb": "6.2.5",
+    "vite": "8.3.5",
+    "vitest": "4.1.12"
+  }
+}
