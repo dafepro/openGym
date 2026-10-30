@@ -12,11 +12,15 @@ async function routeRequest(request, env, now) {
     if (path === '/api/health' && request.method === 'GET') return json({ app: 'quicktrack-training', ok: true })
     const protectedPath = path.startsWith('/api/auth/') || path === '/api/catalog' || path.startsWith('/media/')
     if (protectedPath) {
-      const config = authConfig(env)
+      const mode = env.TRAINING_ACCESS_MODE ?? 'family'
+      if (!['family', 'open'].includes(mode)) throw new Error('Invalid access mode')
+      const config = mode === 'family' ? authConfig(env) : { origin: env.APP_ORIGIN }
+      if (!config.origin || new URL(config.origin).origin !== config.origin || !config.origin.startsWith('https://')) throw new Error('Invalid origin')
       if (url.origin !== config.origin) return json({ error: 'wrong_origin' }, 403)
-      if (path.startsWith('/api/auth/')) return await authRoute(request, env, config, path, now)
-      if (!await sessionOf(request, env, config, now)) return json({ error: 'authentication_required' }, 401)
+      if (path.startsWith('/api/auth/')) return mode === 'family' ? await authRoute(request, env, config, path, now) : json({ error: 'not_found' }, 404)
+      if (mode === 'family' && !await sessionOf(request, env, config, now)) return json({ error: 'authentication_required' }, 401)
       if (!['GET', 'HEAD'].includes(request.method)) return json({ error: 'method_not_allowed' }, 405, { Allow: 'GET, HEAD' })
+      if (url.search) return json({ error: 'not_found' }, 404)
       const selected = await loadCatalog(env)
       if (path === '/api/catalog') {
         const response = json(selected.catalog)
