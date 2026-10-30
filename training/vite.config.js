@@ -1,12 +1,13 @@
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { demoMedia } from './scripts/demo-media.mjs'
 
 const root = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
   root,
-  plugins: [react()],
+  plugins: [react(), ...(process.env.VITE_TRAINING_DEMO === '1' ? [demoMedia()] : [])],
   define: {
     __TRAINING_DEMO__: process.env.VITE_TRAINING_DEMO === '1',
     __TRAINING_BUILD__: JSON.stringify(process.env.APP_BUILD || 'local')
