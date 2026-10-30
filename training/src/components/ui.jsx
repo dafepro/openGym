@@ -37,5 +37,7 @@ export function prescriptionLabel(drill) {
   if (drill?.prescription) return drill.prescription
   if (drill?.mode === 'watch') return 'Watch the demonstration'
   const work = drill?.mode === 'time' ? `${drill.durationSec} sec` : drill?.reps != null ? `${drill.reps} reps` : 'Prescription pending'
-  return `${drill?.sets ? `${drill.sets} sets · ` : ''}${work}${drill?.side === 'each' ? ' · each foot' : ''}`
+  return `${drill?.sets ? `${drill.sets} ${drill.sets === 1 ? 'set' : 'sets'} · ` : ''}${work}${drill?.side === 'each' ? ' · each foot' : ''}`
 }
+
+export const countLabel = (count, singular) => `${count} ${singular}${count === 1 ? '' : 's'}`

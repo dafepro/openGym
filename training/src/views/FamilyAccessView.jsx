@@ -6,7 +6,7 @@ import { ROUTES } from '../lib/routes.js'
 
 export default function FamilyAccessView({ route, access, returning = false }) {
   const [key, setKey] = useState('')
-  const busy = access.status === 'checking' || access.status === 'signing-in'
+  const busy = access.pending || access.status === 'checking' || access.status === 'signing-in' || access.status === 'signing-out'
   const submit = event => { event.preventDefault(); if (key && !busy) { const value = key; setKey(''); void access.login(value) } }
   return <TrainingShell page={route} sourceUrl={APP_CONFIG.sourceUrl} onNavigate={page => { window.location.hash = ROUTES[page] }}>
     <PageHeading eyebrow="Family practice" title={returning ? 'Welcome back' : 'Ready when you are.'} />

@@ -13,10 +13,18 @@ import PracticeView from '../views/PracticeView.jsx'
 import HistoryView from '../views/HistoryView.jsx'
 import { AssignmentDetail, SessionDetail } from '../views/HistoryDetails.jsx'
 
-export default function TrainingExperience({ route, catalog, sample = false, databaseName = 'quicktrack-training', suspended = false, accessPanel, onMediaError, onRenewAccess, onLogout, accessNotice }) {
+export default function TrainingExperience(props) {
+  return props.controller ? <TrainingExperienceView {...props} /> : <ManagedTrainingExperience {...props} />
+}
+
+function ManagedTrainingExperience(props) {
+  const controller = useTrainingController({ databaseName: props.databaseName || 'quicktrack-training', suspended: props.suspended })
+  return <TrainingExperienceView {...props} controller={controller} />
+}
+
+function TrainingExperienceView({ route, catalog, sample = false, suspended = false, accessPanel, onMediaError, onRenewAccess, onLogout, accessNotice, accessPending = false, controller }) {
   const currentAssignment = selectCurrentAssignment(catalog)
   const isCurrent = assignment => assignment.id === currentAssignment.id && assignment.revision === currentAssignment.revision
-  const controller = useTrainingController({ databaseName, suspended })
   const { active, view, progress, ready, error, readOnly, saving, saveFailed } = controller
   const [dialog, setDialog] = useState(null)
   const [finished, setFinished] = useState(null)
@@ -95,7 +103,7 @@ export default function TrainingExperience({ route, catalog, sample = false, dat
       {route === 'practice' && <PracticeView assignment={shown?.assignment} drill={drill} drillIndex={active ? Math.max(0, active.assignment.drills.findIndex(item => item.id === drill?.id)) : 0} drillCount={active?.assignment.drills.length} sets={drillRows} currentSetIndex={currentSetIndex} phase={view?.phase} remainingSeconds={view?.remainingSec || 0} totalSeconds={active?.timer?.target || active?.assignment.drills.find(item => item.id === active.rows.find(row => row.id === active.timer?.ownerRowId)?.drillId)?.restSec || 0} restPaused={!!active?.timer?.paused} primaryLabel={view?.primaryAction.label} onPrimary={readOnly ? undefined : primary} onPauseRest={readOnly ? undefined : () => send('PAUSE_REST')} onResumeRest={readOnly ? undefined : () => send('RESUME_REST')} onAdjustRest={readOnly ? undefined : deltaSec => send('ADJUST_REST', { deltaSec })} onStop={!readOnly && view?.phase === 'working' ? () => send('STOP') : undefined} onUndo={!readOnly && view?.canUndo ? () => send('UNDO') : undefined} onFinish={!readOnly && active ? () => setDialog({ type: 'finish' }) : undefined} onBack={() => { setFinished(null); navigate('today') }} onReviewUnfinished={readOnly ? undefined : () => send('STOP')} actualValue={actual} onActualChange={readOnly ? undefined : setActual} onMediaError={onMediaError} sample={sample} saved={!!finished} complete={finished?.status === 'completed'} completedCount={finished?.rows.filter(row => row.status === 'done').length || 0} totalCount={finished?.rows.length || 0} saveError={saveFailed ? error : undefined} disabled={readOnly || disabledActual} />}
     </>}
     {saveFailed && <Button variant="secondary" icon="download" onClick={download}>Export in-memory progress</Button>}
-    {(onRenewAccess || onLogout) && <div className="qt-access-actions">{onRenewAccess && <Button variant="text" onClick={onRenewAccess}>Renew family access</Button>}{onLogout && <Button variant="text" onClick={onLogout}>Sign out</Button>}</div>}
+    {(onRenewAccess || onLogout) && <div className="qt-access-actions">{onRenewAccess && <Button variant="text" disabled={accessPending} onClick={onRenewAccess}>Renew family access</Button>}{onLogout && <Button variant="text" disabled={accessPending} onClick={onLogout}>Sign out</Button>}</div>}
     <input ref={importInput} type="file" accept="application/json,.json" hidden onChange={readImport} />
   </TrainingShell>
     {dialog && <Dialog title={dialog.type === 'assignment' ? dialog.assignment.title : dialog.type === 'session' ? dialog.session.assignment.title : dialog.type === 'drill' ? dialog.drill.title : dialog.type === 'finish' ? 'Finish this session?' : dialog.type === 'restore' ? 'Restore progress?' : 'A practice is already open'} onClose={() => setDialog(null)} actions={dialog.type === 'finish' ? <><Button icon="flag" onClick={finish}>Finish and save session</Button><Button variant="secondary" onClick={() => setDialog(null)}>Keep practicing</Button></> : dialog.type === 'assignment' ? <Button icon="play" disabled={readOnly} onClick={() => begin(dialog.assignment)}>Practice this assignment</Button> : dialog.type === 'existing' ? <Button icon="play" onClick={() => { setFinished(null); navigate('practice') }}>Resume open practice</Button> : dialog.type === 'restore' ? <><Button disabled={readOnly} onClick={restore}>Merge backup</Button><Button variant="secondary" onClick={() => setDialog(null)}>Cancel</Button></> : undefined}>
