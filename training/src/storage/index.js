@@ -95,7 +95,11 @@ export function createTrainingRepository({ indexedDB = globalThis.indexedDB, nam
           try {
             const previous = validateProgress(get.result ?? emptyProgress())
             if (previous.revision !== expectedRevision) throw new ProgressConflictError()
-            if (previous.activeSession && checked.activeSession?.id === previous.activeSession.id && JSON.stringify(previous.activeSession.assignment) !== JSON.stringify(checked.activeSession.assignment)) throw new Error('Active assignment snapshot is immutable')
+            if (previous.activeSession) {
+              const successor = checked.activeSession?.id === previous.activeSession.id ? checked.activeSession : checked.sessions.find(item => item.id === previous.activeSession.id)
+              if (!successor) throw new Error('Active session cannot be replaced without finishing it')
+              if (JSON.stringify(previous.activeSession.assignment) !== JSON.stringify(successor.assignment)) throw new Error('Active assignment snapshot is immutable')
+            }
             for (const saved of previous.sessions) {
               const next = checked.sessions.find(item => item.id === saved.id)
               if (!next || JSON.stringify(saved) !== JSON.stringify(next)) throw new Error('Saved history is immutable; export before recovery')
