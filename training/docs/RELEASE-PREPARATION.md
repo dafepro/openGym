@@ -20,8 +20,10 @@ base `bfb754c14d05f442b3a472d788fd19a5c69220dc`:
   activation prerequisites and rejection checks.
 
 No shared deploy policy, workflow, runner, setting, credential or existing target
-was modified. No GitHub push, release publication, secret transfer, resource
-discovery, upload, provisioning or deployment occurred.
+was modified. The disabled staging is available for review in
+[deploy PR #49](https://github.com/dafepro/deploy/pull/49). This draft PR does not
+select or publish a release. No secret transfer, resource discovery, upload,
+provisioning or deployment occurred.
 
 ## Future producer decision
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import worker, { handleRequest } from './index.js'
 import { COOKIE } from './auth.js'
 import { digest } from './http.js'
+import { validateCatalog } from '../src/domain/content.js'
 
 const ORIGIN = 'https://train.quicktrack.cc'
 const NOW = 1800000000000
@@ -140,6 +141,12 @@ describe('private catalog and media boundary', () => {
 
   it('projects the child catalog without the private registry or provenance', async () => {
     const { env, bucket, envelope, cookie, catalog } = await setup()
+    catalog.synthetic = true
+    catalog.assignments[0].drills[0].metadata = {
+      version: 1, registryVersion: 1, tags: ['futbol:first-touch', 'Coach blue'],
+      requirements: { settings: ['outdoor'], equipment: ['ball', 'cones'], participants: { min: 2, roles: ['passer'] }, space: { lengthM: 10, widthM: 5 } },
+      physicalEmphasis: ['coordination']
+    }
     const expected = structuredClone(catalog)
     envelope.catalog.provenance = 'synthetic-private-metadata'
     envelope.catalog.assignments[0].drills[0].permission = 'synthetic-private-permission'
@@ -148,8 +155,23 @@ describe('private catalog and media boundary', () => {
     expect(response.status).toBe(200)
     const result = await response.json()
     expect(result).toEqual(expected)
+    expect(validateCatalog(result)).toEqual(expected)
     expect(JSON.stringify(result)).not.toContain('synthetic-private-')
     expect(result.media).toBeUndefined()
+  })
+
+  it('rejects unsupported metadata and invalid synthetic labels at the private boundary', async () => {
+    for (const change of [
+      catalog => { catalog.assignments[0].drills[0].metadata = { version: 2, registryVersion: 1 } },
+      catalog => { catalog.assignments[0].drills[0].metadata = { version: 1, registryVersion: 1, privateNote: 'hidden' } },
+      catalog => { catalog.synthetic = 'true' },
+      catalog => { catalog.synthetic = true; catalog.assignments[0].title = 'Unlabeled sample' }
+    ]) {
+      const { env, bucket, envelope, cookie } = await setup()
+      change(envelope.catalog)
+      env.CATALOG_SHA256 = await bucket.put(`catalogs/${env.CATALOG_REVISION}.json`, JSON.stringify(envelope))
+      expect((await handleRequest(request('/api/catalog', { cookie }), env, NOW)).status).toBe(503)
+    }
   })
 
   it('fails closed on absent, mismatched or malformed selected manifests', async () => {

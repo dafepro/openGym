@@ -1,4 +1,5 @@
 import { HASH, digest, readLimited, safeId } from './http.js'
+import { validateDrillMetadata } from '../src/domain/metadata.js'
 
 export const TYPES = new Set(['video/mp4'])
 const MAX_CATALOG = 1024 * 1024
@@ -25,6 +26,7 @@ function childCatalog(raw, revision) {
       if (drill.mode === 'watch') requireValue(drill.sets === 1 && drill.side === 'both')
       return { id: drill.id, title: drill.title, instructions: drill.instructions, mode: drill.mode, sets: drill.sets,
         ...(drill.mode === 'reps' ? { reps: drill.reps } : {}), ...(drill.mode === 'time' ? { durationSec: drill.durationSec } : {}),
+        ...(drill.metadata !== undefined ? { metadata: validateDrillMetadata(drill.metadata) } : {}),
         side: drill.side, restSec: drill.restSec, media: { id: drill.media.id, status: drill.media.status, ...(drill.media.path ? { path: drill.media.path } : {}) } }
     })
     requireValue(new Set(drills.map(drill => drill.id)).size === drills.length)
@@ -36,7 +38,10 @@ function childCatalog(raw, revision) {
   if (raw.currentAssignmentRevision != null) requireValue(safeId(raw.currentAssignmentRevision))
   const selected = assignments.filter(assignment => assignment.id === raw.currentAssignmentId && (!raw.currentAssignmentRevision || assignment.revision === raw.currentAssignmentRevision))
   requireValue(selected.length === 1 && selected[0].status === 'current')
+  if (raw.synthetic != null) requireValue(typeof raw.synthetic === 'boolean')
+  if (raw.synthetic === true) requireValue(assignments.every(assignment => assignment.title.startsWith('Synthetic')))
   return { schemaVersion: 1, revision, currentAssignmentId: raw.currentAssignmentId,
+    ...(raw.synthetic != null ? { synthetic: raw.synthetic } : {}),
     ...(raw.currentAssignmentRevision ? { currentAssignmentRevision: raw.currentAssignmentRevision } : {}), assignments }
 }
 

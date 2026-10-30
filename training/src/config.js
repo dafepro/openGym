@@ -10,6 +10,6 @@ export const APP_CONFIG = Object.freeze({
   mediaPath: '/media/',
   storageDatabase: 'quicktrack-training',
   cachePrefix: 'quicktrack-training-',
-  sourceUrl: 'https://github.com/dafepro/openGym',
+  sourceUrl: `https://github.com/dafepro/openGym/tree/${/^[a-f0-9]{40}$/.test(__TRAINING_BUILD__) ? __TRAINING_BUILD__ : 'codex/quicktrack-training'}/training`,
   demo: TRAINING_DEMO
 })

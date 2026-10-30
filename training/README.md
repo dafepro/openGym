@@ -39,6 +39,9 @@ npm --prefix training run check:build
 ```
 
 The content-preparation tests need FFmpeg/ffprobe and use only a synthetic clip.
+The isolated `training-checks.yml` PR workflow runs these tests and both build
+guards on a hosted runner with read-only repository permissions. It publishes
+no release and receives no application secrets.
 The independent output is `training/dist/`; no existing Uplift build, Worker,
 database or gym integration is modified. For an explicit sample distribution:
 
@@ -62,6 +65,10 @@ or offline video cache is installed.
   byte ranges, revocation, configuration and exact limitations.
 - [Release preparation](docs/RELEASE-PREPARATION.md): disabled deploy staging,
   remaining producer/verifier work and launch/rollback gates.
+- [Soccer recommendations](docs/RECOMMENDATIONS.md): versioned skill labels,
+  context requirements and explainable drill ranking adapted from the fork's
+  Add exercise engine. The ranking core is implemented; suggestion/insertion UI
+  remains a separate step and never changes a trainer assignment automatically.
 - [Upstream provenance](docs/UPSTREAM.md) and [notices](NOTICE.md): adaptation and
   local font/license attribution.
 
