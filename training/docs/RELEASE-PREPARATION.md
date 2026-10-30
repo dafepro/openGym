@@ -109,3 +109,11 @@ retained release assets exist, that Cloudflare resources are configured, or that
 the phone has passed production acceptance. Record those receipts separately
 when central deployment executes. Private serving and withdrawal behavior are
 described in [PRIVATE-HOSTING.md](PRIVATE-HOSTING.md).
+
+### Verify the first producer run
+
+After creating the dedicated release branch, confirm that GitHub has started a
+`Publish immutable QuickTrack Training Worker` job for the intended full SHA.
+Branch creation alone is not evidence that the path-filtered producer ran. A
+subsequent reviewed change under `training/` can trigger the producer; select
+only the retained release from its completed successful attempt.
