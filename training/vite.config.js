@@ -3,6 +3,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { demoMedia } from './scripts/demo-media.mjs'
 import { assertPrivatePreviewMode, privateTrainingPreview } from './scripts/private-preview.mjs'
+import { sourceNoticePlugin } from './scripts/source-notice.mjs'
 
 const root = fileURLToPath(new URL('.', import.meta.url))
 
@@ -12,7 +13,7 @@ export default defineConfig(({ command, isPreview }) => {
   assertPrivatePreviewMode({ bundlePath, command, isPreview, demo })
   return {
   root,
-  plugins: [react(), ...(demo ? [demoMedia()] : []), ...(bundlePath ? [privateTrainingPreview(bundlePath)] : [])],
+  plugins: [react(), sourceNoticePlugin(process.env.APP_BUILD), ...(demo ? [demoMedia()] : []), ...(bundlePath ? [privateTrainingPreview(bundlePath)] : [])],
   define: {
     __TRAINING_DEMO__: process.env.VITE_TRAINING_DEMO === '1',
     __TRAINING_PRIVATE_PREVIEW__: !!bundlePath,

@@ -4,3 +4,4 @@ coverage/
 .env*
 !.env.example
 .private/
+__pycache__/

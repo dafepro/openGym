@@ -17,4 +17,7 @@ const containsSampleMedia = paths.includes(resolve(directory, 'media/sample-play
 if (containsSampleMedia !== expectedDemo) throw new Error(`Sample media ${expectedDemo ? 'missing from demo' : 'present in default'} build`)
 if (paths.some(path => /exercise-media|\.map$/.test(path))) throw new Error('Unexpected source map or inherited exercise media in build')
 if (!paths.includes(resolve(directory, 'fonts/OFL.txt'))) throw new Error('Font license missing from distribution')
+const source = await readFile(resolve(directory, 'source.html'), 'utf8')
+if (!source.includes('Corresponding application source')) throw new Error('Corresponding-source notice missing')
+if (/^[a-f0-9]{40}$/.test(process.env.APP_BUILD || '') && !source.includes(`/tree/${process.env.APP_BUILD}/training`)) throw new Error('Source notice revision differs from build')
 console.log(`Verified ${expectedDemo ? 'explicit demo' : 'default no-sample'} build (${scripts.length} script files).`)

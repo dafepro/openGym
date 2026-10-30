@@ -3,7 +3,7 @@ import { loadCatalog } from './catalog.js'
 import { json, privateHeaders, safeId } from './http.js'
 import { mediaResponse } from './media.js'
 
-const publicAsset = path => ['/', '/index.html', '/fonts/barlow-condensed-latin-600.woff2', '/fonts/OFL.txt', '/licenses/AGPL-3.0.txt'].includes(path) || /^\/assets\/[a-zA-Z0-9_-]+\.(js|css|woff2|svg|png)$/.test(path)
+const publicAsset = path => ['/', '/index.html', '/source.html', '/fonts/barlow-condensed-latin-600.woff2', '/fonts/OFL.txt', '/licenses/AGPL-3.0.txt'].includes(path) || /^\/assets\/[a-zA-Z0-9_-]+\.(js|css|woff2|svg|png)$/.test(path)
 
 async function routeRequest(request, env, now) {
   const url = new URL(request.url)
