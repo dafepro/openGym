@@ -36,7 +36,7 @@ function TrainingExperienceView({ route, catalog, sample = false, suspended = fa
   useEffect(() => { document.getElementById('training-main')?.focus({ preventScroll: true }); window.scrollTo(0, 0) }, [route, finished?.id])
   useEffect(() => {
     if (!view?.currentRow) return
-    const offered = view.phase === 'review' ? Math.min(view.currentRow.target, Math.floor(view.elapsedSec)) : view.currentRow.target
+    const offered = view.phase === 'review' ? Math.max(view.currentRow.actual || 0, Math.min(view.currentRow.target, Math.floor(view.elapsedSec))) : view.currentRow.target
     setActual(offered ?? '')
   }, [view?.currentRow?.id, view?.phase])
 

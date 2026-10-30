@@ -56,7 +56,7 @@ function reconcile(session, now, foreground) {
   }
   if (now >= timer.deadline) {
     if (foreground && timer.observed && now - timer.observedAt <= OBSERVED_GAP_MS) record(session, current(session), timer.target, now)
-    else { session.phase = 'review'; timer.observed = false; timer.reviewElapsed = elapsed(timer, now) }
+    else { session.phase = 'review'; timer.observed = false; timer.reviewElapsed = Math.min(86400, elapsed(timer, now)) }
   } else if (foreground && timer.observed) { timer.observedAt = now }
 }
 export function reduceSession(original, command) {
@@ -84,7 +84,7 @@ export function reduceSession(original, command) {
     case 'DONE':
       if (session.phase !== 'working' || now - session.lastActionAt < GUARD_MS) return original
       if (row.mode === 'time' && (!work.observed || now - work.observedAt > OBSERVED_GAP_MS)) {
-        session.phase = 'review'; work.reviewElapsed = elapsed(work, now); work.observed = false
+        session.phase = 'review'; work.reviewElapsed = Math.min(86400, elapsed(work, now)); work.observed = false
         break
       }
       { const actual = command.actual ?? (work ? elapsed(work, now) : row.target)
@@ -120,7 +120,7 @@ export function reduceSession(original, command) {
         reconcile(session, now, false)
       } else if (work) {
         // Keep only observed work evidence. A new clock epoch cannot grant completion.
-        const observed = Math.min(work.target, observedElapsed(work, command.previousNow))
+        const observed = observedElapsed(work, command.previousNow)
         work.elapsedBefore = observed; work.startedAt = now; work.observedAt = now
         work.deadline = now + Math.max(0, work.target - observed) * 1000
         work.observed = false; work.reviewElapsed = observed; session.phase = 'review'
