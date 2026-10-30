@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import DrillDemonstration from './DrillDemonstration.jsx'
 import PracticeView from '../views/PracticeView.jsx'
 import HistoryView from '../views/HistoryView.jsx'
+import TodayView from '../views/TodayView.jsx'
 
 describe('training presentation boundaries', () => {
   it('never turns an external or unapproved media reference into a player', () => {
@@ -38,5 +39,12 @@ describe('training presentation boundaries', () => {
     const html = renderToStaticMarkup(<HistoryView currentAssignmentId="same" currentAssignmentRevision="2" assignments={[{ id: 'same', revision: '1', title: 'Old edition', drills: [] }, { id: 'same', revision: '2', title: 'New edition', drills: [] }]} />)
     expect(html.match(/>Current</g)).toHaveLength(1)
     expect(html.match(/>Previous</g)).toHaveLength(1)
+  })
+
+  it('keeps an active older edition separate from the current assignment action', () => {
+    const html = renderToStaticMarkup(<TodayView assignment={{ id: 'same', revision: '2', title: 'Current edition', drills: [] }} activeSession={{ assignmentId: 'same', assignmentRevision: '1' }} onStart={() => {}} onResume={() => {}} />)
+    expect(html).toContain('earlier assignment edition')
+    expect(html).toContain('Start practice')
+    expect(html).not.toContain('Resume practice')
   })
 })
