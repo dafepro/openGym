@@ -70,7 +70,8 @@ export default function useTrainingController({ databaseName, suspended = false 
         publish(stored)
         canWrite.current = owned
         if (owned && stored.activeSession) {
-          const reconciled = reduceSession(stored.activeSession, { type: 'RECONCILE', id: crypto.randomUUID(), sessionId: stored.activeSession.id, now: clock.reconcileTime(stored.activeSession).now })
+          const check = clock.reconcileTime(stored.activeSession)
+          const reconciled = reduceSession(stored.activeSession, { type: check.clockChanged ? 'CLOCK_CHANGE' : 'RECONCILE', id: crypto.randomUUID(), sessionId: stored.activeSession.id, ...check })
           if (reconciled !== stored.activeSession) { const next = { ...stored, activeSession: reconciled }; publish(next); await persist(next) }
         }
       } catch (failure) { if (!disposed) { setError(failure.message); canWrite.current = false; setReadOnly(true) } }
@@ -95,18 +96,20 @@ export default function useTrainingController({ databaseName, suspended = false 
   useEffect(() => {
     if (!ready || readOnly) return
     if (suspended) { void command('BACKGROUND'); return }
-    void command('RECONCILE', { now: clock.reconcileTime(current.current.activeSession).now })
+    const reconcile = () => { const check = clock.reconcileTime(current.current.activeSession); void command(check.clockChanged ? 'CLOCK_CHANGE' : 'RECONCILE', check) }
+    reconcile()
     const refresh = () => {
       setNow(clock.now())
       if (document.visibilityState === 'visible') {
         const check = clock.reconcileTime(current.current.activeSession)
-        if (current.current.activeSession?.timer) void command(check.clockChanged ? 'RECONCILE' : 'TICK', { now: check.now })
+        if (check.clockChanged || current.current.activeSession?.timer) void command(check.clockChanged ? 'CLOCK_CHANGE' : 'TICK', check)
       }
     }
     const interval = window.setInterval(refresh, 1000)
     const visibility = () => {
       setNow(clock.now())
-      void command(document.visibilityState === 'hidden' ? 'BACKGROUND' : 'RECONCILE', document.visibilityState === 'hidden' ? {} : { now: clock.reconcileTime(current.current.activeSession).now })
+      if (document.visibilityState === 'hidden') void command('BACKGROUND')
+      else reconcile()
     }
     const pageHide = () => { void command('BACKGROUND') }
     document.addEventListener('visibilitychange', visibility)

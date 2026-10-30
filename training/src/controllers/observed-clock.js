@@ -2,11 +2,17 @@
 export function createObservedClock({ wall = Date.now, monotonic = () => performance.now() } = {}) {
   const wallAnchor = wall(), monotonicAnchor = monotonic()
   let recoveredTime = 0
+  let sessionId = null, nextRevision = 0
   const now = () => wallAnchor + Math.max(0, monotonic() - monotonicAnchor) + recoveredTime
   return {
     now,
     reconcileTime(session) {
+      const storedRevision = session?.clockRevision || 0
+      if ((session?.id || null) !== sessionId) { sessionId = session?.id || null; nextRevision = storedRevision }
+      else nextRevision = Math.max(nextRevision, storedRevision)
+      const clockRevision = nextRevision
       let timestamp = now()
+      let previousNow = timestamp
       const offset = wall() - timestamp
       const jumped = Math.abs(offset) > 2500
       const timer = session?.timer
@@ -15,9 +21,13 @@ export function createObservedClock({ wall = Date.now, monotonic = () => perform
         recoveredTime += offset
         timestamp = now()
       }
-      const backwardsCheckpoint = timer?.kind === 'work' && timestamp < timer.observedAt
-      // RECONCILE at the deadline enters review; it can never grant completion credit.
-      return { now: timer?.kind === 'work' && (jumped || backwardsCheckpoint) ? Math.max(timestamp, timer.deadline) : timestamp, clockChanged: jumped || backwardsCheckpoint }
+      const checkpoint = Math.max(session?.lastActionAt || 0, timer?.kind === 'work' ? timer.observedAt : 0)
+      const backwardsCheckpoint = !jumped && timestamp < checkpoint && nextRevision === storedRevision
+      // On reload the previous monotonic anchor is gone. Preserve only the last known checkpoint.
+      if (backwardsCheckpoint) previousNow = checkpoint
+      const clockChanged = jumped || backwardsCheckpoint
+      if (clockChanged) nextRevision++
+      return { now: timestamp, previousNow, clockShiftMs: timestamp - previousNow, clockRevision, clockChanged }
     },
   }
 }

@@ -25,7 +25,7 @@ export function createSession(assignment, { id, now }) {
     schemaVersion: 1, id, assignmentId: snapshot.id, assignmentRevision: snapshot.revision,
     assignment: snapshot, status: 'active', startedAt: now, endedAt: null,
     rows, currentRowId: rows[0].id, phase: 'ready', timer: null,
-    appliedCommandIds: [], lastCompletion: null, lastActionAt: null,
+    appliedCommandIds: [], lastCompletion: null, lastActionAt: null, clockRevision: 0,
   }
 }
 function advance(session) {
@@ -107,6 +107,25 @@ export function reduceSession(original, command) {
       reconcile(session, now, true)
       changed = !!original.timer
       break
+    case 'CLOCK_CHANGE':
+      if (!Number.isFinite(command.previousNow) || command.previousNow < 0 || !Number.isFinite(command.clockShiftMs) || Math.abs(now - command.previousNow - command.clockShiftMs) > 1 || command.clockRevision !== (session.clockRevision || 0)) return original
+      session.clockRevision = (session.clockRevision || 0) + 1
+      if (session.lastActionAt !== null) session.lastActionAt = Math.max(0, session.lastActionAt + command.clockShiftMs)
+      if (session.timer?.kind === 'rest') {
+        if (command.clockShiftMs < 0) {
+          const remaining = session.timer.paused ? session.timer.remainingSec : Math.max(0, Math.min(session.timer.remainingSec, (session.timer.deadline - command.previousNow) / 1000))
+          session.timer.remainingSec = remaining
+          session.timer.deadline = now + remaining * 1000
+        }
+        reconcile(session, now, false)
+      } else if (work) {
+        // Keep only observed work evidence. A new clock epoch cannot grant completion.
+        const observed = Math.min(work.target, observedElapsed(work, command.previousNow))
+        work.elapsedBefore = observed; work.startedAt = now; work.observedAt = now
+        work.deadline = now + Math.max(0, work.target - observed) * 1000
+        work.observed = false; work.reviewElapsed = observed; session.phase = 'review'
+      }
+      break
     case 'RECONCILE':
       if (session.phase === 'review') return original
       reconcile(session, now, false)
@@ -158,7 +177,7 @@ export function reduceSession(original, command) {
     default: return original
   }
   if (!changed) return original
-  if (!['TICK', 'RECONCILE', 'BACKGROUND'].includes(command.type)) session.appliedCommandIds.push(command.id)
+  if (!['TICK', 'RECONCILE', 'BACKGROUND', 'CLOCK_CHANGE'].includes(command.type)) session.appliedCommandIds.push(command.id)
   return session
 }
 export function getSessionView(session, now) {
@@ -172,7 +191,7 @@ export function getSessionView(session, now) {
     review: ['CONFIRM_REVIEW', 'Confirm elapsed set'], rest: ['SKIP_REST', 'Skip rest'], complete: ['FINISH', 'Finish session'] }
   const [type, label] = types[session.phase]
   return { drill, currentRow: row || null, phase: session.phase, remainingSec,
-    elapsedSec: timer?.kind === 'work' ? elapsed(timer, now) : row?.actual ?? 0,
+    elapsedSec: timer?.kind === 'work' ? session.phase === 'review' ? timer.reviewElapsed ?? observedElapsed(timer, now) : elapsed(timer, now) : row?.actual ?? 0,
     progress: { done: session.rows.filter(item => item.status === 'done').length, total: session.rows.length, met: session.rows.filter(item => item.prescriptionMet).length },
     allWorkRecorded: session.rows.every(item => item.status === 'done'), prescriptionMet: session.rows.every(item => item.prescriptionMet),
     primaryAction: { type, label }, canUndo: !!session.lastCompletion && !['working', 'review'].includes(session.phase) && session.status === 'active',
@@ -199,6 +218,7 @@ export function validateSession(session) {
   if (session.currentRowId !== null && !session.rows.some(row => row.id === session.currentRowId)) throw new Error('Unknown active row')
   if (!Array.isArray(session.appliedCommandIds) || session.appliedCommandIds.length > 100000 || session.appliedCommandIds.some(id => typeof id !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(id))) throw new Error('Invalid command history')
   if (session.lastActionAt !== null) at(session.lastActionAt)
+  if (session.clockRevision != null && (!Number.isSafeInteger(session.clockRevision) || session.clockRevision < 0)) throw new Error('Invalid clock revision')
   if (session.status === 'active') {
     if (session.endedAt !== null) throw new Error('Active work cannot have an end time')
     const next = session.rows.find(pending)
@@ -229,6 +249,7 @@ export function validateSession(session) {
     if (timer.kind === 'work') {
       if (!['working', 'review'].includes(session.phase) || timer.ownerRowId !== session.currentRowId || current(session).mode !== 'time') throw new Error('Work timer must own current timed row')
       at(timer.startedAt); at(timer.observedAt); quantity(timer.elapsedBefore, 'Elapsed checkpoint')
+      if (timer.reviewElapsed != null) quantity(timer.reviewElapsed, 'Review elapsed checkpoint')
       if (timer.deadline !== timer.startedAt + Math.max(0, timer.target - timer.elapsedBefore) * 1000) throw new Error('Work deadline is inconsistent')
       if (timer.target !== current(session).target || typeof timer.observed !== 'boolean') throw new Error('Invalid work timer')
     } else {
