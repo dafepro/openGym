@@ -20,5 +20,5 @@ function FamilyApplication({ route }) {
   const controller = useTrainingController({ databaseName: APP_CONFIG.storageDatabase, suspended: !access.authenticated })
   const panel = <FamilyAccessView route={route} access={access} returning={!!controller.active || controller.progress.sessions.length > 0} />
   if (!access.catalog) return panel
-  return <TrainingExperience route={route} catalog={access.catalog} controller={controller} accessPending={access.pending} suspended={!access.authenticated} accessPanel={panel} onMediaError={() => access.check({ refreshCatalog: false })} onRenewAccess={access.renew} onLogout={access.logout} accessNotice={access.notice} />
+  return <TrainingExperience route={route} catalog={access.catalog} controller={controller} sample={access.catalog.synthetic === true} accessPending={access.pending} suspended={!access.authenticated} accessPanel={panel} onMediaError={() => access.check({ refreshCatalog: false })} onRenewAccess={access.renew} onLogout={access.logout} accessNotice={access.notice} />
 }

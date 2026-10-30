@@ -8,6 +8,13 @@ Scope is **suggestions among supplied drills**, not a whole-workout optimizer, a
 
 Existing drills without `metadata` remain valid. If present, only these fields are accepted:
 
+This is an additive field in the first, unreleased catalog schema. Builds predating
+the metadata extension reject snapshots that contain it. Once metadata-bearing
+content is published, the retained rollback build must include this extension;
+older builds are not compatible rollback candidates. Rejection preserves stored
+data but does not make an old build able to resume it. Include this boundary in
+the first hosted rollback/export-restore rehearsal.
+
 ```js
 metadata: {
   version: 1,
