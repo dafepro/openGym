@@ -1,3 +1,5 @@
+import { validateDrillMetadata } from './metadata.js'
+
 // AGPL-3.0-or-later. Training content is deliberately separate from public app code.
 const ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/
 const plain = value => value && typeof value === 'object' && !Array.isArray(value)
@@ -29,7 +31,8 @@ export function validateAssignment(assignment) {
   unique(assignment.drills, 'Drill occurrences')
   for (const drill of assignment.drills) {
     if (!plain(drill)) throw new Error('Drill must be an object')
-    fields(drill, ['id', 'title', 'instructions', 'mode', 'sets', 'reps', 'durationSec', 'side', 'restSec', 'media'], 'Drill')
+    fields(drill, ['id', 'title', 'instructions', 'mode', 'sets', 'reps', 'durationSec', 'side', 'restSec', 'media', 'metadata'], 'Drill')
+    if (drill.metadata !== undefined) validateDrillMetadata(drill.metadata)
     requireId(drill.id, 'Drill occurrence ID'); text(drill.title, 'Drill title', 240)
     text(drill.instructions, 'Drill instructions')
     if (!['reps', 'time', 'watch'].includes(drill.mode)) throw new Error('Drill mode must be reps, time or watch')

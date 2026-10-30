@@ -9,6 +9,10 @@
     "build": "node scripts/check-boundaries.mjs && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:worker": "vitest run --config worker/vitest.config.js",
+    "test:content": "node --test scripts/prepare-catalog.test.mjs",
+    "test:all": "npm test && npm run test:worker && npm run test:content",
+    "prepare:catalog": "node scripts/prepare-catalog.mjs",
     "test:watch": "vitest",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:build": "node scripts/check-build.mjs"
