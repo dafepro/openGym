@@ -22,3 +22,18 @@ export async function fetchFamilyCatalog(fetcher) { return validateCatalog(await
 export function loginFamily(accessKey, fetcher) { return request('/api/auth/login', { method: 'POST', body: { accessKey } }, fetcher) }
 export function logoutFamily(fetcher) { return request('/api/auth/logout', { method: 'POST', body: {} }, fetcher) }
 export function renewFamily(fetcher) { return request('/api/auth/renew', { method: 'POST', body: {} }, fetcher) }
+
+// Cookie-setting responses must settle in request order; a late renew cannot follow logout.
+export function createFamilyMutations(fetcher) {
+  let queue = Promise.resolve()
+  const enqueue = operation => {
+    const next = queue.catch(() => {}).then(operation)
+    queue = next
+    return next
+  }
+  return {
+    login: key => enqueue(() => loginFamily(key, fetcher)),
+    logout: () => enqueue(() => logoutFamily(fetcher)),
+    renew: () => enqueue(() => renewFamily(fetcher)),
+  }
+}

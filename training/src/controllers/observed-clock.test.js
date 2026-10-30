@@ -46,6 +46,23 @@ describe('observed foreground clock', () => {
     expect(clock.reconcileTime(null).clockChanged).toBe(true)
     mono = 2000; wall = 201000
     expect(clock.reconcileTime(null).clockChanged).toBe(false)
-    expect(clock.now()).toBe(102000)
+    expect(clock.now()).toBe(201000)
+  })
+
+  it('preserves newly earned rest across reload after work interruption review', () => {
+    let wall = 100000, mono = 0
+    const clock = createObservedClock({ wall: () => wall, monotonic: () => mono })
+    let session = createSession({ ...assignment, drills: [{ ...assignment.drills[0], sets: 2 }] }, { id: 'sleep-session', now: clock.now() })
+    session = reduceSession(session, { type: 'START', id: 'sleep-start', sessionId: session.id, rowId: session.currentRowId, now: clock.now() })
+    wall = 400000; mono = 1000
+    session = reduceSession(session, { type: 'RECONCILE', id: 'sleep-review', sessionId: session.id, now: clock.reconcileTime(session).now })
+    expect(session.phase).toBe('review')
+    expect(session.rows[0].status).toBe('pending')
+    session = reduceSession(session, { type: 'CONFIRM_REVIEW', id: 'sleep-confirm', sessionId: session.id, rowId: session.currentRowId, actual: 60, now: clock.now() })
+    expect(session.timer.deadline).toBe(410000)
+    const reloadedClock = createObservedClock({ wall: () => 400000, monotonic: () => 0 })
+    session = reduceSession(session, { type: 'RECONCILE', id: 'sleep-reload', sessionId: session.id, now: reloadedClock.reconcileTime(session).now })
+    expect(session.phase).toBe('rest')
+    expect(getSessionView(session, reloadedClock.now()).remainingSec).toBe(10)
   })
 })
