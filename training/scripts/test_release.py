@@ -49,13 +49,15 @@ class ReleaseTests(unittest.TestCase):
 
     def test_declared_runtime_must_match_the_actual_build_configuration(self):
         config = dict(main='worker/index.js', compatibility_date='2026-10-03',
-                      assets=dict(binding='ASSETS', directory='dist', run_worker_first=True),
+                      assets=dict(binding='ASSETS', directory='dist', run_worker_first=True, html_handling='none', not_found_handling='none'),
                       r2_buckets=[dict(binding='TRAINING_CONTENT')], ratelimits=[dict(name='LOGIN_LIMIT')])
         path = self.root / 'wrangler.jsonc'
         path.write_text('// public compilation contract\n' + json.dumps(config))
         assert_runtime_configuration(path)
         for changes in [dict(compatibility_date='2026-09-01'), dict(r2_buckets=[]), dict(ratelimits=[]),
                         dict(assets=dict(binding='ASSETS', directory='dist', run_worker_first=False)), dict(env={'other': {}}),
+                        dict(assets={**config['assets'], 'html_handling': 'auto-trailing-slash'}),
+                        dict(assets={**config['assets'], 'not_found_handling': 'single-page-application'}),
                         dict(services=[{'binding': 'UNEXPECTED'}])]:
             path.write_text(json.dumps({**config, **changes}))
             with self.assertRaises(ValueError):

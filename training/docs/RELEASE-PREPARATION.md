@@ -25,6 +25,14 @@ local dry run. A smoke test runs the retained compiled Worker entry to check
 health, public source notice routing and failure closed without private runtime
 configuration.
 
+Static HTML handling is `none`: the Worker internally requests `/index.html`
+for `/`, serves `/source.html` by its exact object path, and rejects unknown
+paths before the asset binding. Public asset responses retain private/no-store
+headers and add `no-transform` so edge HTML transforms do not inject a beacon
+or otherwise change the tested app bytes. The release configuration guard and
+compiled-entry smoke cover this routing/header policy without changing the
+manifest schema.
+
 The job retains the same local files through verification and publication; it
 does not use Actions upload/download artifacts or depend on that storage quota.
 The job has source `contents:write` permission; only its final publication step

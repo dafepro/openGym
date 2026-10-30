@@ -28,9 +28,10 @@ async function routeRequest(request, env, now) {
     }
     if (path.startsWith('/api/') || !['GET', 'HEAD'].includes(request.method) || !publicAsset(path) || url.search) return json({ error: 'not_found' }, 404)
     if (typeof env.ASSETS?.fetch !== 'function') return json({ error: 'service_unavailable' }, 503)
-    const asset = await env.ASSETS.fetch(request)
+    const assetRequest = path === '/' ? new Request(new URL('/index.html', url), request) : request
+    const asset = await env.ASSETS.fetch(assetRequest)
     const headers = privateHeaders(Object.fromEntries(asset.headers))
-    headers.set('Cache-Control', 'private, no-store, max-age=0')
+    headers.set('Cache-Control', 'private, no-store, max-age=0, no-transform')
     headers.set('Vary', 'Cookie')
     headers.set('X-Content-Type-Options', 'nosniff')
     headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")

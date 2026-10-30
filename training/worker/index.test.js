@@ -258,4 +258,40 @@ describe('private catalog and media boundary', () => {
     expect((await handleRequest(request('/media/synthetic-video-v1', { cookie, method: 'POST' }), env, NOW)).status).toBe(405)
     expect((await handleRequest(request('/api/garmin/config', { cookie }), env, NOW)).status).toBe(404)
   })
+
+  it('fetches exact HTML objects without redirects and prevents public asset transformations', async () => {
+    const calls = []
+    const env = { ASSETS: { async fetch(assetRequest) {
+      const path = new URL(assetRequest.url).pathname
+      calls.push({ path, method: assetRequest.method, accept: assetRequest.headers.get('Accept') })
+      if (!['/index.html', '/source.html', '/assets/index-test.js'].includes(path)) return new Response('Missing', { status: 404 })
+      return new Response(path, { headers: { 'Content-Type': path.endsWith('.html') ? 'text/html' : 'text/javascript', 'Cache-Control': 'public, max-age=86400' } })
+    } } }
+    for (const path of ['/', '/index.html', '/source.html', '/assets/index-test.js']) {
+      const response = await handleRequest(request(path, { headers: { Accept: 'text/html' } }), env, NOW)
+      expect(response.status).toBe(200)
+      expect(response.headers.get('Location')).toBeNull()
+      expect(response.headers.get('Cache-Control')).toBe('private, no-store, max-age=0, no-transform')
+      expect(response.headers.get('Vary')).toBe('Cookie')
+      expect(await response.text()).toBe(path === '/' ? '/index.html' : path)
+    }
+    expect(calls).toEqual([
+      { path: '/index.html', method: 'GET', accept: 'text/html' },
+      { path: '/index.html', method: 'GET', accept: 'text/html' },
+      { path: '/source.html', method: 'GET', accept: 'text/html' },
+      { path: '/assets/index-test.js', method: 'GET', accept: 'text/html' }
+    ])
+    for (const path of ['/', '/source.html']) {
+      const response = await handleRequest(request(path, { method: 'HEAD' }), env, NOW)
+      expect(response.status).toBe(200)
+      expect(await response.text()).toBe('')
+      expect(response.headers.get('Cache-Control')).toContain('no-transform')
+    }
+    expect(calls.slice(-2).map(call => [call.path, call.method])).toEqual([['/index.html', 'HEAD'], ['/source.html', 'HEAD']])
+    const count = calls.length
+    for (const path of ['/source', '/source/', '/unknown', '/source.html?anything=1']) {
+      expect((await handleRequest(request(path), env, NOW)).status).toBe(404)
+    }
+    expect(calls).toHaveLength(count)
+  })
 })

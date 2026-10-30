@@ -40,6 +40,7 @@ def assert_runtime_configuration(path):
             or config.get('main') != 'worker/index.js' or config.get('compatibility_date') != RUNTIME['compatibilityDate']
             or config.get('assets', {}).get('binding') != 'ASSETS' or config['assets'].get('directory') != 'dist'
             or config['assets'].get('run_worker_first') is not True
+            or config['assets'].get('html_handling') != 'none' or config['assets'].get('not_found_handling') != 'none'
             or [entry.get('binding') for entry in config.get('r2_buckets', [])] != ['TRAINING_CONTENT']
             or [entry.get('name') for entry in config.get('ratelimits', [])] != ['LOGIN_LIMIT']
             or config.get('env')):
@@ -147,11 +148,23 @@ const { default: worker } = await import(WORKER_URL);
 const health = await worker.fetch(new Request('https://train.quicktrack.cc/api/health'), {});
 assert.equal(health.status, 200);
 assert.deepEqual(await health.json(), { app: 'quicktrack-training', ok: true });
-const source = await worker.fetch(new Request('https://train.quicktrack.cc/source.html'), {
-  ASSETS: { fetch: async () => new Response('corresponding source', { headers: { 'Content-Type': 'text/html' } }) }
-});
-assert.equal(source.status, 200);
-assert.equal(await source.text(), 'corresponding source');
+const assetPaths = [];
+const publicEnv = { ASSETS: { fetch: async request => {
+  const path = new URL(request.url).pathname;
+  assetPaths.push(path);
+  return new Response(path, { status: ['/index.html', '/source.html'].includes(path) ? 200 : 404, headers: { 'Content-Type': 'text/html' } });
+} } };
+for (const [path, expected] of [['/', '/index.html'], ['/source.html', '/source.html']]) {
+  const response = await worker.fetch(new Request('https://train.quicktrack.cc' + path), publicEnv);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Location'), null);
+  assert.equal(response.headers.get('Cache-Control'), 'private, no-store, max-age=0, no-transform');
+  assert.equal(await response.text(), expected);
+}
+assert.deepEqual(assetPaths, ['/index.html', '/source.html']);
+const unknown = await worker.fetch(new Request('https://train.quicktrack.cc/source'), publicEnv);
+assert.equal(unknown.status, 404);
+assert.equal(assetPaths.length, 2);
 const privateContent = await worker.fetch(new Request('https://train.quicktrack.cc/api/catalog'), {});
 assert.equal(privateContent.status, 503);
 assert.deepEqual(await privateContent.json(), { error: 'service_unavailable' });
