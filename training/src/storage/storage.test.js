@@ -48,6 +48,14 @@ describe('isolated atomic local persistence', () => {
     const repo = repository(null)
     await expect(repo.save(activeState())).rejects.toThrow('not been saved')
   })
+  it('preserves the active snapshot when finalizing, and refuses silent replacement', async () => {
+    const repo = repository(); const saved = await repo.save(activeState())
+    const final = reduceSession(saved.activeSession, { type: 'FINISH', id: 'finish', sessionId: saved.activeSession.id, now: 1000 })
+    const changed = structuredClone(final); changed.assignment.title = 'Synthetic rewritten snapshot'
+    await expect(repo.save({ ...saved, activeSession: null, sessions: [changed] })).rejects.toThrow('immutable')
+    await expect(repo.save({ ...saved, activeSession: null })).rejects.toThrow('without finishing')
+    await expect(repo.save({ ...saved, activeSession: null, sessions: [final] })).resolves.toMatchObject({ activeSession: null, sessions: [final] })
+  })
   it('rejects unknown data schema without resetting or modifying input', () => {
     const unknown = { ...activeState(), schemaVersion: 999 }
     expect(() => validateProgress(unknown)).toThrow('Unsupported progress schema')
@@ -79,5 +87,17 @@ describe('portable private progress exports', () => {
     expect(() => validateProgress(state)).toThrow('actual quantity')
     const another = finishedState(); another.sessions[0].status = 'completed'
     expect(() => validateProgress(another)).toThrow('Partial work')
+  })
+  it('validates restored undo checkpoints before they can install invalid repetitions', () => {
+    const state = activeState()
+    const send = (type, now) => { state.activeSession = reduceSession(state.activeSession, { type, now, id: `${type}-${now}`, sessionId: state.activeSession.id, rowId: state.activeSession.currentRowId }) }
+    send('START', 0); send('DONE', 1000)
+    const backup = JSON.parse(exportProgress(state))
+    backup.progress.activeSession.lastCompletion.before.actual = 0.5
+    expect(() => parseProgressExport(JSON.stringify(backup))).toThrow('reps must be whole')
+    const valid = parseProgressExport(exportProgress(state))
+    valid.activeSession = reduceSession(valid.activeSession, { type: 'UNDO', id: 'undo-restored', now: 2000, sessionId: valid.activeSession.id, rowId: valid.activeSession.currentRowId })
+    expect(() => validateProgress(valid)).not.toThrow()
+    expect(valid.activeSession.rows[0].status).toBe('pending')
   })
 })

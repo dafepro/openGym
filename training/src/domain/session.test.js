@@ -125,6 +125,14 @@ describe('one session controller', () => {
     s = command(s, 'UNDO', 102000)
     expect(s.rows[0].status).toBe('pending'); expect(s.phase).toBe('ready'); expect(s.timer).toBeNull()
   })
+  it('starting the next row ends the previous row undo window even after Stop', () => {
+    let s = command(start(one('reps', { sets: 2, restSec: 0 })), 'START', 0)
+    s = command(s, 'DONE', 1000)
+    expect(getSessionView(s, 1000).canUndo).toBe(true)
+    s = command(s, 'START', 2000); s = command(s, 'STOP', 3000)
+    expect(getSessionView(s, 3000).canUndo).toBe(false)
+    expect(command(s, 'UNDO', 4000)).toBe(s)
+  })
   it('watch review contains no athletic quantity and never starts work', () => {
     let s = start(one('watch'))
     expect(command(s, 'START', 0)).toBe(s)

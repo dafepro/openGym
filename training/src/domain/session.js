@@ -73,7 +73,7 @@ export function reduceSession(original, command) {
   switch (command.type) {
     case 'START':
       if (session.phase !== 'ready' || !row || row.mode === 'watch') return original
-      session.phase = 'working'; session.lastActionAt = now
+      session.phase = 'working'; session.lastActionAt = now; session.lastCompletion = null
       if (row.mode === 'time') {
         const elapsedBefore = row.actual || 0
         session.timer = { kind: 'work', ownerRowId: row.id, startedAt: now, elapsedBefore, target: row.target,
@@ -208,7 +208,12 @@ export function validateSession(session) {
     if (!expectedRow || !saved.before || !['pending', 'stopped'].includes(saved.before.status)) throw new Error('Invalid undo checkpoint')
     for (const key of ['id', 'drillId', 'setNumber', 'side', 'mode', 'target']) if (saved.before[key] !== expectedRow[key]) throw new Error('Undo checkpoint prescription changed')
     if (saved.before.prescriptionMet !== false) throw new Error('Undo checkpoint cannot fabricate work')
-    if (saved.before.actual !== null) quantity(saved.before.actual, 'Undo actual')
+    if (session.rows.find(row => row.id === saved.rowId)?.status !== 'done') throw new Error('Undo checkpoint must reference recorded work')
+    if (saved.before.actual !== null) {
+      quantity(saved.before.actual, 'Undo actual', expectedRow.mode === 'reps' ? 10000 : 86400)
+      if (expectedRow.mode === 'reps' && !Number.isInteger(saved.before.actual)) throw new Error('Undo actual reps must be whole')
+    }
+    if (saved.before.status === 'pending' && saved.before.actual !== null || expectedRow.mode === 'watch' && (saved.before.status !== 'pending' || saved.before.actual !== null)) throw new Error('Undo checkpoint result is inconsistent')
   }
   if (session.status !== 'active') {
     at(session.endedAt)
