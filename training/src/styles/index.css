@@ -50,3 +50,24 @@
 .qt-shell--practice .qt-practice-header{margin-bottom:12px}
 
 .qt-practice-notes{margin-top:12px;font-size:13px;color:var(--qt-muted)}.qt-practice-notes summary{min-height:44px;display:flex;align-items:center;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.qt-practice-notes p{padding:0 0 8px;line-height:1.5}
+
+/* Approved instruction-first drill card. Video lives in the top layer. */
+.qt-drill-card{border:1px solid var(--qt-border);border-radius:18px;padding:16px;background:var(--qt-surface);animation:qt-drill-enter 180ms ease-out}
+.qt-practice .qt-practice-header{margin:0 0 12px;padding:0;border:0;position:static}
+.qt-practice .qt-drill-heading{margin-bottom:14px}.qt-practice .qt-drill-heading h1{font-size:30px;text-transform:none;margin-top:4px}
+.qt-work-target{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;font-size:13px;padding-bottom:14px;border-bottom:1px solid var(--qt-border)}
+.qt-work-target>strong{font-weight:500}.qt-work-target>span:not(.qt-badge){color:var(--qt-muted)}.qt-work-target .qt-badge{margin-left:auto}
+.qt-foot-target{font-size:13px;color:var(--qt-lime);padding-top:10px}
+.qt-coaching-brief section{padding:14px 0;border-bottom:1px solid var(--qt-border)}.qt-coaching-brief h2{font-size:11px;line-height:1.4;text-transform:uppercase;letter-spacing:.09em;font-weight:500;color:var(--qt-muted);margin-bottom:8px}
+.qt-coaching-brief p,.qt-coaching-brief li{font-size:14px;line-height:1.5}.qt-coaching-brief ol,.qt-coaching-brief ul{padding-left:20px;display:grid;gap:7px}.qt-coaching-brief li::marker{color:var(--qt-lime)}.qt-equipment{text-transform:capitalize}
+.qt-coaching-brief .qt-demo-credit{font-size:11px;color:var(--qt-muted);margin:10px 0}
+.qt-demo-trigger{display:flex;align-items:center;gap:12px;width:100%;padding:8px;margin-top:12px;border:1px solid var(--qt-border);border-radius:12px;background:#ffffff03;text-align:left;font-size:14px}
+.qt-demo-trigger>span:nth-child(2){flex:1}.qt-demo-trigger small{display:block;font-size:11px;color:var(--qt-muted);margin-top:3px}
+.qt-demo-thumb{width:64px;height:44px;flex:none;position:relative;display:grid;place-items:center;background:radial-gradient(ellipse at center,#577147,#253b32);color:#d0f87877;border-radius:6px;overflow:hidden}.qt-demo-thumb img{width:100%;height:100%;object-fit:cover}.qt-demo-thumb>span{position:absolute;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#101214cf;color:var(--qt-text)}
+.qt-practice .qt-set-panel{padding:0;border:0;border-radius:0;background:none}.qt-set-panel--simple:empty{display:none}.qt-set-details{margin-top:12px}.qt-set-details summary{font-size:12px;color:var(--qt-muted);min-height:44px;display:flex;align-items:center;cursor:pointer}.qt-set-details summary::before{content:'+';margin-right:8px}.qt-set-details[open] summary::before{content:'−'}
+.qt-practice .qt-timer{padding:14px 0 4px}.qt-practice .qt-timer strong{font-size:44px;margin:0 0 8px}.qt-practice .qt-timer>p:last-child{display:none}.qt-practice .qt-progress-track{margin-bottom:0}.qt-practice .qt-actual-field{margin-top:14px}.qt-practice .qt-review{padding:14px 0}
+.qt-practice .qt-action-dock{padding:8px 0 calc(8px + var(--qt-safe-bottom));margin-top:8px}.qt-practice .qt-action-dock>.qt-button{min-height:48px;border-radius:12px;font-size:15px;padding:10px 16px}.qt-secondary-rail--empty{display:none}.qt-practice .qt-secondary-rail{min-height:44px;margin-bottom:4px}.qt-practice .qt-secondary-rail>button{min-height:44px;background:none;border-radius:8px;padding:8px}
+.qt-video-dialog{max-width:540px;max-height:calc(100dvh - 24px);border-radius:18px}.qt-video-dialog .qt-dialog-inner{padding:12px}.qt-video-dialog .qt-dialog-inner>header{margin-bottom:8px;gap:8px}.qt-video-dialog .qt-dialog-inner h2{font-size:18px}.qt-video-dialog .qt-demonstration{margin:0}.qt-video-dialog .qt-media-frame,.qt-video-dialog .qt-media-frame[data-portrait=true]{aspect-ratio:auto;height:min(52dvh,460px);max-height:none;border-radius:10px}.qt-video-dialog .qt-media-tools{gap:6px}.qt-video-dialog::backdrop{background:#000b}
+@keyframes qt-drill-enter{from{opacity:.6;transform:translateX(12px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.qt-drill-card{animation:none}}
+.qt-coaching-brief section{padding:10px 0}.qt-coaching-notes{margin-top:6px;color:var(--qt-muted)}.qt-coaching-notes summary{min-height:44px;display:flex;align-items:center;font-size:11px;cursor:pointer}.qt-coaching-notes p{font-size:12px;padding-bottom:8px}html{scrollbar-gutter:stable}
