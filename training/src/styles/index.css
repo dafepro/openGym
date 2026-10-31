@@ -82,3 +82,126 @@
 .qt-transition-snapshot,.qt-transition-snapshot *{animation:none!important;transition:none!important;view-transition-name:none!important}
 
 .qt-in-transition .qt-view,.qt-in-transition .qt-drill-card{animation:none!important}
+
+/* Fixed practice action tray: time, stop, pause and forward action share one surface. */
+.qt-practice .qt-action-dock {
+  position: fixed;
+  bottom: calc(10px + var(--qt-safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: min(600px, calc(100vw - 24px));
+  margin: 0;
+  padding: 12px;
+  background: var(--qt-elevated, var(--qt-surface));
+  border: 1px solid var(--qt-border);
+  border-radius: 20px;
+  box-shadow: 0 12px 44px #0009;
+}
+.qt-shell--practice #training-main { padding-bottom: calc(254px + var(--qt-safe-bottom)); }
+.qt-practice .qt-action-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-height: 67px;
+  padding-bottom: 8px;
+}
+.qt-action-clock>span:first-child {
+  color: var(--qt-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.qt-action-clock>strong {
+  color: var(--qt-lime);
+  font-family: var(--qt-display);
+  font-weight: 600;
+  font-size: clamp(28px, 8vw, 40px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.qt-action-dock--rest .qt-action-clock>strong { color: var(--qt-blue); }
+.qt-action-progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  background: var(--qt-surface-2);
+  overflow: hidden;
+  border-radius: 8px;
+  margin-top: 6px;
+}
+.qt-action-progress>i {
+  display: block;
+  height: 100%;
+  background: var(--qt-lime);
+  transform-origin: left;
+}
+.qt-action-dock--rest .qt-action-progress>i { background: var(--qt-blue); }
+.qt-practice .qt-action-main {
+  display: grid;
+  grid-template-columns: minmax(68px,.9fr) minmax(72px,1fr) minmax(116px,1.7fr);
+  gap: 8px;
+  width: 100%;
+}
+.qt-practice .qt-action-main>button {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px;
+}
+.qt-practice .qt-action-main button:disabled { opacity: .4; }
+.qt-practice .qt-action-stop {
+  color: #ff8484;
+  background: color-mix(in srgb,var(--qt-red, #e86b6b) 16%,var(--qt-surface-2));
+  border: 1px solid #fc787855;
+  flex-direction: column;
+}
+.qt-practice .qt-action-pause {
+  color: var(--qt-text);
+  background: var(--qt-surface-2);
+  flex-direction: column;
+}
+.qt-practice .qt-action-next {
+  background: var(--qt-lime);
+  color: var(--qt-lime-ink);
+  justify-content: space-between !important;
+  padding-inline: 12px !important;
+}
+.qt-action-next>span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+.qt-action-next small { font-size: 11px; opacity: .7; }
+.qt-action-next strong { font-size: 20px; }
+.qt-practice .qt-action-dock .qt-secondary-rail { min-height: auto; display: flex; gap: 8px; margin: 8px 0 0; }
+.qt-practice .qt-action-dock .qt-secondary-rail>button {
+  flex: 1;
+  min-height: 38px;
+  background: var(--qt-surface-2);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+.qt-practice .qt-timer-note { font-size: 12px; color: var(--qt-muted); padding: 12px 0; text-align: center; }
+/* One controller owns drill changes. Prevent mount-level page/card entry animation. */
+.qt-practice.qt-view, .qt-practice .qt-drill-card { animation: none !important; }
+.qt-media-tools .qt-playback-toggle {
+  order: 99;
+  margin-inline-start: auto;
+  min-width: 66px;
+  min-height: 54px;
+  background: var(--qt-lime);
+  color: var(--qt-lime-ink);
+  border-color: var(--qt-lime);
+}
+.qt-media-tools .qt-playback-toggle .qt-play-pause { width: 30px; height: 30px; }
+@media (max-width: 350px) {
+  .qt-practice .qt-action-dock { padding: 9px; }
+  .qt-practice .qt-action-main { grid-template-columns: 64px 70px minmax(0, 1fr); gap: 6px; }
+  .qt-action-next strong { font-size: 18px; }
+}
+@media (max-height:600px) and (orientation:landscape) {
+  .qt-practice .qt-action-dock { position: sticky; bottom: 0; left: auto; transform: none; width: 100%; }
+  .qt-shell--practice #training-main { padding-bottom: 36px; }
+}
