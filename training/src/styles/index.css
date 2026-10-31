@@ -34,3 +34,19 @@
 
 .qt-demo-disclosure{margin-bottom:16px}.qt-demo-disclosure>.qt-button{width:100%;justify-content:center}.qt-demo-disclosure>div{margin-top:12px;animation:qt-page-in 160ms ease-out}.qt-drill-context{margin:0 0 16px;color:var(--qt-muted);font-size:13px}.qt-drill-context>summary{min-height:44px;cursor:pointer;display:flex;align-items:center;gap:8px}.qt-drill-context>summary:before{content:'+';color:var(--qt-lime);font-size:18px}.qt-drill-context[open]>summary:before{content:'−'}
 @media(prefers-reduced-motion:reduce){.qt-demo-disclosure>div{animation:none}}
+
+/* Keep the assigned workout and its action above the phone navigation. */
+.qt-shell--today,.qt-shell--practice{padding-top:calc(12px + env(safe-area-inset-top,0px))}
+.qt-shell--today .qt-brand,.qt-shell--practice .qt-brand{font-size:16px;margin-bottom:16px;gap:8px}
+.qt-shell--today .qt-brand-mark,.qt-shell--practice .qt-brand-mark{width:28px;height:28px;border-radius:8px}
+.qt-today .qt-assignment-body{padding:16px}
+.qt-today .qt-card-meta{margin-bottom:10px}
+.qt-today h1{font-family:var(--qt-display);font-size:clamp(28px,8vw,36px);font-weight:600;line-height:1.12;overflow-wrap:anywhere}
+.qt-today .qt-assignment-start{margin-top:16px}
+.qt-today .qt-drill-list{margin-top:16px;gap:6px}
+.qt-today .qt-drill-row{min-height:64px;padding:10px;gap:10px;border-radius:12px}
+.qt-today .qt-drill-number{width:28px;height:28px;font-size:18px}
+.qt-today .qt-drill-copy small{margin-top:2px}
+.qt-shell--practice .qt-practice-header{margin-bottom:12px}
+
+.qt-practice-notes{margin-top:12px;font-size:13px;color:var(--qt-muted)}.qt-practice-notes summary{min-height:44px;display:flex;align-items:center;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.qt-practice-notes p{padding:0 0 8px;line-height:1.5}
