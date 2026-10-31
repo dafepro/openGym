@@ -35,7 +35,7 @@ export function formatClock(value) {
 
 export function prescriptionLabel(drill) {
   if (drill?.prescription) return drill.prescription
-  if (drill?.mode === 'practice') return 'Self-paced · demonstration available'
+  if (drill?.mode === 'practice') return drill.media?.status === 'approved' ? 'Self-paced · demonstration available' : 'Self-paced · written instructions'
   if (drill?.mode === 'watch') return 'Watch the demonstration'
   if (drill?.mode === 'time' && !drill.durationSec || drill?.mode === 'reps' && !drill.reps) return 'Set a target'
   const work = drill?.mode === 'time' ? `${drill.durationSec} sec` : drill?.reps != null ? `${drill.reps} reps` : 'Prescription pending'

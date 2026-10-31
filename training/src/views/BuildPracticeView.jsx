@@ -5,11 +5,12 @@ import { changePrescription } from '../domain/practice-builder.js'
 import { Badge, Button, EmptyState, PageHeading, prescriptionLabel, countLabel, isVideoReview } from '../components/ui.jsx'
 import Dialog from '../components/Dialog.jsx'
 import Icon from '../components/Icon.jsx'
+import StarterPractices from '../components/StarterPractices.jsx'
 
 const label = tag => tag.replace(/^futbol:/, '').replaceAll('-', ' ')
 const number = value => value === '' ? '' : Number(value)
 
-export default function BuildPracticeView({ draft, onChange, library, saved, history, activeSession, onSave, onStart, onShare, onLoad, onNew, onPreview, disabled = false }) {
+export default function BuildPracticeView({ draft, onChange, library, saved, history, activeSession, onSave, onStart, onShare, onLoad, onNew, onPreview, onStartTemplate, onCustomizeTemplate, disabled = false }) {
   const [search, setSearch] = useState('')
   const [focus, setFocus] = useState('')
   const [setting, setSetting] = useState('')
@@ -43,6 +44,7 @@ export default function BuildPracticeView({ draft, onChange, library, saved, his
   }
   return <div className="qt-view qt-builder">
     <PageHeading eyebrow="Choose your focus. Make it yours." title="Build practice">Pick your drills, set the work, and take it to the pitch.</PageHeading>
+    <details className="qt-build-tools" open={draft.drills.length > 0 || undefined}><summary>Build your own practice{draft.drills.length ? ` · ${draft.drills.length} drills` : ''}</summary>
     <Button variant="text" icon="plus" onClick={onNew} disabled={disabled}>New practice</Button>
     <section id="practice-draft" className="qt-builder-plan" aria-label="Your practice">
       <div className="qt-builder-section-title"><span className="qt-eyebrow">Your practice</span><Badge tone="active">{countLabel(draft.drills.length, 'drill')}</Badge></div>
@@ -74,6 +76,8 @@ export default function BuildPracticeView({ draft, onChange, library, saved, his
       {!suggestions.length && <EmptyState title="No matching drills">Try another skill or setting, or add a custom drill.</EmptyState>}
     </section>
     {saved.length > 0 && <section className="qt-builder-saved" aria-label="Saved practices"><div className="qt-builder-section-title"><h2>Saved practices</h2><Badge>{saved.length}</Badge></div>{saved.map(practice => <button type="button" key={practice.id} className="qt-drill-row" disabled={disabled} onClick={() => onLoad(practice)}><Icon name="ball" /><span className="qt-drill-copy"><strong>{practice.title}</strong><small>{countLabel(practice.drills.length, 'drill')} · Edit or start</small></span><Icon name="arrow" /></button>)}</section>}
+    </details>
+    {onStartTemplate && <StarterPractices onStart={onStartTemplate} onCustomize={onCustomizeTemplate} disabled={disabled} />}
     {custom && <Dialog title="Add your own drill" onClose={() => setCustom(null)} actions={<Button onClick={createCustom}>Add to practice</Button>}><div className="qt-custom-form"><label className="qt-field">Drill name<input maxLength={240} value={custom.title} onChange={event => setCustom({ ...custom, title: event.target.value })} /></label><label className="qt-field">Instructions<textarea maxLength={2000} rows={4} value={custom.instructions} onChange={event => setCustom({ ...custom, instructions: event.target.value })} /></label><label className="qt-field">Tags, separated by commas<input placeholder="futbol:passing, wall, weak foot" value={custom.tags} onChange={event => setCustom({ ...custom, tags: event.target.value })} /></label><p className="qt-fine-print">Choose sets or a timer after adding. This custom drill has no video attached.</p>{customError && <p role="alert">{customError}</p>}</div></Dialog>}
   </div>
 }

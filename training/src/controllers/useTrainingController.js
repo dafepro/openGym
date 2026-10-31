@@ -134,7 +134,25 @@ export default function useTrainingController({ databaseName, suspended = false 
     queue.current = queue.current.catch(() => {}).then(() => canWrite.current ? persist(current.current) : null)
     return queue.current
   }
+  const removeSession = (kind, id) => {
+    const operation = queue.current.catch(() => {}).then(async () => {
+      if (!canWrite.current) return null
+      if (saveFailure.current) { setError('Save or export your pending changes before removing a session.'); return null }
+      setSaving(true)
+      try {
+        const next = await repository[kind](id, current.current.revision)
+        publish(next); setError(null)
+        return next
+      } catch (failure) {
+        setError(failure.message)
+        if (failure instanceof ProgressConflictError) { canWrite.current = false; setReadOnly(true) }
+        return null
+      } finally { setSaving(false) }
+    })
+    queue.current = operation
+    return operation
+  }
   const restore = imported => change(state => mergeProgress(state, imported))
   const active = progress.activeSession
-  return { progress, active, view: active ? getSessionView(active, now) : null, ready, saving, error, saveFailed: !!saveFailure.current, readOnly, command, start, retrySave, restore, exportData: () => exportProgress(current.current, { now: Date.now() }) }
+  return { progress, active, view: active ? getSessionView(active, now) : null, ready, saving, error, saveFailed: !!saveFailure.current, readOnly, command, start, retrySave, restore, discardActive: id => removeSession('discardActive', id), deleteSession: id => removeSession('deleteSession', id), exportData: () => exportProgress(current.current, { now: Date.now() }) }
 }

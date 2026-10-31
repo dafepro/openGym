@@ -110,3 +110,41 @@ describe('portable private progress exports', () => {
     expect(() => parseProgressExport(JSON.stringify(backup))).toThrow('inconsistent')
   })
 })
+
+describe('explicit session removal', () => {
+  it('discards only the active practice, including its timer, without creating history', async () => {
+    const factory = new IDBFactory(), repo = repository(factory)
+    const state = activeState()
+    state.activeSession = reduceSession(state.activeSession, { type: 'START', id: 'begin-discard', sessionId: state.activeSession.id, rowId: state.activeSession.currentRowId, now: 0 })
+    const saved = await repo.save(state)
+    const removed = await repo.discardActive(saved.activeSession.id, saved.revision)
+    expect(removed).toEqual({ ...emptyProgress(), revision: 2 })
+    await repo.close()
+    expect(await repository(factory).load()).toEqual(removed)
+  })
+  it('deletes one saved session while preserving another session and active work', async () => {
+    const repo = repository(), state = finishedState()
+    const other = structuredClone(state.sessions[0]); other.id = 'other-saved'
+    state.sessions.push(other)
+    state.activeSession = createSession(selectCurrentAssignment(syntheticCatalog), { id: 'keep-active', now: 2000 })
+    const saved = await repo.save(state)
+    const removed = await repo.deleteSession('persist-test', saved.revision)
+    expect(removed.sessions).toEqual([other])
+    expect(removed.activeSession).toEqual(saved.activeSession)
+    expect(await repo.load()).toEqual(removed)
+  })
+  it('refuses stale revisions and mismatched session identity without deleting anything', async () => {
+    const repo = repository(), saved = await repo.save(activeState())
+    await expect(repo.discardActive('different', saved.revision)).rejects.toThrow('no longer active')
+    await expect(repo.discardActive(saved.activeSession.id, 0)).rejects.toBeInstanceOf(ProgressConflictError)
+    await expect(repo.deleteSession(saved.activeSession.id, saved.revision)).rejects.toThrow('no longer in history')
+    expect(await repo.load()).toEqual(saved)
+  })
+  it('does not overwrite newer history with a stale deletion', async () => {
+    const factory = new IDBFactory(), a = repository(factory), b = repository(factory)
+    const saved = await a.save(finishedState())
+    const newer = await a.save(saved)
+    await expect(b.deleteSession(saved.sessions[0].id, saved.revision)).rejects.toBeInstanceOf(ProgressConflictError)
+    expect(await a.load()).toEqual(newer)
+  })
+})

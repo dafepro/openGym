@@ -97,3 +97,12 @@
 @keyframes qt-control-label{from{opacity:.4;translate:0 3px}to{opacity:1;translate:0 0}}
 @media(max-width:350px){.qt-control-center{gap:8px}.qt-control-row{gap:4px}.qt-workout-controls{padding-inline:8px}.qt-control-measure strong{font-size:27px}.qt-control-edge{width:44px}}
 @media(prefers-reduced-motion:reduce){.qt-workout-controls,.qt-workout-controls *,.qt-media-tools button,.qt-demo-trigger,.qt-loop-editor{animation:none!important;transition:none!important}}
+
+/* Touch video audio remains separate from the rightmost play control. */
+.qt-media-tools{gap:4px}.qt-media-tools>button,.qt-media-tools>label{padding-inline:8px}.qt-media-tools .qt-mute-toggle{min-width:44px;padding:6px}
+.qt-sound-icon{display:block;position:relative;width:22px;height:22px}.qt-sound-icon svg{position:absolute;inset:0;transition:opacity 160ms,transform 160ms}.qt-sound-icon svg:last-child{opacity:0;transform:scale(.7)}.qt-sound-icon.is-muted svg:first-child{opacity:0;transform:scale(.7)}.qt-sound-icon.is-muted svg:last-child{opacity:1;transform:scale(1)}
+.qt-button--danger{background:#ef8b8b15;color:#f59a9a;border:1px solid #ef8b8b55}.qt-button--danger:hover{background:#ef8b8b25}
+@media(max-width:350px){.qt-video-dialog .qt-media-tools{gap:4px}.qt-video-dialog .qt-media-tools>label{font-size:0;padding:4px}.qt-video-dialog .qt-media-tools select{font-size:12px}.qt-video-dialog .qt-media-tools>button{padding-inline:6px}}
+@media(prefers-reduced-motion:reduce){.qt-sound-icon svg{transition:none}}
+@media(max-width:430px){.qt-media-tools>label{font-size:0;padding-inline:4px}.qt-media-tools select{font-size:12px}.qt-video-dialog .qt-media-tools{flex-wrap:nowrap;gap:4px}}
+@media(max-width:350px){.qt-video-dialog .qt-media-tools>label{width:46px;min-width:46px;padding-inline:0;gap:0}.qt-video-dialog .qt-media-tools select{width:44px;min-width:0;padding-inline:0}}

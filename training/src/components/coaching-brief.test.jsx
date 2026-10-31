@@ -9,12 +9,12 @@ describe('instruction-first practice', () => {
     expect(coachingBrief(drill)).toEqual({ steps: ['Roll the ball.'], focus: ['Keep it close.'], credit: ['Demonstration: Coach.'], setup: [], reminders: [] })
   })
   it('shows prescribed work, rest, and current foot before the demo', () => {
-    const drill = { id: 'timed', title: 'Touch drill', mode: 'time', sets: 3, durationSec: 45, restSec: 20, side: 'each', instructions: 'Receive and turn.' }
+    const drill = { id: 'timed', title: 'Touch drill', mode: 'time', sets: 3, durationSec: 45, restSec: 20, side: 'each', instructions: 'Receive and turn.', media: { id: 'demo', status: 'approved', path: '/media/demo' } }
     const html = renderToStaticMarkup(<PracticeView drill={drill} sets={[{ id: 'row', side: 'right', setNumber: 2 }]} />)
     expect(html).toContain('3 sets · 45 sec · each foot')
     expect(html).toContain('20s rest')
     expect(html).toContain('Right foot')
-    expect(html.indexOf('Assigned work')).toBeLessThan(html.indexOf('Watch demonstration'))
+    expect(html.indexOf('Practice targets')).toBeLessThan(html.indexOf('Watch demonstration'))
     expect(html).not.toContain('<video')
     expect(html).not.toContain('<dialog')
   })
