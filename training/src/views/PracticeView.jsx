@@ -7,7 +7,7 @@ import CoachingBrief from '../components/CoachingBrief.jsx'
 import Dialog from '../components/Dialog.jsx'
 import { Badge, Button, EmptyState, Notice, formatClock, prescriptionLabel, isVideoReview, isSelfPacedPractice } from '../components/ui.jsx'
 
-export default function PracticeView({ assignment, drill, drillIndex = 0, drillCount, sets = [], currentSetIndex = 0, phase = 'ready', practiceSeconds = 0, practicePaused = false, onTogglePracticePause, remainingSeconds = 0, totalSeconds = 0, restPaused = false, primaryLabel, onPrimary, onPauseRest, onResumeRest, onAdjustRest, onStop, onUndo, onFinish, onBack, onReviewUnfinished, actualValue, onActualChange, onMediaError, sample = false, saved = false, complete = false, completedCount = 0, totalCount = 0, saveError, disabled = false }) {
+export default function PracticeView({ assignment, drill, drillIndex = 0, drillCount, sets = [], currentSetIndex = 0, phase = 'ready', sessionSeconds = 0, practiceSeconds = 0, practicePaused = false, onTogglePracticePause, remainingSeconds = 0, totalSeconds = 0, restPaused = false, primaryLabel, onPrimary, onPauseRest, onResumeRest, onAdjustRest, onStop, onUndo, onFinish, onBack, onReviewUnfinished, actualValue, onActualChange, onMediaError, sample = false, saved = false, complete = false, completedCount = 0, totalCount = 0, saveError, disabled = false }) {
   const reviewOnly = isVideoReview(assignment)
   const selfPaced = isSelfPacedPractice(assignment)
   const freeDrill = drill?.mode === 'practice'
@@ -53,8 +53,8 @@ export default function PracticeView({ assignment, drill, drillIndex = 0, drillC
       onPauseRest={onPauseRest} onResumeRest={onResumeRest} onAdjustRest={onAdjustRest}
       onStop={onStop} onFinish={onFinish} onUndo={onUndo} onReviewUnfinished={onReviewUnfinished}
       onTogglePracticePause={onTogglePracticePause} practicePaused={practicePaused} canPausePractice={freeDrill}
-      clockLabel={rest ? restPaused ? 'Rest paused' : 'Rest time left' : freeDrill ? practicePaused ? 'Practice paused' : 'Time practiced' : working && drill.mode === 'time' ? 'Work time left' : phase === 'review' ? 'Review set' : 'Session timer'}
-      clockValue={rest || working && drill.mode === 'time' ? formatClock(remainingSeconds) : freeDrill ? formatClock(Math.floor(practiceSeconds)) : phase === 'working' ? 'In progress' : '0:00'}
+      clockLabel={rest ? restPaused ? 'Rest paused' : 'Rest time left' : freeDrill ? practicePaused ? 'Practice paused' : 'Time practiced' : working && drill.mode === 'time' ? 'Work time left' : phase === 'review' ? 'Review set' : 'Session elapsed'}
+      clockValue={rest || working && drill.mode === 'time' ? formatClock(remainingSeconds) : freeDrill ? formatClock(Math.floor(practiceSeconds)) : formatClock(sessionSeconds)}
       clockFraction={rest || working && drill.mode === 'time' ? fraction : 0}
     />
   </div>
