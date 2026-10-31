@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { APP_CONFIG } from '../config.js'
+import { transitionView } from '../lib/motion.js'
 import { ROUTES, useSharedPracticeToken } from '../lib/routes.js'
 import { selectCurrentAssignment } from '../domain/index.js'
 import { parseProgressExport } from '../storage/index.js'
@@ -31,6 +32,7 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
   const { active, view, progress, ready, error, readOnly, saving, saveFailed } = controller
   const [dialog, setDialog] = useState(null)
   const [finished, setFinished] = useState(null)
+  const [finishingSession, setFinishingSession] = useState(null)
   const [actual, setActual] = useState('')
   const [message, setMessage] = useState('')
   const [gallery, setGallery] = useState('loading')
@@ -77,7 +79,7 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
   useEffect(() => { document.getElementById('training-main')?.focus({ preventScroll: true }); window.scrollTo(0, 0) }, [route, finished?.id])
   useEffect(() => {
     if (!view?.currentRow) return
-    const offered = view.phase === 'review' ? Math.max(view.currentRow.actual || 0, Math.min(view.currentRow.target, Math.floor(view.elapsedSec))) : view.currentRow.target
+    const offered = view.phase === 'review' ? Math.max(view.currentRow.actual || 0, Math.min(view.currentRow.target, Math.floor(view.elapsedSec))) : view.currentRow.mode === 'reps' ? view.currentRow.actual || 0 : view.currentRow.target
     setActual(offered ?? '')
   }, [view?.currentRow?.id, view?.phase])
 
@@ -92,9 +94,11 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
   const finish = async () => {
     if (!active) return
     const sessionId = active.id
+    setFinishingSession({ session: active, view })
     const next = await controller.command('FINISH', {}, { sessionId })
     const result = next?.sessions.find(session => session.id === sessionId)
-    if (result) { setFinished(result); setDialog(null); navigate('practice') }
+    if (result) transitionView(() => { setFinished(result); setFinishingSession(null); setDialog(null); navigate('practice') })
+    else setFinishingSession(null)
   }
   const primary = () => {
     if (!view) return
@@ -122,12 +126,14 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
     const next = await controller.restore(dialog.data)
     if (next) { setDialog(null); setMessage('Backup merged. Existing history has been preserved.'); setFinished(null) }
   }
-  const shown = finished || active
+  const visualActive = active || finishingSession?.session
+  const visualView = view || finishingSession?.view
+  const shown = finished || visualActive
   const reviewOnly = isVideoReview(shown?.assignment || currentAssignment)
   const selfPaced = isSelfPacedPractice(shown?.assignment || currentAssignment)
-  const drill = view?.drill || active?.assignment.drills.at(-1)
-  const drillRows = active?.rows.filter(row => row.drillId === drill?.id) || []
-  const currentSetIndex = Math.max(0, drillRows.findIndex(row => row.id === active?.currentRowId))
+  const drill = visualView?.drill || visualActive?.assignment.drills.at(-1)
+  const drillRows = visualActive?.rows.filter(row => row.drillId === drill?.id) || []
+  const currentSetIndex = Math.max(0, drillRows.findIndex(row => row.id === visualActive?.currentRowId))
   const disabledActual = (view?.phase === 'review' || view?.phase === 'working' && view?.currentRow?.mode === 'reps') && (actual === '' || !Number.isFinite(Number(actual)) || Number(actual) < 0 || view?.currentRow?.mode === 'reps' && !Number.isInteger(Number(actual)))
   const phaseAnnouncement = view ? `${view.drill?.title || 'Practice'}: ${view.phase === 'review' ? 'Review elapsed set. Confirm completed work.' : view.phase === 'rest' ? active.timer?.paused ? 'Rest paused.' : 'Rest started.' : view.phase === 'ready' ? reviewOnly ? 'Ready to review this video.' : selfPaced ? 'Ready. Start the next drill when you are ready.' : 'Ready. Start the next set when you are ready.' : view.phase === 'complete' ? reviewOnly ? 'All videos reviewed. Save your review.' : selfPaced ? 'All drills practiced. Finish to save the session.' : 'All sets recorded. Finish to save the session.' : selfPaced ? 'Drill started.' : 'Set started.'}` : ''
 
@@ -146,7 +152,7 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
       {route === 'build' && <BuildPracticeView draft={draft} onChange={setDraft} library={library} saved={savedLibrary.practices} history={progress.sessions} activeSession={active} onSave={() => useDraft(persistPractice)} onStart={() => useDraft(begin)} onShare={() => useDraft(share)} onLoad={assignment => draft.drills.length ? setDialog({ type: 'load-practice', assignment }) : loadPractice(assignment)} onNew={() => setDialog({ type: 'new-practice' })} onPreview={previewDrill} disabled={readOnly} />}
       {route === 'shared' && (shared?.assignment ? <TodayView assignment={shared.assignment} kind="shared" activeSession={active} onStart={readOnly ? undefined : () => begin(shared.assignment)} onResume={() => navigate('practice')} onBuild={copyShared} onOpenDrill={previewDrill} /> : <Notice title="Practice link unavailable" tone="error" action="Build a practice" onAction={() => navigate('build')}>{shared?.error || 'Ask for the complete practice link.'}</Notice>)}
       {route === 'history' && <><HistoryView assignments={catalog.assignments} currentAssignmentId={catalog.currentAssignmentId} currentAssignmentRevision={catalog.currentAssignmentRevision} sessions={[...(active ? [active] : []), ...progress.sessions.slice().reverse()]} onOpenAssignment={assignment => setDialog({ type: 'assignment', assignment })} onOpenSession={session => setDialog({ type: 'session', session })} onResume={() => { setFinished(null); navigate('practice') }} onExport={download} /><Button variant="text" onClick={() => importInput.current?.click()} disabled={readOnly}>Restore a backup</Button></>}
-      {route === 'practice' && <PracticeView assignment={shown?.assignment} drill={drill} drillIndex={active ? Math.max(0, active.assignment.drills.findIndex(item => item.id === drill?.id)) : 0} drillCount={active?.assignment.drills.length} sets={drillRows} currentSetIndex={currentSetIndex} phase={view?.phase} practiceSeconds={view?.practiceSeconds || 0} practicePaused={view?.practicePaused} onTogglePracticePause={readOnly ? undefined : () => send(view?.practicePaused ? 'RESUME_PRACTICE' : 'PAUSE_PRACTICE')} remainingSeconds={view?.remainingSec || 0} totalSeconds={active?.timer?.target || active?.assignment.drills.find(item => item.id === active.rows.find(row => row.id === active.timer?.ownerRowId)?.drillId)?.restSec || 0} restPaused={!!active?.timer?.paused} primaryLabel={reviewOnly && view?.phase === 'complete' ? 'Save review' : view?.primaryAction.label} onPrimary={readOnly ? undefined : primary} onPauseRest={readOnly ? undefined : () => send('PAUSE_REST')} onResumeRest={readOnly ? undefined : () => send('RESUME_REST')} onAdjustRest={readOnly ? undefined : deltaSec => send('ADJUST_REST', { deltaSec })} onStop={!readOnly && view?.phase === 'working' ? () => send('STOP') : undefined} onUndo={!readOnly && view?.canUndo ? () => send('UNDO') : undefined} onFinish={!readOnly && active ? () => setDialog({ type: 'finish' }) : undefined} onBack={() => { setFinished(null); navigate('today') }} onReviewUnfinished={readOnly ? undefined : () => send('STOP')} actualValue={actual} onActualChange={readOnly ? undefined : setActual} onMediaError={onMediaError} sample={sample} saved={!!finished} complete={finished?.status === 'completed'} completedCount={finished?.rows.filter(row => row.status === 'done').length || 0} totalCount={finished?.rows.length || 0} saveError={saveFailed ? error : undefined} disabled={readOnly || disabledActual} />}
+      {route === 'practice' && <PracticeView assignment={shown?.assignment} drill={drill} drillIndex={visualActive ? Math.max(0, visualActive.assignment.drills.findIndex(item => item.id === drill?.id)) : 0} drillCount={visualActive?.assignment.drills.length} sets={drillRows} currentSetIndex={currentSetIndex} phase={visualView?.phase} practiceSeconds={visualView?.practiceSeconds || 0} practicePaused={visualView?.practicePaused} onTogglePracticePause={readOnly ? undefined : () => send(view?.practicePaused ? 'RESUME_PRACTICE' : 'PAUSE_PRACTICE')} remainingSeconds={visualView?.remainingSec || 0} totalSeconds={active?.timer?.target || active?.assignment.drills.find(item => item.id === active.rows.find(row => row.id === active.timer?.ownerRowId)?.drillId)?.restSec || 0} restPaused={!!active?.timer?.paused} primaryLabel={reviewOnly && view?.phase === 'complete' ? 'Save review' : view?.primaryAction.label} onPrimary={readOnly ? undefined : primary} onPauseRest={readOnly ? undefined : () => send('PAUSE_REST')} onResumeRest={readOnly ? undefined : () => send('RESUME_REST')} onAdjustRest={readOnly ? undefined : deltaSec => send('ADJUST_REST', { deltaSec })} onStop={!readOnly && view?.phase === 'working' ? () => send('STOP') : undefined} onUndo={!readOnly && view?.canUndo ? () => send('UNDO') : undefined} onFinish={!readOnly && active ? () => setDialog({ type: 'finish' }) : undefined} onBack={() => { setFinished(null); navigate('today') }} onReviewUnfinished={readOnly ? undefined : () => send('STOP')} actualValue={actual} onActualChange={readOnly ? undefined : setActual} onMediaError={onMediaError} sample={sample} saved={!!finished} complete={finished?.status === 'completed'} completedCount={finished?.rows.filter(row => row.status === 'done').length || 0} totalCount={finished?.rows.length || 0} saveError={saveFailed ? error : undefined} disabled={readOnly || disabledActual || !!finishingSession} />}
     </>}
     {saveFailed && <Button variant="secondary" icon="download" onClick={download}>Export in-memory progress</Button>}
     {(onRenewAccess || onLogout) && <div className="qt-access-actions">{onRenewAccess && <Button variant="text" disabled={accessPending} onClick={onRenewAccess}>Renew family access</Button>}{onLogout && <Button variant="text" disabled={accessPending} onClick={onLogout}>Sign out</Button>}</div>}
@@ -159,7 +165,7 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
       {dialog.type === 'assignment' && <AssignmentDetail assignment={dialog.assignment} current={isCurrent(dialog.assignment)} />}
       {dialog.type === 'session' && <SessionDetail session={dialog.session} />}
       {dialog.type === 'drill' && <><Badge>{dialog.standalone ? 'Drill details' : `Drill ${dialog.index + 1} of ${currentAssignment.drills.length}`}</Badge><p>{prescriptionLabel(dialog.drill)}</p><DrillDemonstration media={dialog.drill.media} title={dialog.drill.title} sample={sample} onPlaybackError={onMediaError} /><p>{dialog.drill.instructions}</p><DrillMetadata metadata={dialog.drill.metadata} /></>}
-      {dialog.type === 'finish' && (reviewOnly ? <><p>{view?.progress.done || 0} of {view?.progress.total || 0} videos reviewed. No athletic work is recorded by this review.</p><p>Unreviewed videos will stay unreviewed in the saved record.</p></> : <><p>{view?.progress.done || 0} of {view?.progress.total || 0} {selfPaced ? 'drills practiced.' : `sets recorded. ${view?.progress.met || 0} met their prescription.`}</p><p>{view?.prescriptionMet ? selfPaced ? 'All drills are complete.' : 'All prescribed work is complete.' : 'Unfinished or early-ended work will be saved as a partial session.'}{!selfPaced && ' Opening this dialog has not stopped your timer.'}</p></>)}
+      {dialog.type === 'finish' && (reviewOnly ? <><p>{view?.progress.done || 0} of {view?.progress.total || 0} videos reviewed. No athletic work is recorded by this review.</p><p>Unreviewed videos will stay unreviewed in the saved record.</p></> : <><p>{view?.progress.done || 0} of {view?.progress.total || 0} {selfPaced ? 'drills practiced.' : `sets recorded. ${view?.progress.met || 0} met their prescription.`}</p><p>{view?.prescriptionMet ? selfPaced ? 'All drills are complete.' : 'All prescribed work is complete.' : 'Unfinished or early-ended work will be saved as a partial session.'}{' Opening this dialog has not stopped your timer.'}</p></>)}
       {dialog.type === 'existing' && <p>Resume or finish the existing practice before starting a new one. Its assignment snapshot and progress are preserved.</p>}
       {dialog.type === 'restore' && <><p>The backup contains {dialog.data.sessions.length} saved sessions{dialog.data.activeSession ? ' and an active practice' : ''}. Existing history will be preserved. Conflicting work is refused.</p><Button variant="text" icon="download" onClick={download}>Export current progress first</Button></>}
     </Dialog>}
