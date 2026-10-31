@@ -1,3 +1,5 @@
+import { useId, useState } from 'react'
+import Reveal from '../components/Reveal.jsx'
 import Icon from '../components/Icon.jsx'
 import { Badge, Button, EmptyState, LoadingState, PageHeading, countLabel, formatClock, isVideoReview, isSelfPacedPractice } from '../components/ui.jsx'
 import { isAssignedSession, newestSessions, sessionPracticeTime, sessionTimestamp } from '../domain/player-history.js'
@@ -25,5 +27,7 @@ export default function HistoryView({ assignments = [], sessions = [], onOpenSes
 }
 
 export function HistoryStorage({ onExport, onRestore }) {
-  return <details className="qt-backup-disclosure"><summary><Icon name="download" size={16}/> Backup &amp; device storage</summary><p>History stays in this browser. Export before changing devices or clearing site data. Player details are saved separately.</p><div className="qt-history-backup-actions">{onExport && <Button variant="text" icon="download" onClick={onExport}>Export a backup</Button>}{onRestore && <Button variant="text" onClick={onRestore}>Restore a backup</Button>}</div></details>
+  const [open, setOpen] = useState(false)
+  const id = useId()
+  return <section className="qt-backup-disclosure"><button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)}><Icon name="download" size={16}/><span>Backup &amp; device storage</span><Icon name="arrow" size={14}/></button><Reveal open={open} id={id}><p>History stays in this browser. Export before changing devices or clearing site data. Player details are saved separately.</p><div className="qt-history-backup-actions">{onExport && <Button variant="text" icon="download" onClick={onExport}>Export a backup</Button>}{onRestore && <Button variant="text" onClick={onRestore}>Restore a backup</Button>}</div></Reveal></section>
 }

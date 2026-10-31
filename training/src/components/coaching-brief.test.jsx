@@ -43,18 +43,18 @@ describe('bottom practice controls', () => {
   const drill = { id: 'free', title: 'Ball control', mode: 'practice', sets: 1 }
   it('keeps starting separate from recording a drill', () => {
     const html = renderToStaticMarkup(<PracticeView drill={drill} phase="ready" onPrimary={() => {}} onFinish={() => {}} />)
-    expect(html).toMatch(/disabled="" aria-label="Next drill"/)
+    expect(html).toMatch(/disabled="" aria-label="Finish drill"/)
     expect(html).toContain('aria-label="Start drill"')
     expect(html.indexOf('aria-label="Quit practice"')).toBeLessThan(html.indexOf('aria-label="Start drill"'))
-    expect(html.indexOf('aria-label="Start drill"')).toBeLessThan(html.indexOf('aria-label="Next drill"'))
+    expect(html.indexOf('aria-label="Start drill"')).toBeLessThan(html.indexOf('aria-label="Finish drill"'))
   })
   it('keeps the stopwatch and pause action inside the same panel as completion', () => {
     const html = renderToStaticMarkup(<PracticeView drill={drill} phase="working" practiceSeconds={72} practicePaused onPrimary={() => {}} onTogglePracticePause={() => {}} />)
     const panel = html.slice(html.indexOf('aria-label="Practice controls"'))
     expect(panel).toContain('1:12')
     expect(panel).toContain('aria-label="Resume practice timer"')
-    expect(panel).toContain('aria-label="Next drill"')
-    expect(panel).not.toMatch(/disabled="" aria-label="Next drill"/)
+    expect(panel).toContain('aria-label="Finish drill"')
+    expect(panel).not.toMatch(/disabled="" aria-label="Finish drill"/)
     expect(html.slice(0, html.indexOf('aria-label="Practice controls"'))).not.toContain('role="timer"')
   })
   it('provides tap controls for actual repetitions and retains explicit set completion', () => {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import Icon from '../components/Icon.jsx'
 import { Button, LoadingState, Notice, formatClock } from '../components/ui.jsx'
 import HistoryView, { HistoryStorage } from './HistoryView.jsx'
@@ -15,24 +15,26 @@ function PlayerProfile({ databaseName }) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState(saved.error)
   const profile = saved.profile
+  const editButton = useRef(null)
+  const closeEditor = () => { editButton.current?.focus({ preventScroll: true }); setEditing(false) }
   const change = field => event => setDraft(previous => ({ ...previous, [field]: event.target.value }))
   const save = event => {
     event.preventDefault()
     try {
       const next = savePlayerProfile(databaseName, draft)
-      setSaved({ profile: next, error: '' }); setDraft(next); setEditing(false); setError(''); setMessage('Player details saved on this device.')
+      setSaved({ profile: next, error: '' }); setDraft(next); closeEditor(); setError(''); setMessage('Player details saved on this device.')
     } catch (failure) { setError(failure.message) }
   }
   return <section className="qt-player-card" aria-label="Player profile">
-    <div className="qt-player-overview"><span className="qt-player-avatar" aria-hidden="true">{profile.nickname ? Array.from(profile.nickname)[0].toLocaleUpperCase() : <Icon name="ball" size={28} />}</span><div><h1>{profile.nickname || 'Me'}</h1><p className="qt-player-position">{[profile.role, profile.preferredFoot && (profile.preferredFoot === 'Both' ? 'Both feet' : `${profile.preferredFoot} foot`)].filter(Boolean).join(' · ') || 'Your player profile'}</p></div><Button variant="text" onClick={() => { setDraft(profile); setEditing(value => !value); setMessage('') }} aria-expanded={editing} aria-controls="player-profile-form">{editing ? 'Close' : 'Edit'}</Button></div>
-    {!editing && profile.goals && <div className="qt-player-goal"><span>Working toward</span><p>{profile.goals}</p></div>}
-    {editing && <form className="qt-player-form" id="player-profile-form" onSubmit={save}>
-      <label className="qt-field">Nickname <input autoFocus value={draft.nickname} onChange={change('nickname')} maxLength={40} autoComplete="nickname" placeholder="What should we call you?" /></label>
+    <div className="qt-player-overview"><span className="qt-player-avatar" aria-hidden="true">{profile.nickname ? Array.from(profile.nickname)[0].toLocaleUpperCase() : <Icon name="ball" size={28} />}</span><div><h1>{profile.nickname || 'Me'}</h1><p className="qt-player-position">{[profile.role, profile.preferredFoot && (profile.preferredFoot === 'Both' ? 'Both feet' : `${profile.preferredFoot} foot`)].filter(Boolean).join(' · ') || 'Your player profile'}</p></div><Button ref={editButton} variant="text" onClick={() => { setDraft(profile); setEditing(value => !value); setMessage('') }} aria-expanded={editing} aria-controls="player-profile-form">{editing ? 'Close' : 'Edit'}</Button></div>
+    {profile.goals && <Reveal open={!editing}><div className="qt-player-goal"><span>Working toward</span><p>{profile.goals}</p></div></Reveal>}
+    <Reveal open={editing} id="player-profile-form"><form className="qt-player-form" onSubmit={save}>
+      <label className="qt-field">Nickname <input value={draft.nickname} onChange={change('nickname')} maxLength={40} autoComplete="nickname" placeholder="What should we call you?" /></label>
       <div className="qt-field-grid"><label className="qt-field">Preferred foot<select value={draft.preferredFoot} onChange={change('preferredFoot')}><option value="">Not set</option>{PLAYER_FEET.map(foot => <option key={foot}>{foot}</option>)}</select></label><label className="qt-field">Playing role<select value={draft.role} onChange={change('role')}><option value="">Not set</option>{PLAYER_ROLES.map(role => <option key={role}>{role}</option>)}</select></label></div>
       <label className="qt-field">What are you working toward? <span className="qt-player-optional">Optional · {draft.goals.length}/280</span><textarea rows={3} value={draft.goals} onChange={change('goals')} maxLength={280} placeholder="Your own practice goals" /></label>
       <p className="qt-me-caption">All fields are optional. Details stay in this browser.</p>
-      <div className="qt-player-form-actions"><Button type="submit">Save details</Button><Button variant="secondary" onClick={() => { setEditing(false); setDraft(profile); setError(saved.error) }}>Cancel</Button></div>
-    </form>}
+      <div className="qt-player-form-actions"><Button type="submit">Save details</Button><Button variant="secondary" onClick={() => { closeEditor(); setDraft(profile); setError(saved.error) }}>Cancel</Button></div>
+    </form></Reveal>
     {error && <Notice title="Player details" tone="error">{error}</Notice>}
     {message && <p className="qt-player-saved" role="status">{message}</p>}
   </section>

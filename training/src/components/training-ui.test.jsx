@@ -14,7 +14,7 @@ const reviewAssignment = { id: 'review-test', revision: 'v1', title: 'Video revi
 
 describe('practice bottom action tray', () => {
   it('keeps stop on the left, clock and pause in the middle, and Next to the right', () => {
-    const html = renderToStaticMarkup(<PracticeActionDock phase="working" primaryLabel="Drill done"
+    const html = renderToStaticMarkup(<PracticeActionDock phase="working" drillCount={2} primaryLabel="Drill done"
       onPrimary={() => {}} onQuit={() => {}} onTogglePracticePause={() => {}}
       drill={{ mode: 'practice' }} practiceSeconds={83} />)
     expect(html).toContain('Time practiced')

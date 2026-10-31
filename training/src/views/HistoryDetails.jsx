@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Reveal from '../components/Reveal.jsx'
 import Icon from '../components/Icon.jsx'
-import { sessionPracticeTime } from '../domain/player-history.js'
+import { RecordedWork } from '../components/SessionRecap.jsx'
 import { Badge, Button, formatClock, prescriptionLabel, isVideoReview } from '../components/ui.jsx'
 
 export function AssignmentDetail({ assignment, current }) {
@@ -10,10 +10,9 @@ export function AssignmentDetail({ assignment, current }) {
 
 export function SessionDetail({ session, onDelete }) {
   const [expanded, setExpanded] = useState(null)
-  const time = sessionPracticeTime(session)
   const review = isVideoReview(session.assignment)
-  return <div className="qt-session-review"><div className="qt-detail-meta"><Badge tone={session.status === 'completed' ? 'complete' : 'neutral'}>{session.status === 'completed' ? review ? 'Videos reviewed' : 'Complete' : session.status === 'active' ? 'In progress' : 'Partial'}</Badge>{!review && time.measuredRows > 0 && <span>{formatClock(Math.floor(time.seconds))} recorded work</span>}{onDelete && session.status !== 'active' && <Button variant="text" className="qt-delete-shortcut" onClick={() => onDelete(session)}>Delete session</Button>}</div>
-    <p className="qt-session-edition">Practice edition {session.assignmentRevision} · saved instructions</p>
+  return <div className="qt-session-review"><div className="qt-detail-meta"><Badge tone={session.status === 'completed' ? 'complete' : 'neutral'}>{session.status === 'completed' ? review ? 'Videos reviewed' : 'Complete' : session.status === 'active' ? 'In progress' : 'Partial'}</Badge>{onDelete && session.status !== 'active' && <Button variant="text" className="qt-delete-shortcut" onClick={() => onDelete(session)}>Delete session</Button>}</div>
+    <RecordedWork session={session} />
     <ol className="qt-session-drills">{session.assignment.drills.map(drill => {
       const rows = session.rows.filter(row => row.drillId === drill.id)
       const done = rows.filter(row => row.status === 'done').length
