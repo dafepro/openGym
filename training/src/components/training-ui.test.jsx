@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import DrillDemonstration from './DrillDemonstration.jsx'
+import DrillPreview from './DrillPreview.jsx'
 import PracticeActionDock from './PracticeActionDock.jsx'
 import PracticeView from '../views/PracticeView.jsx'
 import HistoryView from '../views/HistoryView.jsx'
@@ -36,6 +37,20 @@ describe('practice bottom action tray', () => {
   })
 })
 
+describe('instruction-first drill previews', () => {
+  it('shows coaching before an explicitly opened video and omits unavailable-player filler', () => {
+    const drill = { title: 'Close touches', instructions: 'Move the ball. Keep it close.', mode: 'practice', sets: 1, media: { id: 'clip', status: 'approved', path: '/media/clip' } }
+    const html = renderToStaticMarkup(<DrillPreview drill={drill} />)
+    expect(html).toContain('Do the drill')
+    expect(html).toContain('Keep it close.')
+    expect(html).toContain('Watch demonstration')
+    expect(html).not.toContain('<video')
+    const written = renderToStaticMarkup(<DrillPreview drill={{ ...drill, media: { status: 'unavailable' } }} />)
+    expect(written).toContain('Written instructions')
+    expect(written).not.toContain('qt-media-frame')
+  })
+})
+
 describe('training presentation boundaries', () => {
   it('labels link-selected work as shared and offers a personal copy', () => {
     const html = renderToStaticMarkup(<TodayView assignment={reviewAssignment} kind="shared" onBuild={() => {}} />)
@@ -62,16 +77,18 @@ describe('training presentation boundaries', () => {
     }
   })
 
-  it('offers inline native controls and identifies a sample clip without autoplay', () => {
+  it('offers one accessible control set and identifies a sample clip without autoplay', () => {
     const html = renderToStaticMarkup(<DrillDemonstration title="Sample" sample media={{ id: 'sample-playback', status: 'approved', path: '/media/sample-playback' }} />)
     expect(html).toContain('<video')
-    expect(html).toContain('controls=""')
+    expect(html).not.toContain(' controls=')
+    expect(html).toContain('aria-label="Video position"')
+    expect(html).toContain('aria-label="View video fullscreen"')
     expect(html).toContain('playsInline=""')
     expect(html).not.toContain('autoPlay')
     expect(html).toContain('not a drill demonstration')
   })
 
-  it('opts into autoplay for a requested demo and exposes an additional playback control', () => {
+  it('opts into autoplay for a requested demo and exposes a custom playback control', () => {
     const html = renderToStaticMarkup(<DrillDemonstration title="Demo" autoPlay media={{ id: 'clip', status: 'approved', path: '/media/clip' }} />)
     expect(html).toContain('autoPlay=""')
     expect(html).toContain('aria-label="Play video"')

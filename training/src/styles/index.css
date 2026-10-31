@@ -57,7 +57,7 @@
 .qt-work-target>strong{font-weight:500}.qt-work-target>span:not(.qt-badge){color:var(--qt-muted)}.qt-work-target .qt-badge{margin-left:auto}
 .qt-foot-target{font-size:13px;color:var(--qt-lime);padding-top:10px}
 .qt-coaching-brief section{padding:14px 0;border-bottom:1px solid var(--qt-border)}.qt-coaching-brief h2{font-size:11px;line-height:1.4;text-transform:uppercase;letter-spacing:.09em;font-weight:500;color:var(--qt-muted);margin-bottom:8px}
-.qt-coaching-brief p,.qt-coaching-brief li{font-size:14px;line-height:1.5}.qt-coaching-brief ol,.qt-coaching-brief ul{padding-left:20px;display:grid;gap:7px}.qt-coaching-brief li::marker{color:var(--qt-lime)}.qt-equipment{text-transform:capitalize}
+.qt-coaching-brief p,.qt-coaching-brief li{font-size:14px;line-height:1.5}.qt-coaching-brief ol,.qt-coaching-brief ul{padding-left:20px;display:grid;gap:7px}.qt-coaching-brief li::marker{color:var(--qt-lime)}.qt-equipment{text-transform:none}
 .qt-coaching-brief .qt-demo-credit{font-size:11px;color:var(--qt-muted);margin:10px 0}
 .qt-demo-trigger{display:flex;align-items:center;gap:12px;width:100%;padding:8px;margin-top:12px;border:1px solid var(--qt-border);border-radius:12px;background:#ffffff03;text-align:left;font-size:14px}
 .qt-demo-trigger>span:nth-child(2){flex:1}.qt-demo-trigger small{display:block;font-size:11px;color:var(--qt-muted);margin-top:3px}
