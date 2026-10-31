@@ -35,7 +35,7 @@ function Disclosure({ name, label, icon, pane, disclose, children }) {
 
 export default function WorkoutFocus({
   entryIdx, unit, controlsForEntry, onSelectEntry, onAdvanceUnit,
-  onToggle, onToggleSide, onField, onSideField, onMutateSet, onStartTimed, onAddExercise,
+  onToggle, onToggleSide, onField, onSideField, onMutateSet, onStartTimed, onAddExercise, onStop,
 }) {
   const S = useStore(s => s.S)
   useLang()
@@ -192,7 +192,6 @@ export default function WorkoutFocus({
         <header className="wf-header"><div><span className="wf-kicker">{kicker}</span><h2>{view === 'workout' ? A.name : work?.label || exerciseNameFor(ex)}</h2></div>
           {view === 'live' && <button type="button" className="wf-info-toggle" aria-label={t('Details')} aria-expanded={pane === 'info'} aria-controls={id + '-info'} onClick={() => disclose('info')}><Icon name={pane === 'info' ? 'chevronUp' : 'info'} /></button>}
         </header>
-        {(work || timer) && <div className={'wf-timer-strip' + (view === 'live' ? ' wf-live-timer' : '')}><span role={timer?.ready ? 'status' : undefined}>{view === 'workout' ? summary : timer?.ready ? t('Ready') : clock((work || timer).left)}</span><div className="wf-timer-progress"><i style={{ width: (timerFraction * 100 || 0) + '%' }} /></div></div>}
         <div className="wf-content">
           <FocusSwitch stateKey={view + ':' + phase + ':' + entryIdx + ':' + setIdx + ':' + side}>
             {view === 'workout' ? <div className="wf-stations">
@@ -224,18 +223,31 @@ export default function WorkoutFocus({
         {view === 'workout' && <div className="wf-live-context">{exerciseNameFor(ex)} · {row ? t('Set {0}', setIdx + 1) + ' / ' + entry.sets.length : t('Completed')}</div>}
       </section>
       <div className="wf-actions" aria-hidden={!!sheets.length} inert={!!sheets.length}>
+        <div className="wf-action-clock" role={timer || work ? 'timer' : undefined}>
+          <span>{phaseLabel}</span>
+          <strong>{work || timer ? timer?.ready ? t('Ready') : clock((work || timer).left) : summary}</strong>
+          {(work || timer) && <div className="wf-timer-progress" aria-hidden="true"><i style={{ width: (timerFraction * 100 || 0) + '%' }} /></div>}
+        </div>
         {(canSkipWarmups || pane === 'last' && previousTarget || phase === 'working') && <div className="wf-secondary-actions">
           {pane === 'last' && previousTarget && <button type="button" disabled={!previousValid || !!work} onClick={undoLast}><Icon name="undo" />{t('Undo')}</button>}
           {canSkipWarmups && <button type="button" onClick={skipWarmups}><Icon name="skipForward" />{t('Skip warm-ups')}</button>}
-          {phase === 'working' && <button type="button" onClick={() => useUI.getState().abandonWork()}><Icon name="stop" />{t('Stop')}</button>}
+          {phase === 'working' && <button type="button" onClick={() => useUI.getState().abandonWork()}><Icon name="stop" />{t('Cancel')} {t('Time')}</button>}
         </div>}
         {phase === 'rest' && <div className="wf-secondary-actions wf-rest-adjust">
           <button type="button" aria-label={t('Less time')} disabled={timer.ready} onClick={() => useUI.getState().addRest(-15)}>−15s</button>
-          <button type="button" className="wf-pause" disabled={timer.ready} aria-label={t(timer.paused ? 'Resume' : 'Pause')} onClick={timer.paused ? useUI.getState().resumeRest : useUI.getState().pauseRest}><Icon name={timer.paused ? 'play' : 'pause'} />{t(timer.paused ? 'Resume' : 'Pause')}</button>
+          <span className="wf-rest-adjust-label">{t('Rest')}</span>
           <button type="button" aria-label={t('More time')} disabled={!timer.ready && timer.left >= REST_MAX} onClick={() => useUI.getState().addRest(15)}>+15s</button>
         </div>}
-        <button type="button" className="wf-view-toggle" aria-label={t(view === 'workout' ? 'Live' : 'Workout')} aria-expanded={view === 'workout'} aria-controls={id + '-panel'} onClick={() => useUI.setState({ focusView: view === 'workout' ? 'live' : 'workout', focusPane: null, focusDetailsOpen: view !== 'workout' })}><Icon name={view === 'workout' ? 'target' : 'list'} /><span>{t(view === 'workout' ? 'Live' : 'Workout')}</span></button>
-        <button type="button" className="wf-primary" disabled={primary.disabled} onClick={primary.run}><Icon name={primary.icon} /><span>{primary.label}</span></button>
+        <div className="wf-action-main">
+          <button type="button" className="wf-stop" aria-label={t('Stop')} disabled={!onStop} onClick={onStop}><Icon name="xmark" /><span>{t('Stop')}</span></button>
+          {phase === 'rest'
+            ? <button type="button" className="wf-pause" disabled={timer.ready} aria-label={t(timer.paused ? 'Resume' : 'Pause')} onClick={timer.paused ? useUI.getState().resumeRest : useUI.getState().pauseRest}><Icon name={timer.paused ? 'play' : 'pause'} /><span>{t(timer.paused ? 'Resume' : 'Pause')}</span></button>
+            : <button type="button" className="wf-view-toggle" aria-label={t(view === 'workout' ? 'Live' : 'Workout')} aria-expanded={view === 'workout'} aria-controls={id + '-panel'} onClick={() => useUI.setState({ focusView: view === 'workout' ? 'live' : 'workout', focusPane: null, focusDetailsOpen: view !== 'workout' })}><Icon name={view === 'workout' ? 'target' : 'list'} /><span>{t(view === 'workout' ? 'Live' : 'Workout')}</span></button>}
+          <button type="button" className="wf-primary" aria-label={phase === 'set' ? t('Next') : primary.label} disabled={primary.disabled} onClick={primary.run}>
+            <span className="wf-primary-copy">{phase === 'set' && <small>{t('Done')}</small>}<strong>{phase === 'set' ? t('Next') : primary.label}</strong></span>
+            <Icon name={phase === 'prep' ? 'play' : 'arrowRight'} />
+          </button>
+        </div>
       </div>
     </section>
 }
