@@ -1,4 +1,6 @@
 const paths = {
+  search: <><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></>,
+  user: <><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></>,
   volume: <><path d="m11 4-6 5H2v6h3l6 5Z" /><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" /></>,
   muted: <><path d="m11 4-6 5H2v6h3l6 5Z" /><path d="m16 9 6 6m0-6-6 6" /></>,
   plus: <path d="M12 5v14M5 12h14" />,

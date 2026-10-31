@@ -11,10 +11,10 @@ const record = { id: 'saved', assignmentId: assignment.id, assignmentRevision: '
 describe('Me presentation', () => {
   it('keeps empty history honest and exposes editable profile and both backup actions', () => {
     const html = renderToStaticMarkup(<MeView now={now} onExport={() => {}} onRestore={() => {}} />)
-    expect(html).toContain('Make this space your own.')
+    expect(html).toContain('Your player profile')
     expect(html).toContain('Your first session starts here')
     expect(html).toContain('No timed practice recorded')
-    expect(html).toContain('Complete a drill with a skill label')
+    expect(html).toContain('Your completed drills will build your skill mix.')
     expect(html).toContain('Export a backup')
     expect(html).toContain('Restore a backup')
     expect(html.match(/class="qt-calendar-day"/g)).toHaveLength(28)
@@ -23,7 +23,7 @@ describe('Me presentation', () => {
   it('shows recorded time alongside unmeasured history without estimating duration', () => {
     const html = renderToStaticMarkup(<MeView now={now} sessions={[record, { ...record, id: 'timed', rows: [{ ...record.rows[0], practiceSeconds: 72 }] }]} assignments={[assignment]} />)
     expect(html).toContain('1:12')
-    expect(html).toContain('Some practice has no recorded duration and is left out.')
+    expect(html).toContain('Untimed work excluded.')
     expect(html).toContain('Practice time not tracked')
     expect(html).toContain('first touch')
     expect(html).toContain('This shows exposure, not a skill rating.')
