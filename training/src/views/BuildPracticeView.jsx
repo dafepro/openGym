@@ -7,12 +7,12 @@ import Dialog from '../components/Dialog.jsx'
 import Icon from '../components/Icon.jsx'
 import { transitionView } from '../lib/motion.js'
 import Reveal from '../components/Reveal.jsx'
-import StarterPractices from '../components/StarterPractices.jsx'
+import { hasDemonstration, orderDrillsByVideo } from '../domain/drill-library.js'
 
 const label = tag => tag.replace(/^futbol:/, '').replaceAll('-', ' ')
 const number = value => value === '' ? '' : Number(value)
 
-export default function BuildPracticeView({ draft, onChange, library, saved, history, activeSession, onSave, onStart, onShare, onLoad, onNew, onPreview, onStartTemplate, onCustomizeTemplate, disabled = false }) {
+export default function BuildPracticeView({ draft, onChange, library, saved, history, activeSession, onSave, onStart, onShare, onLoad, onNew, onPreview, assignment, onOpenAssignment, disabled = false }) {
   const addFocus = useRef(-1)
   const [editorOpen, setEditorOpen] = useState(draft.drills.length > 0)
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -22,15 +22,16 @@ export default function BuildPracticeView({ draft, onChange, library, saved, his
   const [focus, setFocus] = useState('')
   const [setting, setSetting] = useState('')
   const [strategy, setStrategy] = useState('balanced')
+  const [videoOrder, setVideoOrder] = useState('first')
   const [custom, setCustom] = useState(null)
   const [added, setAdded] = useState('')
   const [customError, setCustomError] = useState('')
   const [expanded, setExpanded] = useState(null)
-  const suggestions = useMemo(() => rankTrainingDrills(library.map((drill, index) => ({ candidateId: `library-${index}`, drill })), {
+  const suggestions = useMemo(() => orderDrillsByVideo(rankTrainingDrills(library.map((drill, index) => ({ candidateId: `library-${index}`, drill })), {
     now: Date.now(), history, activeSession, strategy, plannedDrills: draft.drills,
     focusSkills: focus ? [focus] : [], context: setting ? { setting } : {},
-  }).filter(({ drill }) => `${drill.title} ${drill.instructions} ${(drill.metadata?.tags || []).join(' ')}`.toLowerCase().includes(search.trim().toLowerCase())), [library, history, activeSession, strategy, focus, setting, search, draft.drills])
-  useEffect(() => setLimit(8), [search, focus, setting, strategy])
+  }).filter(({ drill }) => `${drill.title} ${drill.instructions} ${(drill.metadata?.tags || []).join(' ')}`.toLowerCase().includes(search.trim().toLowerCase())), videoOrder), [videoOrder, library, history, activeSession, strategy, focus, setting, search, draft.drills])
+  useEffect(() => setLimit(8), [search, focus, setting, strategy, videoOrder])
   useEffect(() => { if (editorOpen) document.getElementById('practice-builder-heading')?.focus({ preventScroll: true }) }, [editorOpen])
   useEffect(() => { if (!added) return; const timer = window.setTimeout(() => setAdded(''), 4000); return () => window.clearTimeout(timer) }, [added, draft.drills.length])
   useEffect(() => { if (addFocus.current >= 0) { const buttons = document.querySelectorAll('.qt-add-drill'); buttons[Math.min(addFocus.current, buttons.length - 1)]?.focus({ preventScroll: true }); addFocus.current = -1 } }, [draft.drills])
@@ -56,6 +57,7 @@ export default function BuildPracticeView({ draft, onChange, library, saved, his
   }
   return <div className="qt-view qt-builder">
     <header className="qt-practice-library-heading"><h1 id="practice-builder-heading" tabIndex="-1">{editorOpen ? 'Your practice' : 'Practice'}</h1><Button variant="secondary" icon={editorOpen ? 'arrow' : 'plus'} onClick={() => transitionView(() => setEditorOpen(value => !value), editorOpen ? 'back' : 'forward')} aria-expanded={editorOpen} aria-controls="practice-editor">{editorOpen ? 'Browse' : draft.drills.length ? 'Your draft' : 'Build'}</Button></header>
+    {!editorOpen && assignment && <section aria-label="Assigned practice"><button type="button" className="qt-drill-row" onClick={onOpenAssignment}><Icon name="ball"/><span className="qt-drill-copy"><strong>{assignment.title}</strong><small>{countLabel(assignment.drills.length, 'drill')} · Video demonstrations</small></span><Icon name="arrow"/></button></section>}
     <div id="practice-editor" className="qt-build-tools" hidden={!editorOpen}>
     <Button variant="text" icon="plus" onClick={onNew} disabled={disabled}>New practice</Button>
     <section id="practice-draft" className="qt-builder-plan" aria-label="Your practice">
@@ -72,22 +74,22 @@ export default function BuildPracticeView({ draft, onChange, library, saved, his
       {draft.drills.length > 0 && <div className="qt-builder-actions"><Button icon="play" disabled={disabled} onClick={onStart}>{isVideoReview({ drills: draft.drills }) ? 'Start review' : 'Start practice'}</Button><div className="qt-field-grid"><Button variant="secondary" disabled={disabled} onClick={onSave}>Save practice</Button><Button variant="secondary" onClick={onShare}>Share link</Button></div></div>}
       <p className="qt-fine-print">{draft.id ? 'Editing your saved practice. Save to keep changes.' : 'Unsaved draft · save to keep it.'}</p>
     </section>
+    </div>
     <section className="qt-builder-library" aria-labelledby="drill-library-heading">
-      <div className="qt-builder-section-title"><div><h2 id="drill-library-heading">Add drills</h2></div><Button variant="text" disabled={disabled} onClick={() => { setCustom({ title: '', instructions: '', tags: '' }); setCustomError('') }}>+ Custom drill</Button></div>
+      <div className="qt-builder-section-title"><div><h2 id="drill-library-heading">{editorOpen ? 'Add drills' : 'Drill library'}</h2></div><Button variant="text" disabled={disabled} onClick={() => { setCustom({ title: '', instructions: '', tags: '' }); setCustomError('') }}>+ Custom drill</Button></div>
       <label className="qt-field">Search drills<input type="search" placeholder="First touch, passing, cones…" value={search} onChange={event => setSearch(event.target.value)} /></label>
+      <label className="qt-field">Video demonstrations<select value={videoOrder} onChange={event => setVideoOrder(event.target.value)}><option value="first">Video first</option><option value="only">With video only</option><option value="all">All drills · suggested order</option></select></label>
       <button type="button" className="qt-builder-filter-toggle" aria-expanded={filtersOpen} aria-controls="drill-filters" onClick={() => setFiltersOpen(value => !value)}>Filters &amp; suggestions <Icon name="arrow" size={14}/></button><Reveal open={filtersOpen} id="drill-filters"><div className="qt-field-grid"><label className="qt-field">Focus<select value={focus} onChange={event => setFocus(event.target.value)}><option value="">All skills</option>{Object.keys(SKILL_REGISTRY).map(tag => <option key={tag} value={tag}>{label(tag)}</option>)}</select></label><label className="qt-field">Where<select value={setting} onChange={event => setSetting(event.target.value)}><option value="">Any setting</option><option value="outdoor">Outdoor</option><option value="indoor">Indoor</option></select></label></div>
       <div className="qt-builder-ranking"><label className="qt-field">Suggestions<select value={strategy} onChange={event => setStrategy(event.target.value)}><option value="balanced">Balance my practice</option><option value="reinforce">Reinforce recent skills</option><option value="diversify">Try something different</option></select></label><p>{strategy === 'reinforce' ? 'Build on skills from recent practice.' : strategy === 'diversify' ? 'Explore skills you have practiced less.' : 'Fill gaps in your practice mix.'}</p></div></Reveal>
       {added && editorOpen && <div className="qt-builder-added" role="status"><span>Added {added}</span><Button variant="text" onClick={() => document.getElementById('practice-draft')?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })}>Edit practice</Button></div>}
       <div className="qt-library-grid qt-library-compact">{suggestions.slice(0, limit).map(({ candidateId, drill, skills, breakdown }, index) => <article className="qt-library-card" key={candidateId}>
-        <button className="qt-drill-preview-link" type="button" aria-label={`Preview ${drill.title}`} onClick={() => onPreview(drill, index)}><strong>{drill.title}</strong><span>{skills.slice(0, 2).map(label).join(' · ') || 'Custom focus'}</span><small>{index === 0 ? 'Suggested · ' : ''}{breakdown.focus > 0 ? 'Matches your focus' : breakdown.reinforcement > 0 ? 'Builds on recent practice' : 'Adds skill coverage'}</small></button>
+        <button className="qt-drill-preview-link" type="button" aria-label={`Preview ${drill.title}`} onClick={() => onPreview(drill, index)}><strong>{drill.title}</strong><span>{skills.slice(0, 2).map(label).join(' · ') || 'Custom focus'}</span><small>{hasDemonstration(drill) ? 'Video · ' : 'Written · '}{breakdown.focus > 0 ? 'Matches your focus' : breakdown.reinforcement > 0 ? 'Builds on recent practice' : 'Adds skill coverage'}</small></button>
         <button type="button" className="qt-add-drill" disabled={disabled || draft.drills.length >= 100} onClick={() => add(drill, index)} aria-label={`Add ${drill.title}`}><Icon name={added === drill.title ? 'check' : 'plus'} size={20}/><span>Add</span></button>
       </article>)}</div>
       {suggestions.length > limit && <Button variant="secondary" className="qt-more-drills" onClick={() => setLimit(value => value + 8)}>Show more drills ({suggestions.length - limit})</Button>}
       {!suggestions.length && <EmptyState title="No matching drills">Try another skill or setting, or add a custom drill.</EmptyState>}
     </section>
-    </div>
     {!editorOpen && saved.length > 0 && <section className="qt-builder-saved" aria-label="Saved practices"><div className="qt-builder-section-title"><h2>Your practices</h2><Badge>{saved.length}</Badge></div>{saved.map(practice => <button type="button" key={practice.id} className="qt-drill-row" disabled={disabled} onClick={() => onLoad(practice)}><Icon name="ball" /><span className="qt-drill-copy"><strong>{practice.title}</strong><small>{countLabel(practice.drills.length, 'drill')} · Edit or start</small></span><Icon name="arrow" /></button>)}</section>}
-    {!editorOpen && onStartTemplate && <StarterPractices onStart={onStartTemplate} onCustomize={onCustomizeTemplate} disabled={disabled} />}
     {custom && <Dialog title="Add your own drill" onClose={() => setCustom(null)} actions={<Button onClick={createCustom}>Add to practice</Button>}><div className="qt-custom-form"><label className="qt-field">Drill name<input maxLength={240} value={custom.title} onChange={event => setCustom({ ...custom, title: event.target.value })} /></label><label className="qt-field">Instructions<textarea maxLength={2000} rows={4} value={custom.instructions} onChange={event => setCustom({ ...custom, instructions: event.target.value })} /></label><label className="qt-field">Tags, separated by commas<input placeholder="futbol:passing, wall, weak foot" value={custom.tags} onChange={event => setCustom({ ...custom, tags: event.target.value })} /></label><p className="qt-fine-print">Choose sets or a timer after adding. This custom drill has no video attached.</p>{customError && <p role="alert">{customError}</p>}</div></Dialog>}
   </div>
 }
