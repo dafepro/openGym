@@ -2005,6 +2005,7 @@ function ActiveWorkout({ hidden = false }) {
 
     {immersiveFocus ? <WorkoutFocus entryIdx={cur} unit={unit}
       onSelectEntry={selectFocusEntry} onAdvanceUnit={advanceFocusUnit} controlsForEntry={blockProps} onAddExercise={addExercise}
+      onStop={() => finishWorkoutSheet({ onDiscard: discardWorkout })}
       {...blockProps(cur)} /> : <>
     {A.entries.length ? (listMode ? (
       <div className="workout-list" data-testid="workout-list" ref={listRef}>
