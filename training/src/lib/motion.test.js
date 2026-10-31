@@ -36,6 +36,15 @@ describe('navigation animation ownership', () => {
     expect(next.root.animate.mock.calls[0][0][0].transform).toBe('translateX(-20px)')
     expect(next.snapshot.animate.mock.calls[0][0][1].transform).toBe('translateX(20px)')
   })
+  it('clips scrolled outgoing content below the new header boundary', () => {
+    vi.useFakeTimers()
+    const { root, snapshot } = environment()
+    root.getBoundingClientRect = vi.fn()
+      .mockReturnValueOnce({ left: 16, top: -400, width: 358, height: 1400 })
+      .mockReturnValue({ left: 16, top: 143, width: 358, height: 1200 })
+    transitionView(() => {})
+    expect(snapshot.style.clipPath).toBe('inset(543px 0 0 0)')
+  })
   it('commits immediately without animations when reduced motion is requested', () => {
     vi.useFakeTimers()
     const { root } = environment(true), update = vi.fn()
