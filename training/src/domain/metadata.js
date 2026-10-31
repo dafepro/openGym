@@ -1,6 +1,12 @@
 // Versioned editorial labels, not a measure of skill, mastery, recovery or safety.
 export const SKILL_REGISTRY_VERSION = 1
 export const SKILL_REGISTRY = Object.freeze({
+  'futbol:agility': Object.freeze([]),
+  'futbol:endurance': Object.freeze(['futbol:stamina']),
+  'futbol:balance': Object.freeze([]),
+  'futbol:coordination': Object.freeze([]),
+  'futbol:acceleration': Object.freeze(['futbol:speed']),
+  'futbol:mobility': Object.freeze([]),
   'futbol:ball-control': Object.freeze(['futbol:control', 'futbol:ball-mastery']),
   'futbol:dribbling': Object.freeze(['futbol:dribble']),
   'futbol:first-touch': Object.freeze(['futbol:receiving', 'futbol:first_touch']),

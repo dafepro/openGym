@@ -1,0 +1,11 @@
+# Player history and soccer library review
+
+Implemented October 30, 2026. Me replaces History in navigation, with an optional browser-local player profile, 28-day activity calendar, 7-day recorded practice-time bars and canonical-label skill exposure. Calendar selection filters one history list; Assigned is an exact catalog identity label. Old history URLs remain supported. Profile details are explicitly separate from session backups.
+
+Twenty original starter practices contain 89 drill blocks. Each has suggested sets/reps/time, setup, focus cues, equipment/space/player requirements and coaching references. Sources and adaptation notes are recorded in soccer-skill-sources.md and soccer-movement-sources.md. The library supports direct start or customization, and individual blocks participate in existing recommendations. These are public written practices; no demonstration footage is claimed or imported.
+
+The quit dialog offers finish/save, discard without saving, or continue. Saved session details offer a named delete confirmation. Removal uses revision-checked atomic storage operations, preserves unrelated records, and publishes UI changes only after persistence succeeds. Ordinary saves still cannot silently remove progress. Automated deletion tests cover reload persistence, exact identity, other-record preservation, and stale revision conflicts. Browser review checked confirmation and cancellation without deleting existing browser history.
+
+Help videos open muted, autoplay from the thumbnail gesture, and expose a custom mute control next to the rightmost animated playback control. Verified actual media muted/paused properties before and after toggle and reopening. At 320px the entire toolbar fits its 262px content width without overflow.
+
+Validation: 165 application tests, 21 worker tests, 4 content tests, 6 preview tests, 10 Python release tests and 2 source-notice tests passed (208 total). Production build and boundary check passed. Mobile browser review covered the existing populated local history, starter preview/direct start, running prescribed timer, save partial, discard dialog, saved-session delete confirmation/cancel and 320px video audio controls. Local browser records are QA evidence, not player training claims.

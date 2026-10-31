@@ -91,10 +91,13 @@ describe('training presentation boundaries', () => {
     expect(html).not.toContain('Practice complete')
   })
 
-  it('identifies only the selected edition of a logical assignment as current', () => {
-    const html = renderToStaticMarkup(<HistoryView currentAssignmentId="same" currentAssignmentRevision="2" assignments={[{ id: 'same', revision: '1', title: 'Old edition', drills: [] }, { id: 'same', revision: '2', title: 'New edition', drills: [] }]} />)
-    expect(html.match(/>Current</g)).toHaveLength(1)
-    expect(html.match(/>Previous</g)).toHaveLength(1)
+  it('uses one session history and labels only an exact assigned edition', () => {
+    const html = renderToStaticMarkup(<HistoryView assignments={[{ id: 'same', revision: '2', title: 'Assigned plan', drills: [] }]} sessions={[{ id: 'old', assignmentId: 'same', assignmentRevision: '1', title: 'Old edition', status: 'completed', rows: [], startedAt: 0 }, { id: 'new', assignmentId: 'same', assignmentRevision: '2', title: 'New edition', status: 'completed', rows: [], startedAt: 1 }]} />)
+    expect(html.match(/>Assigned</g)).toHaveLength(1)
+    expect(html).toContain('Old edition')
+    expect(html).toContain('New edition')
+    expect(html).not.toContain('qt-segment')
+    expect(html).not.toContain('Assigned plan')
   })
 
   it('keeps an active older edition separate from the current assignment action', () => {

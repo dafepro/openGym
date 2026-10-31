@@ -71,7 +71,37 @@ export function createTrainingRepository({ indexedDB = globalThis.indexedDB, nam
     queue = next.catch(() => {})
     return next
   }
+  // Intent-specific removal is atomic and derives the successor from persisted
+  // state. Ordinary saves still cannot silently discard work or rewrite history.
+  const remove = (kind, id, expectedRevision) => serialize(async () => {
+    if (typeof id !== 'string' || !id) throw new Error('Choose the exact session to remove')
+    const handle = await db()
+    return new Promise((resolve, reject) => {
+      const tx = handle.transaction('progress', 'readwrite')
+      const store = tx.objectStore('progress'), get = store.get('state')
+      let result, failure
+      get.onsuccess = () => {
+        try {
+          const previous = validateProgress(get.result ?? emptyProgress())
+          if (previous.revision !== expectedRevision) throw new ProgressConflictError()
+          if (kind === 'active') {
+            if (previous.activeSession?.id !== id) throw new Error('This practice is no longer active. Reload before discarding.')
+            result = { ...previous, activeSession: null }
+          } else {
+            if (!previous.sessions.some(session => session.id === id)) throw new Error('This saved session is no longer in history.')
+            result = { ...previous, sessions: previous.sessions.filter(session => session.id !== id) }
+          }
+          result = validateProgress({ ...result, revision: previous.revision + 1 })
+          store.put(result, 'state')
+        } catch (error) { failure = error; tx.abort() }
+      }
+      tx.oncomplete = () => resolve(copy(result))
+      tx.onabort = tx.onerror = () => reject(failure || tx.error || new Error('The session could not be removed'))
+    })
+  })
   return {
+    discardActive: (id, expectedRevision) => remove('active', id, expectedRevision),
+    deleteSession: (id, expectedRevision) => remove('saved', id, expectedRevision),
     load: () => serialize(async () => {
       const handle = await db()
       return new Promise((resolve, reject) => {
