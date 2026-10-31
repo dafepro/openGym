@@ -50,3 +50,7 @@
   .qt-video-dialog .qt-loop-track{height:44px}
   .qt-video-dialog .qt-loop-footer>span{font-size:9px}
 }
+
+.qt-video-dialog{transition:height 220ms var(--qt-ease)}
+.qt-video-dialog:has(.qt-media-frame[data-landscape=true]){height:min(500px,calc(100dvh - 24px))}
+@media(prefers-reduced-motion:reduce){.qt-video-dialog{transition:none}}

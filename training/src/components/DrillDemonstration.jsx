@@ -20,6 +20,7 @@ export default function DrillDemonstration({ media, title, workActive = false, a
   const [start, setStart] = useState(0)
   const [end, setEnd] = useState(10)
   const [duration, setDuration] = useState(0)
+  const [loopBounds, setLoopBounds] = useState([0, 20])
   const [portrait, setPortrait] = useState(false)
   const [position, setPosition] = useState(0)
   const [captions, setCaptions] = useState(!!media?.captions)
@@ -69,7 +70,15 @@ export default function DrillDemonstration({ media, title, workActive = false, a
   }
   const togglePlayback = () => { if (!video.current) return; if (video.current.paused) video.current.play()?.catch(() => setPlaying(false)); else video.current.pause() }
   const toggleMuted = () => { if (video.current) { video.current.muted = !muted; if (!video.current.muted && video.current.volume === 0) video.current.volume = 1; setMuted(video.current.muted) } }
-  const loopRecent = () => { const finish = Math.min(duration, video.current?.currentTime || 5); const begin = Math.max(0, finish - 5); setStart(begin); setEnd(finish); setRepeat(true); if (video.current) video.current.currentTime = begin }
+  const frameLoop = (begin, finish) => setLoopBounds([Math.max(0, begin - 5), Math.min(duration, finish + 5)])
+  const toggleRepeat = () => {
+    if (repeat) { setRepeat(false); return }
+    const begin = Math.max(0, Math.min(video.current?.currentTime || 0, duration - Math.min(10, duration)))
+    const finish = Math.min(duration, begin + 10)
+    setStart(begin); setEnd(finish); frameLoop(begin, finish); setRepeat(true)
+    if (video.current) video.current.currentTime = begin
+  }
+  const loopRecent = () => { const finish = Math.min(duration, video.current?.currentTime || 5); const begin = Math.max(0, finish - 5); setStart(begin); setEnd(finish); frameLoop(begin, finish); setRepeat(true); if (video.current) video.current.currentTime = begin }
   const gap = Math.min(.5, duration)
   const setLoopStart = value => { const next = Math.max(0, Math.min(end - gap, value)); setStart(next); if (video.current) video.current.currentTime = next }
   const setLoopEnd = value => { const next = Math.min(duration, Math.max(start + gap, value)); setEnd(next); if (video.current && video.current.currentTime >= next) video.current.currentTime = start }
@@ -77,7 +86,7 @@ export default function DrillDemonstration({ media, title, workActive = false, a
   const retry = () => { setError(false); setLoading(true); video.current?.load() }
   return <section ref={playerFrame} className={`qt-demonstration${repeat ? ' is-repeating' : ''}`} aria-label={`Demonstration: ${title}`}>
     {sample && available && <p className="qt-playback-sample">Playback test clip · not a drill demonstration</p>}
-    <div className="qt-media-frame" data-portrait={portrait ? 'true' : undefined}>
+    <div className="qt-media-frame" data-portrait={portrait ? 'true' : undefined} data-landscape={duration > 0 && !portrait ? 'true' : undefined}>
       {available && <video ref={video} key={src} src={src} poster={media?.poster} playsInline muted={muted} onVolumeChange={() => setMuted(!!video.current?.muted || video.current?.volume === 0)} autoPlay={autoPlay} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={ended} onError={failed} onLoadedMetadata={loaded} onCanPlay={() => setLoading(false)} onWaiting={() => setLoading(true)} onPlaying={() => setLoading(false)} onTimeUpdate={repeatTime} onClick={togglePlayback} aria-label={`${title} demonstration`}>
         {media?.captions && <track kind="captions" src={media.captions} srcLang={media.captionLanguage || 'en'} label="Captions" default />}
       </video>}
@@ -88,13 +97,13 @@ export default function DrillDemonstration({ media, title, workActive = false, a
     </div>
     {available && !error && <>
       <div className="qt-video-scrubber"><span>{formatClock(Math.floor(position))}</span><input type="range" min="0" max={duration || 1} step="0.1" value={Math.min(position, duration)} disabled={!duration} aria-label="Video position" aria-valuetext={`${formatClock(Math.floor(position))} of ${formatClock(Math.floor(duration))}`} onChange={event => seek(Number(event.target.value))} style={{ '--played': `${duration ? position / duration * 100 : 0}%` }} /><span>{formatClock(Math.floor(duration))}</span></div>
-      <div className="qt-media-tools"><button type="button" onClick={jumpBack} aria-label="Jump back 5 seconds"><Icon name="replay" size={18} />5s</button><label>Speed<select value={rate} onChange={changeRate} aria-label="Playback speed">{[0.5, 0.75, 1, 1.25, 1.5].map(value => <option value={value} key={value}>{value}×</option>)}</select></label><button type="button" className="qt-repeat-toggle" aria-label="Repeat section" aria-pressed={repeat} onClick={() => { if (!repeat && video.current) video.current.currentTime = start; setRepeat(value => !value) }} disabled={!duration || end <= start}><Icon name="replay" size={18} /><span>Repeat</span></button><button type="button" className="qt-mute-toggle" aria-label={muted ? 'Unmute video' : 'Mute video'} aria-pressed={muted} onClick={toggleMuted}><span className={`qt-sound-icon${muted ? ' is-muted' : ''}`}><Icon name="volume" /><Icon name="muted" /></span></button><button type="button" className="qt-playback-toggle" onClick={togglePlayback} aria-label={playing ? 'Pause video' : 'Play video'}><PlayPauseIcon playing={playing} /></button></div>
+      <div className="qt-media-tools"><button type="button" onClick={jumpBack} aria-label="Jump back 5 seconds"><Icon name="replay" size={18} />5s</button><label>Speed<select value={rate} onChange={changeRate} aria-label="Playback speed">{[0.5, 0.75, 1, 1.25, 1.5].map(value => <option value={value} key={value}>{value}×</option>)}</select></label><button type="button" className="qt-repeat-toggle" aria-label="Repeat section" aria-pressed={repeat} onClick={toggleRepeat} disabled={!duration || end <= start}><Icon name="replay" size={18} /><span>Repeat</span></button><button type="button" className="qt-mute-toggle" aria-label={muted ? 'Unmute video' : 'Mute video'} aria-pressed={muted} onClick={toggleMuted}><span className={`qt-sound-icon${muted ? ' is-muted' : ''}`}><Icon name="volume" /><Icon name="muted" /></span></button><button type="button" className="qt-playback-toggle" onClick={togglePlayback} aria-label={playing ? 'Pause video' : 'Play video'}><PlayPauseIcon playing={playing} /></button></div>
       <Reveal open={repeat} className="qt-loop-reveal"><div className="qt-loop-editor">
         <div className="qt-loop-labels"><span>A · {loopClock(start)}</span><span>B · {loopClock(end)}</span></div>
-        <div className="qt-loop-track" style={{ '--loop-start': `${start / (duration || 10) * 100}%`, '--loop-end': `${end / (duration || 10) * 100}%` }}>
-          <input type="range" aria-label="Repeat start" aria-valuetext={`A: ${loopClock(start)}`} min="0" max={duration || 10} step="0.1" value={start} onChange={event => setLoopStart(Number(event.target.value))} />
-          <input type="range" aria-label="Repeat end" aria-valuetext={`B: ${loopClock(end)}`} min="0" max={duration || 10} step="0.1" value={end} onChange={event => setLoopEnd(Number(event.target.value))} />
-        </div><div className="qt-loop-footer"><span>Drag A and B to repeat</span><button type="button" className="qt-loop-recent" onClick={loopRecent} disabled={!duration}><Icon name="replay" size={16} />Loop last 5s</button></div>
+        <div className="qt-loop-track" style={{ '--loop-start': `${(start - loopBounds[0]) / (loopBounds[1] - loopBounds[0] || 1) * 100}%`, '--loop-end': `${(end - loopBounds[0]) / (loopBounds[1] - loopBounds[0] || 1) * 100}%` }}>
+          <input type="range" aria-label="Repeat start" aria-valuetext={`A: ${loopClock(start)}`} min={loopBounds[0]} max={loopBounds[1]} step="0.1" value={start} onChange={event => setLoopStart(Number(event.target.value))} />
+          <input type="range" aria-label="Repeat end" aria-valuetext={`B: ${loopClock(end)}`} min={loopBounds[0]} max={loopBounds[1]} step="0.1" value={end} onChange={event => setLoopEnd(Number(event.target.value))} />
+        </div><div className="qt-loop-footer"><span>Drag A and B · zoomed section</span><button type="button" className="qt-loop-recent" onClick={loopRecent} disabled={!duration}><Icon name="replay" size={16} />Loop last 5s</button></div>
       </div></Reveal>
     </>}
   </section>
