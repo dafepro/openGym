@@ -18,7 +18,7 @@ export default function PracticeActionDock({
       : { label: 'Pause', action: null }
   const stop = working ? onStop : onFinish
   const nextLabel = phase === 'complete' ? 'Finish' : phase === 'review' ? 'Confirm' :
-    phase === 'ready' ? 'Start' : 'Next'
+    phase === 'ready' ? actionLabel === 'Mark reviewed' ? 'Reviewed' : 'Start' : 'Next'
   const actionLabel = primaryLabel || nextLabel
   const doneHint = working && (actionLabel === 'Set done' || actionLabel === 'Drill done' || actionLabel === 'Done')
   return <div className={`qt-action-dock qt-action-dock--${rest ? 'rest' : 'work'}`} aria-label="Practice actions">
@@ -34,7 +34,7 @@ export default function PracticeActionDock({
       <button className="qt-action-pause" type="button" onClick={pause.action} disabled={!pause.action} aria-label={pause.label + (rest ? ' rest' : canPausePractice ? ' practice timer' : '')}>
         <Icon name={pause.label === 'Resume' ? 'play' : 'pause'} size={22} /><span>{pause.label}</span>
       </button>
-      <button className="qt-action-next" type="button" onClick={onPrimary} disabled={disabled || !onPrimary} aria-label={doneHint ? 'Set done, next' : actionLabel}>
+      <button className="qt-action-next" type="button" onClick={onPrimary} disabled={disabled || !onPrimary} aria-label={doneHint ? actionLabel + ', next' : actionLabel}>
         <span>{doneHint && <small>Done</small>}<strong>{nextLabel}</strong></span><Icon name="arrow" size={26} />
       </button>
     </div>
