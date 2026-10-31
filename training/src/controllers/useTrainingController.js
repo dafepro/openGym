@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createSession, getSessionView, reduceSession } from '../domain/index.js'
 import { createTrainingRepository, emptyProgress, exportProgress, mergeProgress, ProgressConflictError } from '../storage/index.js'
+import { transitionView } from '../lib/motion.js'
 import { createObservedClock } from './observed-clock.js'
 
 // One durable controller lives above the routes. Views never own work clocks or writes.
@@ -17,7 +18,15 @@ export default function useTrainingController({ databaseName, suspended = false 
   const [error, setError] = useState(null)
   const [readOnly, setReadOnly] = useState(false)
   const [now, setNow] = useState(clock.now)
-  const publish = useCallback(next => { current.current = next; setProgress(next); setNow(clock.now()) }, [clock])
+  const publish = useCallback(next => {
+    const before = current.current.activeSession, after = next.activeSession
+    const index = session => session?.assignment.drills.findIndex(drill => drill.id === session.rows.find(row => row.id === session.currentRowId)?.drillId)
+    const oldIndex = index(before), newIndex = index(after)
+    current.current = next
+    const update = () => { setProgress(next); setNow(clock.now()) }
+    if (before?.id === after?.id && oldIndex >= 0 && newIndex >= 0 && oldIndex !== newIndex) transitionView(update, newIndex < oldIndex ? 'back' : 'forward')
+    else update()
+  }, [clock])
 
   const persist = useCallback(async next => {
     setSaving(true)

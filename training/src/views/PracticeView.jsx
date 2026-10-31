@@ -1,16 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import Icon from '../components/Icon.jsx'
 import DrillDemonstration from '../components/DrillDemonstration.jsx'
 import PracticeActionDock from '../components/PracticeActionDock.jsx'
 import CoachingBrief from '../components/CoachingBrief.jsx'
 import Dialog from '../components/Dialog.jsx'
+import PlayPauseIcon from '../components/PlayPauseIcon.jsx'
 import { Badge, Button, EmptyState, Notice, formatClock, prescriptionLabel, isVideoReview, isSelfPacedPractice } from '../components/ui.jsx'
 
-export default function PracticeView({ assignment, drill, drillIndex = 0, drillCount, sets = [], currentSetIndex = 0, phase = 'ready', remainingSeconds = 0, totalSeconds = 0, restPaused = false, primaryLabel, onPrimary, onPauseRest, onResumeRest, onAdjustRest, onStop, onUndo, onFinish, onBack, onReviewUnfinished, actualValue, onActualChange, onMediaError, sample = false, saved = false, complete = false, completedCount = 0, totalCount = 0, saveError, disabled = false }) {
+export default function PracticeView({ assignment, drill, drillIndex = 0, drillCount, sets = [], currentSetIndex = 0, phase = 'ready', practiceSeconds = 0, practicePaused = false, onTogglePracticePause, remainingSeconds = 0, totalSeconds = 0, restPaused = false, primaryLabel, onPrimary, onPauseRest, onResumeRest, onAdjustRest, onStop, onUndo, onFinish, onBack, onReviewUnfinished, actualValue, onActualChange, onMediaError, sample = false, saved = false, complete = false, completedCount = 0, totalCount = 0, saveError, disabled = false }) {
   const reviewOnly = isVideoReview(assignment)
   const selfPaced = isSelfPacedPractice(assignment)
   const freeDrill = drill?.mode === 'practice'
   const demoKey = `${assignment?.id}:${assignment?.revision}:${drill?.id}`
+  const demoVideo = useRef(null)
   const [demoFor, setDemoFor] = useState(null)
   const showDemo = demoFor === demoKey
   useEffect(() => { setDemoFor(null); window.scrollTo({ top: 0, behavior: 'instant' }) }, [demoKey])
@@ -30,12 +33,13 @@ export default function PracticeView({ assignment, drill, drillIndex = 0, drillC
       <Badge tone={rest ? 'rest' : working ? 'active' : 'neutral'}>{rest ? restPaused ? 'Rest paused' : 'Rest' : working ? 'Practicing' : phase === 'complete' ? 'Complete' : 'Ready'}</Badge>
     </div>
     {!freeDrill && drill.mode !== 'watch' && phase !== 'complete' && <p className="qt-foot-target">Set {sets[currentSetIndex]?.setNumber || currentSetIndex + 1} of {drill.sets || 1}{sets[currentSetIndex]?.side && <> · {sets[currentSetIndex].side === 'left' ? 'Left foot' : 'Right foot'}</>}</p>}
+    {freeDrill && <div className="qt-practice-stopwatch"><div><span>{working && practicePaused ? 'Timer paused' : 'Time practiced'}</span><strong role="timer" aria-label="Time practiced">{formatClock(Math.floor(practiceSeconds))}</strong></div><button type="button" aria-label={practicePaused ? 'Resume practice timer' : 'Pause practice timer'} disabled={!working || !onTogglePracticePause} onClick={onTogglePracticePause}><PlayPauseIcon playing={working && !practicePaused} /></button></div>}
     <CoachingBrief drill={drill} />
-    <button className="qt-demo-trigger" type="button" aria-haspopup="dialog" aria-expanded={showDemo} onClick={() => setDemoFor(demoKey)}>
+    <button className="qt-demo-trigger" type="button" aria-haspopup="dialog" aria-expanded={showDemo} onClick={() => { flushSync(() => setDemoFor(demoKey)); demoVideo.current?.play()?.catch(() => {}) }}>
       <span className="qt-demo-thumb" aria-hidden="true">{drill.media?.poster ? <img src={drill.media.poster} alt="" /> : <Icon name="ball" size={30} />}<span><Icon name="play" size={18} /></span></span>
       <span>Watch demonstration<small>Opens in a popup</small></span><Icon name="arrow" size={18} />
     </button>
-    {showDemo && <Dialog title={drill.title} className="qt-video-dialog" onClose={() => setDemoFor(null)}><DrillDemonstration media={drill.media} title={drill.title} workActive={working} sample={sample} onPlaybackError={onMediaError} />{working && drill.mode === 'time' && <p className="qt-fine-print">Your work timer keeps running.</p>}</Dialog>}
+    {showDemo && <Dialog title={drill.title} className="qt-video-dialog" onClose={() => setDemoFor(null)}><DrillDemonstration playerRef={demoVideo} media={drill.media} title={drill.title} autoPlay sample={sample} onPlaybackError={onMediaError} />{working && (drill.mode === 'time' || freeDrill && !practicePaused) && <p className="qt-fine-print">Your practice timer keeps running.</p>}</Dialog>}
     {saveError && <Notice tone="error" title="Progress could not be saved">{saveError}</Notice>}
     <section className={`qt-set-panel${freeDrill || drill.mode === 'watch' ? ' qt-set-panel--simple' : ''}`} aria-label={reviewOnly ? 'Video review' : freeDrill ? 'Current drill' : 'Current set'}>
       {review ? <div className="qt-review"><Icon name="clock" size={28} /><h2>Review elapsed set</h2><p>This timer needs your confirmation after an interruption. Confirm the work you completed before recording this set.</p><p className="qt-set-prescription">Planned: {prescriptionLabel(drill)}</p>{onActualChange && <label className="qt-actual-field">Seconds actually completed<input type="number" min="0" max="86400" inputMode="numeric" value={actualValue ?? ''} onChange={event => onActualChange(event.target.value)} /></label>}</div> : (working && drill.mode === 'time' || rest) ? <div className="qt-timer"><p>{rest ? restPaused ? 'Rest is paused' : 'Time to recover' : 'Keep your focus'}</p><strong role="timer" aria-label={`${rest ? 'Rest' : 'Work'} time remaining`}>{formatClock(remainingSeconds)}</strong><div className="qt-progress-track" aria-hidden="true"><i style={{ transform: `scaleX(${fraction})` }} /></div><p>{rest ? 'The next set starts when you are ready.' : 'Your prescribed time is separate from video playback.'}</p></div> : working && drill.mode === 'reps' && onActualChange ? <label className="qt-actual-field">Repetitions completed<input type="number" min="0" max="9999" inputMode="numeric" value={actualValue ?? ''} onChange={event => onActualChange(event.target.value)} /></label> : phase === 'complete' ? <p className="qt-fine-print">{reviewOnly ? 'All videos reviewed.' : 'All work recorded.'} Finish to save.</p> : null}

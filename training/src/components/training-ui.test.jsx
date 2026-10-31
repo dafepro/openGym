@@ -45,6 +45,14 @@ describe('training presentation boundaries', () => {
     expect(html).toContain('not a drill demonstration')
   })
 
+  it('opts into autoplay for a requested demo and exposes an additional playback control', () => {
+    const html = renderToStaticMarkup(<DrillDemonstration title="Demo" autoPlay media={{ id: 'clip', status: 'approved', path: '/media/clip' }} />)
+    expect(html).toContain('autoPlay=""')
+    expect(html).toContain('aria-label="Play video"')
+    expect(html).toContain('Loop last 5s')
+    expect(html).not.toContain('type="number"')
+  })
+
   it('accepts an approved media identity containing multiple dots', () => {
     const html = renderToStaticMarkup(<DrillDemonstration title="Sample" media={{ id: 'trainer.drill.v1', status: 'approved', path: '/media/trainer.drill.v1' }} />)
     expect(html).toContain('<video')
@@ -132,6 +140,11 @@ describe('practice-first assignments', () => {
     expect(saved).toContain('Practice complete')
     expect(saved).toContain('drill practiced')
     expect(saved).not.toContain('Videos reviewed')
+  })
+  it('shows tracked self-paced duration while preserving old unmeasured history', () => {
+    const html = renderToStaticMarkup(<SessionDetail session={{ assignment, assignmentRevision: 'v1', status: 'completed', rows: [{ id: 'row', drillId: 'review-video', mode: 'practice', status: 'done', prescriptionMet: true, actual: null, target: null, practiceSeconds: 72 }] }} />)
+    expect(html).toContain('1:12 time practiced')
+    expect(html).not.toContain('no reps or duration tracked')
   })
   it('shows self-paced completion honestly in history', () => {
     const html = renderToStaticMarkup(<SessionDetail session={{ assignment, assignmentRevision: 'v1', status: 'completed', rows: [{ id: 'row', drillId: 'review-video', mode: 'practice', status: 'done', prescriptionMet: true, actual: null, target: null, setNumber: 1 }] }} />)

@@ -21,7 +21,7 @@ export function createObservedClock({ wall = Date.now, monotonic = () => perform
         recoveredTime += offset
         timestamp = now()
       }
-      const checkpoint = Math.max(session?.lastActionAt || 0, timer?.kind === 'work' ? timer.observedAt : 0)
+      const checkpoint = Math.max(session?.lastActionAt || 0, timer?.kind === 'work' ? timer.observedAt : 0, session?.practiceTimer?.startedAt || 0)
       const backwardsCheckpoint = !jumped && timestamp < checkpoint && nextRevision === storedRevision
       // On reload the previous monotonic anchor is gone. Preserve only the last known checkpoint.
       if (backwardsCheckpoint) previousNow = checkpoint
