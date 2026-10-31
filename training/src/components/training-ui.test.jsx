@@ -64,6 +64,8 @@ describe('training presentation boundaries', () => {
     const html = renderToStaticMarkup(<BuildPracticeView draft={{ title: '', drills: [] }} library={reviewAssignment.drills} saved={[]} history={[]} />)
     expect(html).toContain('>Practice</h1>')
     expect(html).toContain('Custom drill')
+    expect(html).toContain('With video only')
+    expect(html).not.toContain('Ready-made soccer practices')
     expect(html).toContain('Add Reference video')
     expect(html).toContain('Unsaved draft')
     expect(html).not.toContain('Reps per set')

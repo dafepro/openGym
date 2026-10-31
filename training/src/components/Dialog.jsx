@@ -1,5 +1,6 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import Icon from './Icon.jsx'
+import { createPortal } from 'react-dom'
 
 export default function Dialog({ title, children, onClose, actions, className = '' }) {
   const dialog = useRef(null)
@@ -13,7 +14,9 @@ export default function Dialog({ title, children, onClose, actions, className = 
     setClosing(true)
     closeTimer.current = window.setTimeout(onClose, 180)
   }
-  useEffect(() => {
+  // Close the native modal before React detaches it. Passive cleanup happens
+  // after removal and can leave the browser's modal inertness on the main page.
+  useLayoutEffect(() => {
     const element = dialog.current
     const before = document.activeElement
     const overflow = document.body.style.overflow
@@ -28,5 +31,7 @@ export default function Dialog({ title, children, onClose, actions, className = 
     if (element?.open && !element.contains(document.activeElement)) element.querySelector('[aria-label="Close dialog"]')?.focus({ preventScroll: true })
   }, [title])
   const actionContent = typeof actions === 'function' ? actions(requestClose) : actions
-  return <dialog ref={dialog} inert={closing || undefined} className={`qt-dialog ${className}${closing ? ' qt-dialog--closing' : ''}`} aria-labelledby={heading} onCancel={event => { event.preventDefault(); requestClose() }} onClick={event => { if (event.target === dialog.current) requestClose() }}><div className="qt-dialog-inner"><header><h2 id={heading}>{title}</h2><button type="button" className="qt-icon-button" onClick={requestClose} aria-label="Close dialog"><Icon name="close" /></button></header><div className="qt-dialog-body">{children}</div>{actionContent && <div className="qt-dialog-actions">{actionContent}</div>}</div></dialog>
+  const content = <dialog ref={dialog} aria-busy={closing || undefined} className={`qt-dialog ${className}${closing ? ' qt-dialog--closing' : ''}`} aria-labelledby={heading} onCancel={event => { event.preventDefault(); requestClose() }} onClick={event => { if (event.target === dialog.current) requestClose() }}><div className="qt-dialog-inner"><header><h2 id={heading}>{title}</h2><button type="button" className="qt-icon-button" onClick={requestClose} aria-label="Close dialog"><Icon name="close" /></button></header><div className="qt-dialog-body">{children}</div>{actionContent && <div className="qt-dialog-actions">{actionContent}</div>}</div></dialog>
+  // Native modals live outside animated/cloned page content.
+  return typeof document === 'undefined' ? content : createPortal(content, document.body)
 }
