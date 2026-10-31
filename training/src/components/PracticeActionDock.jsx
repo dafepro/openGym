@@ -17,9 +17,9 @@ export default function PracticeActionDock({
       ? { label: practicePaused ? 'Resume' : 'Pause', action: onTogglePracticePause }
       : { label: 'Pause', action: null }
   const stop = working ? onStop : onFinish
+  const actionLabel = primaryLabel || (phase === 'working' ? 'Set done' : phase === 'rest' ? 'Skip rest' : phase === 'review' ? 'Confirm elapsed set' : phase === 'complete' ? 'Finish session' : 'Start set')
   const nextLabel = phase === 'complete' ? 'Finish' : phase === 'review' ? 'Confirm' :
     phase === 'ready' ? actionLabel === 'Mark reviewed' ? 'Reviewed' : 'Start' : 'Next'
-  const actionLabel = primaryLabel || nextLabel
   const doneHint = working && (actionLabel === 'Set done' || actionLabel === 'Drill done' || actionLabel === 'Done')
   return <div className={`qt-action-dock qt-action-dock--${rest ? 'rest' : 'work'}`} aria-label="Practice actions">
     <div className="qt-action-clock" aria-live="off">
