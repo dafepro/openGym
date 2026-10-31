@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import DrillDemonstration from './DrillDemonstration.jsx'
+import PracticeActionDock from './PracticeActionDock.jsx'
 import PracticeView from '../views/PracticeView.jsx'
 import HistoryView from '../views/HistoryView.jsx'
 import BuildPracticeView from '../views/BuildPracticeView.jsx'
@@ -9,6 +10,31 @@ import DrillMetadata from './DrillMetadata.jsx'
 import { SessionDetail } from '../views/HistoryDetails.jsx'
 
 const reviewAssignment = { id: 'review-test', revision: 'v1', title: 'Video review test', drills: [{ id: 'review-video', title: 'Reference video', instructions: 'Review this reference.', mode: 'watch', sets: 1, side: 'both', restSec: null, media: { id: 'unavailable-test', status: 'unavailable' } }] }
+
+describe('practice bottom action tray', () => {
+  it('keeps stop on the left, clock and pause in the middle, and Next to the right', () => {
+    const html = renderToStaticMarkup(<PracticeActionDock phase="working" primaryLabel="Drill done"
+      onPrimary={() => {}} onQuit={() => {}} onTogglePracticePause={() => {}}
+      drill={{ mode: 'practice' }} practiceSeconds={83} />)
+    expect(html).toContain('Time practiced')
+    expect(html).toContain('1:23')
+    expect(html).toContain('>Quit</span>')
+    expect(html).toContain('aria-label="Pause practice timer"')
+    expect(html).toContain('aria-label="Next drill"')
+    expect(html.indexOf('qt-control-quit')).toBeLessThan(html.indexOf('qt-control-play'))
+    expect(html.indexOf('qt-control-play')).toBeLessThan(html.indexOf('qt-control-next'))
+  })
+
+  it('uses the same pause target to resume rest without finishing a set', () => {
+    const html = renderToStaticMarkup(<PracticeActionDock phase="rest" restPaused
+      onResumeRest={() => {}} onAdjustRest={() => {}} onPrimary={() => {}}
+      remainingSeconds={45} />)
+    expect(html).toContain('Resume rest')
+    expect(html).toContain('0:45')
+    expect(html).toContain('aria-label="Skip rest"')
+    expect(html).toContain('−15s')
+  })
+})
 
 describe('training presentation boundaries', () => {
   it('labels link-selected work as shared and offers a personal copy', () => {
