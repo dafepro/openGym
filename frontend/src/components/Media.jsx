@@ -5,6 +5,7 @@ import { useStore } from '../store/useStore.js'
 import { t, exerciseNameFor } from '../lib/i18n.js'
 import Icon from './Icon.jsx'
 import CustomMedia, { CustomThumb } from './CustomMedia.jsx'
+import './MediaControls.css'
 
 // An exercise's picture, wherever one shows. A custom exercise goes to CustomMedia.jsx — its own
 // photo, GIF, video or link, from the local media store — and never through imgSrc/gifSrc, which
@@ -62,9 +63,9 @@ function BuiltinMedia({ ex, id, compact, minimizable }) {
         </button>
       )}
       {!mini && !failed && (
-        <span className="gifhint">
-          <Icon name={playing ? 'pause' : 'play'} />{playing ? t('tap to pause') : t('tap to play')}
-        </span>
+        <button type="button" className="gifhint" aria-label={t(playing ? 'Pause' : 'Play')} onClick={event => { event.stopPropagation(); onTap() }}>
+          <Icon name={playing ? 'pause' : 'play'} /><span>{t(playing ? 'Pause' : 'Play')}</span>
+        </button>
       )}
     </div>
   )
