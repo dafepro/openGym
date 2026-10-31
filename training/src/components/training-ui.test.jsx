@@ -14,7 +14,7 @@ describe('training presentation boundaries', () => {
   it('labels link-selected work as shared and offers a personal copy', () => {
     const html = renderToStaticMarkup(<TodayView assignment={reviewAssignment} kind="shared" onBuild={() => {}} />)
     expect(html).toContain('Shared practice')
-    expect(html).toContain('Shared with you')
+    expect(html).toContain('<h1>Video review test</h1>')
     expect(html).toContain('Make a copy')
     expect(html).not.toContain('Current assignment')
   })
@@ -116,7 +116,8 @@ describe('practice-first assignments', () => {
   it('starts an assigned practice directly without a builder or review prerequisite', () => {
     const html = renderToStaticMarkup(<TodayView assignment={assignment} onStart={() => {}} />)
     expect(html).toContain('Start practice')
-    expect(html).toContain('demonstrations are optional')
+    expect(html.indexOf('Start practice')).toBeLessThan(html.indexOf('qt-drill-list'))
+    expect(html).not.toContain('qt-assignment-art')
     expect(html).not.toContain('Start review')
     expect(html).not.toContain('Video review only')
   })
