@@ -9,8 +9,10 @@ export default function PracticeView({ assignment, drill, drillIndex = 0, drillC
   const reviewOnly = isVideoReview(assignment)
   const selfPaced = isSelfPacedPractice(assignment)
   const freeDrill = drill?.mode === 'practice'
-  const [showDemo, setShowDemo] = useState(false)
-  useEffect(() => { setShowDemo(false) }, [drill?.id, assignment?.id, assignment?.revision])
+  const demoKey = `${assignment?.id}:${assignment?.revision}:${drill?.id}`
+  const [demoFor, setDemoFor] = useState(null)
+  const showDemo = demoFor === demoKey
+  useEffect(() => { setDemoFor(null) }, [demoKey])
   if (saved) return <section className="qt-completion qt-view"><span className={`qt-completion-mark${complete ? '' : ' qt-completion-mark--partial'}`}><Icon name={complete ? 'check' : 'flag'} size={40} /></span><p className="qt-eyebrow">{assignment?.title}</p><h1>{saveError ? 'Session needs saving' : reviewOnly ? complete ? 'Videos reviewed' : 'Review saved' : complete ? 'Practice complete' : 'Session saved'}</h1><p>{saveError ? 'Your work is still in memory. Retry saving or export a backup before closing this tab.' : reviewOnly ? 'Your video review is saved. No athletic work was recorded.' : complete ? 'A little more practice, in the books.' : selfPaced ? 'Your practice is saved, including drills left unfinished.' : 'Your work is saved, including the sets left unfinished.'}</p><div className="qt-completion-summary"><strong>{completedCount}<span> / {totalCount}</span></strong><span>{reviewOnly ? completedCount === 1 ? 'video reviewed' : 'videos reviewed' : selfPaced ? completedCount === 1 ? 'drill practiced' : 'drills practiced' : completedCount === 1 ? 'set recorded' : 'sets recorded'}</span></div><p className="qt-fine-print">{saveError ? 'Not saved yet.' : 'Saved on this device.'}</p><Button icon="home" onClick={onBack}>Return to Today</Button></section>
   if (!drill) return <EmptyState title="No active practice" action="Return to Today" onAction={onBack}>Open your assignment to begin a practice.</EmptyState>
   const rest = phase === 'rest'
@@ -21,7 +23,7 @@ export default function PracticeView({ assignment, drill, drillIndex = 0, drillC
   return <div className={`qt-view qt-practice qt-practice--${rest ? 'rest' : phase}${reviewOnly ? ' qt-practice--video-review' : ''}`}>
     <header className="qt-practice-header"><button type="button" className="qt-icon-button" onClick={onBack} aria-label="Return to Today, keeping this practice"><Icon name="back" /></button><span>{assignment?.title || 'Practice'}</span>{onFinish && <button type="button" className="qt-finish-button" onClick={onFinish}><Icon name="flag" size={17} />Finish</button>}</header>
     <div className="qt-drill-heading"><p className="qt-eyebrow">{reviewOnly ? 'Video' : 'Drill'} {drillIndex + 1} of {drillCount || assignment?.drills?.length || 1}</p><h1>{drill.title}</h1></div>
-    <div className="qt-demo-disclosure"><Button variant="secondary" icon="video" aria-expanded={showDemo} aria-controls="practice-demonstration" onClick={() => setShowDemo(value => !value)}>{showDemo ? 'Hide demonstration' : 'Show demonstration'}</Button>
+    <div className="qt-demo-disclosure"><Button variant="secondary" icon="video" aria-expanded={showDemo} aria-controls="practice-demonstration" onClick={() => setDemoFor(showDemo ? null : demoKey)}>{showDemo ? 'Hide demonstration' : 'Show demonstration'}</Button>
       {showDemo && <div id="practice-demonstration"><DrillDemonstration media={drill.media} title={drill.title} workActive={working} sample={sample} onPlaybackError={onMediaError} /></div>}
     </div>
     {instructions.length > 0 && <section className="qt-coaching"><Icon name="ball" size={24} /><div>{instructions.length === 1 ? <p>{instructions[0]}</p> : <><p>{instructions[0]}</p><details><summary>All instructions</summary><ol>{instructions.slice(1).map((line, index) => <li key={index}>{line}</li>)}</ol></details></>}</div></section>}
