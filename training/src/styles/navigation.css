@@ -1,0 +1,46 @@
+/* The fixed navigation is a persistent surface, independent of page snapshots.
+   Visibility is delayed only on exit; reversing mid-flight follows the current
+   transform rather than restarting a mount animation. */
+.qt-navigation {
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
+  isolation: isolate;
+  transition: transform 240ms cubic-bezier(.22, 1, .36, 1), visibility 0s;
+}
+.qt-navigation[data-visible="false"] {
+  transform: translate3d(0, calc(100% + 24px), 0);
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 240ms cubic-bezier(.22, 1, .36, 1), visibility 0s 240ms;
+}
+.qt-navigation > div { position: relative; isolation: isolate; }
+.qt-navigation .qt-navigation-highlight {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc((100% - (var(--qt-nav-count) - 1) * 8px) / var(--qt-nav-count));
+  border-radius: 14px;
+  background: #d0f8780b;
+  transform: translateX(calc(var(--qt-nav-index) * (100% + 8px)));
+  transition: transform 240ms cubic-bezier(.22, 1, .36, 1), opacity 160ms ease;
+  pointer-events: none;
+  z-index: -1;
+}
+.qt-navigation-highlight[data-active="false"] { opacity: 0; }
+.qt-navigation .qt-navigation-highlight i {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--qt-lime);
+}
+.qt-navigation[data-visible] button[aria-current] { background: transparent; }
+.qt-navigation button { transition: color 180ms ease, background-color 180ms ease; }
+.qt-navigation[data-visible="false"] > div { pointer-events: none; }
+@media (min-width: 1100px) {
+  .qt-navigation .qt-navigation-highlight {
+    inset: 6px auto 6px 6px;
+    width: calc((100% - 12px - (var(--qt-nav-count) - 1) * 8px) / var(--qt-nav-count));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qt-navigation, .qt-navigation .qt-navigation-highlight, .qt-navigation button { transition: none; }
+}

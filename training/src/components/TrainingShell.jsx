@@ -1,4 +1,5 @@
 import Icon from './Icon.jsx'
+import TrainingNavigation from './TrainingNavigation.jsx'
 import { Notice } from './ui.jsx'
 
 export default function TrainingShell({ children, page = 'today', onNavigate, sample = false, localPreview = false, notice, sourceUrl, practice = false, builder = false }) {
@@ -10,7 +11,7 @@ export default function TrainingShell({ children, page = 'today', onNavigate, sa
     {localPreview && <Notice className="qt-sample-notice" title="Local preview · not published" />}
     {notice && <Notice {...notice} />}
     <main id="training-main" tabIndex="-1">{children}</main>
-    {!practice && <nav className={`qt-navigation${builder ? ' qt-navigation--builder' : ''}`} aria-label="Main navigation"><div>{[{ id: 'today', icon: 'home', label: 'Today' }, ...(builder ? [{ id: 'build', icon: 'ball', label: 'Practice' }] : []), { id: 'me', icon: 'user', label: 'Me' }].map(item => <button type="button" key={item.id} onClick={() => navigate(item.id)} aria-current={page === item.id ? 'page' : undefined}><Icon name={item.icon} size={23} /><span>{item.label}</span><i /></button>)}</div></nav>}
+    <TrainingNavigation page={page} visible={!practice} builder={builder} onNavigate={navigate} />
     {!practice && <footer className="qt-footer"><span>Progress stays on this device.</span>{sourceUrl && <a href={sourceUrl} target="_blank" rel="noreferrer">Application source</a>}</footer>}
   </div>
 }
