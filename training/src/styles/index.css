@@ -205,3 +205,17 @@
   .qt-practice .qt-action-dock { position: sticky; bottom: 0; left: auto; transform: none; width: 100%; }
   .qt-shell--practice #training-main { padding-bottom: 36px; }
 }
+
+/* Override the older horizontal work layout in every active phase. */
+.qt-practice .qt-action-dock.qt-action-dock--work,
+.qt-practice .qt-action-dock.qt-action-dock--rest {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+.qt-practice .qt-action-dock .qt-secondary-rail {
+  order: initial;
+  width: 100%;
+  flex: initial;
+}
