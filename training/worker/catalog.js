@@ -16,13 +16,14 @@ function childCatalog(raw, revision) {
     requireValue(Array.isArray(assignment.drills) && assignment.drills.length > 0 && assignment.drills.length <= 100)
     const drills = assignment.drills.map(drill => {
       requireValue(object(drill) && safeId(drill.id) && text(drill.title, 240) && text(drill.instructions, 2000))
-      requireValue(['reps', 'time', 'watch'].includes(drill.mode) && ['both', 'each'].includes(drill.side) && Number.isInteger(drill.sets) && drill.sets >= 1 && drill.sets <= 100)
+      requireValue(['reps', 'time', 'practice', 'watch'].includes(drill.mode) && ['both', 'each'].includes(drill.side) && Number.isInteger(drill.sets) && drill.sets >= 1 && drill.sets <= 100)
       requireValue(drill.restSec === null || Number.isFinite(drill.restSec) && drill.restSec >= 0 && drill.restSec <= 3600)
       requireValue(object(drill.media) && safeId(drill.media.id) && ['approved', 'unavailable'].includes(drill.media.status))
       if (drill.media.path != null) requireValue(drill.media.path === '/media/' + drill.media.id)
       if (drill.media.status === 'approved') requireValue(drill.media.path === '/media/' + drill.media.id)
       if (drill.mode === 'reps') requireValue(Number.isInteger(drill.reps) && drill.reps >= 1 && drill.reps <= 10000)
       if (drill.mode === 'time') requireValue(Number.isFinite(drill.durationSec) && drill.durationSec > 0 && drill.durationSec <= 86400)
+      if (drill.mode === 'practice') requireValue(drill.sets === 1 && drill.side === 'both' && drill.restSec === null && drill.reps == null && drill.durationSec == null)
       if (drill.mode === 'watch') requireValue(drill.sets === 1 && drill.side === 'both')
       return { id: drill.id, title: drill.title, instructions: drill.instructions, mode: drill.mode, sets: drill.sets,
         ...(drill.mode === 'reps' ? { reps: drill.reps } : {}), ...(drill.mode === 'time' ? { durationSec: drill.durationSec } : {}),

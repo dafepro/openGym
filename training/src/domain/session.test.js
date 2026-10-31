@@ -195,3 +195,48 @@ describe('one session controller', () => {
     expect(s.rows.filter(row => row.mode === 'watch')[0].actual).toBeNull()
   })
 })
+
+describe('self-paced physical practice', () => {
+  const practice = () => one('watch', { mode: 'practice', sets: 1, side: 'both', restSec: null })
+  it('requires starting and explicitly completing a drill without inventing quantity', () => {
+    let s = start(practice())
+    expect(getSessionView(s, 0).primaryAction).toEqual({ type: 'START', label: 'Start drill' })
+    expect(command(s, 'ACKNOWLEDGE', 0)).toBe(s)
+    expect(command(s, 'DONE', 0)).toBe(s)
+    s = command(s, 'START', 0)
+    expect(s.timer).toBeNull()
+    expect(getSessionView(s, 0).primaryAction.label).toBe('Drill done')
+    expect(command(s, 'DONE', 200)).toBe(s)
+    s = validateSession(JSON.parse(JSON.stringify(s)))
+    expect(command(s, 'TICK', 100000)).toEqual(s)
+    expect(() => command(s, 'DONE', 100001, { actual: 20 })).toThrow('no measured quantity')
+    s = command(s, 'DONE', 100002)
+    expect(s.rows[0]).toMatchObject({ target: null, actual: null, status: 'done', prescriptionMet: true })
+    s = command(s, 'FINISH', 100003)
+    expect(s.status).toBe('completed')
+    expect(validateSession(s)).toEqual(s)
+  })
+  it('preserves unfinished practice and supports undo and resume', () => {
+    let s = command(start(practice()), 'START', 0)
+    const partial = command(s, 'FINISH', 1000)
+    expect(partial.status).toBe('partial')
+    expect(partial.rows[0].actual).toBeNull()
+    expect(validateSession(partial)).toEqual(partial)
+    s = command(s, 'STOP', 1000)
+    expect(s.rows[0].status).toBe('stopped')
+    s = command(s, 'START', 2000)
+    s = command(s, 'DONE', 3000)
+    s = command(s, 'UNDO', 4000)
+    expect(s.rows[0]).toMatchObject({ status: 'stopped', actual: null, prescriptionMet: false })
+    expect(validateSession(s)).toEqual(s)
+  })
+  it('refuses quantities and sides in a self-paced drill', () => {
+    for (const extra of [{ reps: 10 }, { durationSec: 60 }, { sets: 2 }, { side: 'each' }, { restSec: 20 }]) {
+      const a = practice(); Object.assign(a.drills[0], extra)
+      expect(() => start(a)).toThrow('Self-paced')
+    }
+    const s = command(command(start(practice()), 'START', 0), 'DONE', 1000)
+    s.rows[0].actual = 10
+    expect(() => validateSession(s)).toThrow('Self-paced')
+  })
+})

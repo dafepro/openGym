@@ -121,3 +121,15 @@ describe('deterministic, inspectable optional drill ranking', () => {
     expect(JSON.stringify({ passing, missing })).toBe(before)
   })
 })
+
+it('counts explicitly completed self-paced drills as skill exposure, but not started or watched drills', () => {
+  const d = { ...passing, mode: 'practice', side: 'both', restSec: null }; delete d.reps
+  const a = { ...structuredClone(syntheticCatalog.assignments[0]), drills: [d] }
+  let s = createSession(a, { id: 'self-paced-history', now: NOW - DAY })
+  const send = (type, offset) => { s = reduceSession(s, { type, id: `self-${type}`, sessionId: s.id, rowId: s.currentRowId, now: NOW - DAY + offset }) }
+  send('START', 0)
+  expect(byId(rank([d], { activeSession: s }), d.id).exposure.performed['futbol:passing']).toBe(0)
+  send('DONE', 1000); send('FINISH', 2000)
+  expect(byId(rank([d], { history: [s] }), d.id).exposure.performed['futbol:passing']).toBe(1)
+  expect(s.rows[0].actual).toBeNull()
+})

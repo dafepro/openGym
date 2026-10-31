@@ -14,7 +14,7 @@ const round = value => Math.round(value * 10000) / 10000
 const identifier = value => typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(value)
 const candidateIdentifier = value => typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,383}$/.test(value)
 const fingerprint = drill => JSON.stringify([drill.id, drill.title, drill.instructions, drill.mode, drill.sets, drill.reps ?? null, drill.durationSec ?? null, drill.side, drill.restSec, drill.media?.id, canonicalSkillTags(drill.metadata).sort()])
-const positiveWork = row => ['done', 'stopped'].includes(row?.status) && ['reps', 'time'].includes(row.mode) && Number.isFinite(row.actual) && row.actual > 0 && (row.mode === 'reps' ? Number.isInteger(row.actual) && row.actual <= 10000 : row.actual <= 86400)
+const positiveWork = row => row?.mode === 'practice' && row.status === 'done' && row.actual === null && row.target === null || ['done', 'stopped'].includes(row?.status) && ['reps', 'time'].includes(row.mode) && Number.isFinite(row.actual) && row.actual > 0 && (row.mode === 'reps' ? Number.isInteger(row.actual) && row.actual <= 10000 : row.actual <= 86400)
 const addSkills = (target, skills, weight) => {
   for (const skill of skills) target[skill] = (target[skill] || 0) + weight / skills.length
 }
@@ -67,7 +67,7 @@ export function rankTrainingDrills(drills, {
   const evidence = exposures(history, activeSession, now)
   if (!Array.isArray(plannedDrills) || plannedDrills.length > 100) throw new Error('Planned drills must be a bounded list')
   for (const drill of plannedDrills) {
-    if (!drill || !['watch', 'reps', 'time'].includes(drill.mode)) throw new Error('Planned drill mode is unsupported')
+    if (!drill || !['watch', 'reps', 'time', 'practice'].includes(drill.mode)) throw new Error('Planned drill mode is unsupported')
     if (drill.mode !== 'watch') addSkills(evidence.pending, canonicalSkillTags(drill.metadata), 1)
   }
   const seen = new Set()

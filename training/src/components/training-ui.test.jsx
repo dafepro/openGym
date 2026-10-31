@@ -110,3 +110,32 @@ describe('training presentation boundaries', () => {
     expect(renderToStaticMarkup(<DrillMetadata />)).toBe('')
   })
 })
+
+describe('practice-first assignments', () => {
+  const assignment = { ...reviewAssignment, title: 'Ready practice', drills: [{ ...reviewAssignment.drills[0], mode: 'practice', instructions: 'Practice the movement.', media: { id: 'fixture-video', status: 'approved', path: '/media/fixture-video' } }] }
+  it('starts an assigned practice directly without a builder or review prerequisite', () => {
+    const html = renderToStaticMarkup(<TodayView assignment={assignment} onStart={() => {}} />)
+    expect(html).toContain('Start practice')
+    expect(html).toContain('demonstrations are optional')
+    expect(html).not.toContain('Start review')
+    expect(html).not.toContain('Video review only')
+  })
+  it('loads demonstration only on request and keeps practice completion independent', () => {
+    const html = renderToStaticMarkup(<PracticeView assignment={assignment} drill={assignment.drills[0]} primaryLabel="Start drill" />)
+    expect(html).toContain('Show demonstration')
+    expect(html).toContain('aria-expanded="false"')
+    expect(html).not.toContain('<video')
+    expect(html).toContain('Start drill')
+    expect(html).not.toContain('Watch &amp; learn')
+    const saved = renderToStaticMarkup(<PracticeView assignment={assignment} saved complete completedCount={1} totalCount={1} />)
+    expect(saved).toContain('Practice complete')
+    expect(saved).toContain('drill practiced')
+    expect(saved).not.toContain('Videos reviewed')
+  })
+  it('shows self-paced completion honestly in history', () => {
+    const html = renderToStaticMarkup(<SessionDetail session={{ assignment, assignmentRevision: 'v1', status: 'completed', rows: [{ id: 'row', drillId: 'review-video', mode: 'practice', status: 'done', prescriptionMet: true, actual: null, target: null, setNumber: 1 }] }} />)
+    expect(html).toContain('Practiced · no reps or duration tracked')
+    expect(html).not.toContain('null reps')
+    expect(html).not.toContain('Demonstration acknowledged')
+  })
+})

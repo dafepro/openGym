@@ -8,7 +8,7 @@ import TrainingShell from '../components/TrainingShell.jsx'
 import Dialog from '../components/Dialog.jsx'
 import DrillDemonstration from '../components/DrillDemonstration.jsx'
 import DrillMetadata from './DrillMetadata.jsx'
-import { Badge, Button, EmptyState, LoadingState, Notice, prescriptionLabel, isVideoReview } from '../components/ui.jsx'
+import { Badge, Button, EmptyState, LoadingState, Notice, prescriptionLabel, isVideoReview, isSelfPacedPractice } from '../components/ui.jsx'
 import BuildPracticeView from '../views/BuildPracticeView.jsx'
 import { createPractice, decodePractice, drillLibrary, practiceLink, readSavedPractices, savePractice } from '../domain/practice-builder.js'
 import TodayView from '../views/TodayView.jsx'
@@ -124,11 +124,12 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
   }
   const shown = finished || active
   const reviewOnly = isVideoReview(shown?.assignment || currentAssignment)
+  const selfPaced = isSelfPacedPractice(shown?.assignment || currentAssignment)
   const drill = view?.drill || active?.assignment.drills.at(-1)
   const drillRows = active?.rows.filter(row => row.drillId === drill?.id) || []
   const currentSetIndex = Math.max(0, drillRows.findIndex(row => row.id === active?.currentRowId))
   const disabledActual = (view?.phase === 'review' || view?.phase === 'working' && view?.currentRow?.mode === 'reps') && (actual === '' || !Number.isFinite(Number(actual)) || Number(actual) < 0 || view?.currentRow?.mode === 'reps' && !Number.isInteger(Number(actual)))
-  const phaseAnnouncement = view ? `${view.drill?.title || 'Practice'}: ${view.phase === 'review' ? 'Review elapsed set. Confirm completed work.' : view.phase === 'rest' ? active.timer?.paused ? 'Rest paused.' : 'Rest started.' : view.phase === 'ready' ? reviewOnly ? 'Ready to review this video.' : 'Ready. Start the next set when you are ready.' : view.phase === 'complete' ? reviewOnly ? 'All videos reviewed. Save your review.' : 'All sets recorded. Finish to save the session.' : 'Set started.'}` : ''
+  const phaseAnnouncement = view ? `${view.drill?.title || 'Practice'}: ${view.phase === 'review' ? 'Review elapsed set. Confirm completed work.' : view.phase === 'rest' ? active.timer?.paused ? 'Rest paused.' : 'Rest started.' : view.phase === 'ready' ? reviewOnly ? 'Ready to review this video.' : selfPaced ? 'Ready. Start the next drill when you are ready.' : 'Ready. Start the next set when you are ready.' : view.phase === 'complete' ? reviewOnly ? 'All videos reviewed. Save your review.' : selfPaced ? 'All drills practiced. Finish to save the session.' : 'All sets recorded. Finish to save the session.' : selfPaced ? 'Drill started.' : 'Set started.'}` : ''
 
   if (suspended) return accessPanel
   return <div><TrainingShell page={route} practice={route === 'practice'} builder sample={sample} localPreview={localPreview} sourceUrl={APP_CONFIG.sourceUrl} onNavigate={navigate}>
@@ -158,7 +159,7 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
       {dialog.type === 'assignment' && <AssignmentDetail assignment={dialog.assignment} current={isCurrent(dialog.assignment)} />}
       {dialog.type === 'session' && <SessionDetail session={dialog.session} />}
       {dialog.type === 'drill' && <><Badge>{dialog.standalone ? 'Drill details' : `Drill ${dialog.index + 1} of ${currentAssignment.drills.length}`}</Badge><p>{prescriptionLabel(dialog.drill)}</p><DrillDemonstration media={dialog.drill.media} title={dialog.drill.title} sample={sample} onPlaybackError={onMediaError} /><p>{dialog.drill.instructions}</p><DrillMetadata metadata={dialog.drill.metadata} /></>}
-      {dialog.type === 'finish' && (reviewOnly ? <><p>{view?.progress.done || 0} of {view?.progress.total || 0} videos reviewed. No athletic work is recorded by this review.</p><p>Unreviewed videos will stay unreviewed in the saved record.</p></> : <><p>{view?.progress.done || 0} of {view?.progress.total || 0} sets recorded. {view?.progress.met || 0} met their prescription.</p><p>{view?.prescriptionMet ? 'All prescribed work is complete.' : 'Unfinished or early-ended work will be saved as a partial session.'} Opening this dialog has not stopped your timer.</p></>)}
+      {dialog.type === 'finish' && (reviewOnly ? <><p>{view?.progress.done || 0} of {view?.progress.total || 0} videos reviewed. No athletic work is recorded by this review.</p><p>Unreviewed videos will stay unreviewed in the saved record.</p></> : <><p>{view?.progress.done || 0} of {view?.progress.total || 0} {selfPaced ? 'drills practiced.' : `sets recorded. ${view?.progress.met || 0} met their prescription.`}</p><p>{view?.prescriptionMet ? selfPaced ? 'All drills are complete.' : 'All prescribed work is complete.' : 'Unfinished or early-ended work will be saved as a partial session.'}{!selfPaced && ' Opening this dialog has not stopped your timer.'}</p></>)}
       {dialog.type === 'existing' && <p>Resume or finish the existing practice before starting a new one. Its assignment snapshot and progress are preserved.</p>}
       {dialog.type === 'restore' && <><p>The backup contains {dialog.data.sessions.length} saved sessions{dialog.data.activeSession ? ' and an active practice' : ''}. Existing history will be preserved. Conflicting work is refused.</p><Button variant="text" icon="download" onClick={download}>Export current progress first</Button></>}
     </Dialog>}

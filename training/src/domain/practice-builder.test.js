@@ -74,3 +74,12 @@ describe('personal practice composition and sharing', () => {
     expect(value).toBe('{invalid')
   })
 })
+
+it('shares self-paced practice without forcing a numeric target', () => {
+  const drill = changePrescription(source.drills[0], { mode: 'practice' })
+  expect(drill.reps).toBeUndefined()
+  expect(drill.durationSec).toBeUndefined()
+  const a = createPractice('Ready practice', [drill], { id: 'ready', revision: 'v1' })
+  expect(decodePractice(encodePractice(a), syntheticCatalog)).toEqual(a)
+  expect(rankTrainingDrills([drill], { now: 1000, plannedDrills: [drill] })).toHaveLength(1)
+})
