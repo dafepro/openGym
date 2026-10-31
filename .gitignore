@@ -34,3 +34,9 @@ docs/superpowers/plans/
 # Local Cloudflare emulator and deployment bundles
 .wrangler/
 worker-dist/
+
+# Public, original soccer starter content only.
+!training/src/data/
+training/src/data/*
+!training/src/data/skill-workouts.js
+!training/src/data/movement-workouts.js
