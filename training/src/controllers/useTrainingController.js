@@ -24,7 +24,7 @@ export default function useTrainingController({ databaseName, suspended = false 
     const oldIndex = index(before), newIndex = index(after)
     current.current = next
     const update = () => { setProgress(next); setNow(clock.now()) }
-    if (before?.id === after?.id && oldIndex >= 0 && newIndex >= 0 && oldIndex !== newIndex) transitionView(update, newIndex < oldIndex ? 'back' : 'forward')
+    if (before?.id === after?.id && oldIndex >= 0 && newIndex >= 0 && oldIndex !== newIndex) transitionView(update, newIndex < oldIndex ? 'back' : 'forward', '.qt-drill-card')
     else update()
   }, [clock])
 

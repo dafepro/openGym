@@ -2,6 +2,7 @@ const paths = {
   plus: <path d="M12 5v14M5 12h14" />,
   home: <><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" /></>,
   history: <><path d="M4 5v5h5M4.8 9a8 8 0 1 1-.3 6" /><path d="M12 8v5l3 2" /></>,
+  forward: <path d="M4 12h16m-7-7 7 7-7 7" />,
   arrow: <path d="m9 5 7 7-7 7" />,
   back: <path d="m15 5-7 7 7 7" />,
   play: <path d="m8 4 12 8-12 8Z" />,
