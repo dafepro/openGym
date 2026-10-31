@@ -1,0 +1,21 @@
+/* Large, explicit playback control at the far edge of exercise media. */
+.exmedia button.gifhint {
+  inset-inline-start: auto;
+  inset-inline-end: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  min-width: 104px;
+  padding: 9px 14px;
+  border: 1px solid rgba(255,255,255,.35);
+  background: rgba(0,0,0,.7);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 2;
+}
+.exmedia button.gifhint .icn { font-size: 20px; }
+.exmedia button.gifhint:focus-visible { outline: 3px solid var(--acc); outline-offset: -3px; }
