@@ -11,6 +11,14 @@ const current = session => session.rows.find(row => row.id === session.currentRo
 const drillFor = (session, row) => session.assignment.drills.find(drill => drill.id === row?.drillId)
 const elapsed = (timer, now) => Math.max(0, timer.elapsedBefore + (now - timer.startedAt) / 1000)
 const observedElapsed = (timer, now) => Math.min(86400, elapsed(timer, timer.observed && now - timer.observedAt <= OBSERVED_GAP_MS ? now : timer.observedAt))
+const practiceElapsed = (timer, now) => Math.min(86400, timer.elapsedBefore + (timer.paused ? 0 : Math.max(0, now - timer.startedAt) / 1000))
+const checkpointPractice = (session, now) => {
+  if (!session.practiceTimer) return
+  const row = session.rows.find(row => row.id === session.practiceTimer.ownerRowId)
+  row.practiceSeconds = practiceElapsed(session.practiceTimer, now)
+  row.status = 'stopped'; row.prescriptionMet = false
+  session.practiceTimer = null
+}
 const pending = row => row.status !== 'done'
 export function createSession(assignment, { id, now }) {
   const snapshot = validateAssignment(assignment)
@@ -36,6 +44,7 @@ function advance(session) {
 }
 function record(session, row, actual, now) {
   const before = clone(row)
+  checkpointPractice(session, now)
   row.actual = actual; row.status = 'done'
   row.prescriptionMet = ['watch', 'practice'].includes(row.mode) || actual >= row.target
   session.lastCompletion = { rowId: row.id, before }
@@ -63,7 +72,7 @@ export function reduceSession(original, command) {
   if (!original || original.status !== 'active' || command.sessionId !== original.id) return original
   requireId(command.id, 'Command ID'); at(command.now)
   if (original.appliedCommandIds.includes(command.id)) return original
-  if (['START', 'DONE', 'STOP', 'ACKNOWLEDGE', 'CONFIRM_REVIEW', 'SKIP_REST', 'PAUSE_REST', 'RESUME_REST', 'ADJUST_REST', 'UNDO'].includes(command.type) && command.rowId !== original.currentRowId) return original
+  if (['START', 'DONE', 'STOP', 'PAUSE_PRACTICE', 'RESUME_PRACTICE', 'ACKNOWLEDGE', 'CONFIRM_REVIEW', 'SKIP_REST', 'PAUSE_REST', 'RESUME_REST', 'ADJUST_REST', 'UNDO'].includes(command.type) && command.rowId !== original.currentRowId) return original
   if (command.rowId != null && command.rowId !== original.currentRowId) return original
   const session = clone(original)
   const row = current(session)
@@ -74,12 +83,21 @@ export function reduceSession(original, command) {
     case 'START':
       if (session.phase !== 'ready' || !row || row.mode === 'watch') return original
       session.phase = 'working'; session.lastActionAt = now; session.lastCompletion = null
+      if (row.mode === 'practice') session.practiceTimer = { ownerRowId: row.id, startedAt: now, elapsedBefore: row.practiceSeconds || 0, paused: false }
       if (row.mode === 'time') {
         const elapsedBefore = row.actual || 0
         session.timer = { kind: 'work', ownerRowId: row.id, startedAt: now, elapsedBefore, target: row.target,
           deadline: now + Math.max(0, row.target - elapsedBefore) * 1000, observed: true, observedAt: now }
         if (elapsedBefore >= row.target) { session.phase = 'review'; session.timer.observed = false; session.timer.reviewElapsed = elapsedBefore }
       }
+      break
+    case 'PAUSE_PRACTICE':
+      if (session.phase !== 'working' || !session.practiceTimer || session.practiceTimer.paused) return original
+      session.practiceTimer.elapsedBefore = practiceElapsed(session.practiceTimer, now); session.practiceTimer.paused = true
+      break
+    case 'RESUME_PRACTICE':
+      if (session.phase !== 'working' || !session.practiceTimer?.paused) return original
+      session.practiceTimer.startedAt = now; session.practiceTimer.paused = false
       break
     case 'DONE':
       if (session.phase !== 'working' || now - session.lastActionAt < GUARD_MS) return original
@@ -102,6 +120,7 @@ export function reduceSession(original, command) {
       break
     case 'STOP':
       if (session.phase !== 'working' && session.phase !== 'review') return original
+      checkpointPractice(session, now)
       if (work) row.actual = observedElapsed(work, now)
       row.status = 'stopped'; row.prescriptionMet = false
       session.phase = 'ready'; session.timer = null
@@ -114,6 +133,10 @@ export function reduceSession(original, command) {
     case 'CLOCK_CHANGE':
       if (!Number.isFinite(command.previousNow) || command.previousNow < 0 || !Number.isFinite(command.clockShiftMs) || Math.abs(now - command.previousNow - command.clockShiftMs) > 1 || command.clockRevision !== (session.clockRevision || 0)) return original
       session.clockRevision = (session.clockRevision || 0) + 1
+      if (session.practiceTimer) {
+        session.practiceTimer.elapsedBefore = practiceElapsed(session.practiceTimer, command.previousNow)
+        session.practiceTimer.startedAt = now
+      }
       if (session.lastActionAt !== null) session.lastActionAt = Math.max(0, session.lastActionAt + command.clockShiftMs)
       if (session.timer?.kind === 'rest') {
         if (command.clockShiftMs < 0) {
@@ -131,6 +154,11 @@ export function reduceSession(original, command) {
       }
       break
     case 'RECONCILE':
+      if (row?.mode === 'practice' && session.phase === 'working') {
+        // Older sessions have no stopwatch. Start measuring from this resume.
+        if (!session.practiceTimer) session.practiceTimer = { ownerRowId: row.id, startedAt: now, elapsedBefore: row.practiceSeconds || 0, paused: false }
+        break
+      }
       if (session.phase === 'review') return original
       reconcile(session, now, false)
       if (session.timer?.kind === 'work' && session.phase === 'working') { session.timer.observed = true; session.timer.observedAt = now }
@@ -174,6 +202,7 @@ export function reduceSession(original, command) {
         session.currentRowId = previous.rowId; session.phase = 'ready'; session.timer = null; session.lastCompletion = null }
       break
     case 'FINISH':
+      checkpointPractice(session, now)
       if (work) { row.actual = observedElapsed(work, now); row.status = 'stopped'; row.prescriptionMet = false }
       session.status = session.rows.every(item => item.status === 'done' && item.prescriptionMet) ? 'completed' : 'partial'
       session.endedAt = now; session.phase = 'complete'; session.timer = null
@@ -195,6 +224,8 @@ export function getSessionView(session, now) {
     review: ['CONFIRM_REVIEW', 'Confirm elapsed set'], rest: ['SKIP_REST', 'Skip rest'], complete: ['FINISH', 'Finish session'] }
   const [type, label] = types[session.phase]
   return { drill, currentRow: row || null, phase: session.phase, remainingSec,
+    practiceSeconds: session.practiceTimer ? practiceElapsed(session.practiceTimer, now) : row?.practiceSeconds || 0,
+    practicePaused: !!session.practiceTimer?.paused,
     elapsedSec: timer?.kind === 'work' ? session.phase === 'review' ? timer.reviewElapsed ?? observedElapsed(timer, now) : elapsed(timer, now) : row?.actual ?? 0,
     progress: { done: session.rows.filter(item => item.status === 'done').length, total: session.rows.length, met: session.rows.filter(item => item.prescriptionMet).length },
     allWorkRecorded: session.rows.every(item => item.status === 'done'), prescriptionMet: session.rows.every(item => item.prescriptionMet),
@@ -211,6 +242,7 @@ export function validateSession(session) {
     const target = expected.rows[index]
     for (const key of ['id', 'drillId', 'setNumber', 'side', 'mode', 'target']) if (row[key] !== target[key]) throw new Error('Session row prescription changed')
     if (!['pending', 'done', 'stopped'].includes(row.status) || typeof row.prescriptionMet !== 'boolean') throw new Error('Invalid row result')
+    if (row.practiceSeconds != null) { quantity(row.practiceSeconds, 'Practice seconds', 86400); if (row.mode !== 'practice' || row.status === 'pending') throw new Error('Practice duration needs a practiced row') }
     if (row.actual !== null) quantity(row.actual, 'Actual result', row.mode === 'reps' ? 10000 : 86400)
     if (row.mode === 'reps' && row.actual !== null && !Number.isInteger(row.actual)) throw new Error('Actual reps must be whole')
     if (row.mode === 'practice' && row.actual !== null) throw new Error('Self-paced completion cannot claim a quantity')
@@ -236,6 +268,7 @@ export function validateSession(session) {
     for (const key of ['id', 'drillId', 'setNumber', 'side', 'mode', 'target']) if (saved.before[key] !== expectedRow[key]) throw new Error('Undo checkpoint prescription changed')
     if (saved.before.prescriptionMet !== false) throw new Error('Undo checkpoint cannot fabricate work')
     if (session.rows.find(row => row.id === saved.rowId)?.status !== 'done') throw new Error('Undo checkpoint must reference recorded work')
+    if (saved.before.practiceSeconds != null) { quantity(saved.before.practiceSeconds, 'Undo practice seconds', 86400); if (expectedRow.mode !== 'practice' || saved.before.status === 'pending') throw new Error('Invalid undo practice duration') }
     if (saved.before.actual !== null) {
       quantity(saved.before.actual, 'Undo actual', expectedRow.mode === 'reps' ? 10000 : 86400)
       if (expectedRow.mode === 'reps' && !Number.isInteger(saved.before.actual)) throw new Error('Undo actual reps must be whole')
@@ -247,6 +280,11 @@ export function validateSession(session) {
     at(session.endedAt)
     if (session.timer !== null || session.phase !== 'complete') throw new Error('Finished session cannot keep a timer')
     if (session.status === 'completed' && !session.rows.every(row => row.prescriptionMet)) throw new Error('Partial work cannot claim completion')
+  }
+  if (session.practiceTimer) {
+    const timer = session.practiceTimer
+    if (session.status !== 'active' || session.phase !== 'working' || current(session)?.mode !== 'practice' || timer.ownerRowId !== session.currentRowId || typeof timer.paused !== 'boolean' || session.timer) throw new Error('Invalid practice stopwatch')
+    at(timer.startedAt); quantity(timer.elapsedBefore, 'Practice elapsed checkpoint', 86400)
   }
   if (session.timer) {
     const timer = session.timer

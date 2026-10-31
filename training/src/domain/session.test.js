@@ -240,3 +240,56 @@ describe('self-paced physical practice', () => {
     expect(() => validateSession(s)).toThrow('Self-paced')
   })
 })
+
+describe('self-paced elapsed practice time', () => {
+  const practice = () => one('watch', { mode: 'practice', sets: 1, side: 'both', restSec: null })
+  it('counts elapsed seconds, pauses, survives reload and records duration separately from targets', () => {
+    let s = command(start(practice()), 'START', 1000)
+    expect(getSessionView(s, 61000).practiceSeconds).toBe(60)
+    s = command(s, 'PAUSE_PRACTICE', 61000)
+    expect(getSessionView(s, 121000).practiceSeconds).toBe(60)
+    s = validateSession(JSON.parse(JSON.stringify(s)))
+    s = command(s, 'RECONCILE', 122000)
+    expect(getSessionView(s, 123000).practicePaused).toBe(true)
+    s = command(s, 'RESUME_PRACTICE', 123000)
+    s = command(s, 'DONE', 133000)
+    expect(s.rows[0]).toMatchObject({ practiceSeconds: 70, target: null, actual: null, status: 'done' })
+    expect(s.practiceTimer).toBeNull()
+    expect(validateSession(s)).toEqual(s)
+    s = command(s, 'UNDO', 134000)
+    expect(s.rows[0].practiceSeconds).toBeUndefined()
+    expect(validateSession(s)).toEqual(s)
+  })
+  it('continues a running stopwatch across reload, checkpoints partial work and resumes it', () => {
+    let s = command(start(practice()), 'START', 0)
+    s = command(validateSession(JSON.parse(JSON.stringify(s))), 'RECONCILE', 20000)
+    expect(getSessionView(s, 21000).practiceSeconds).toBe(21)
+    s = command(s, 'STOP', 21000)
+    expect(s.rows[0].practiceSeconds).toBe(21)
+    s = command(s, 'START', 25000)
+    s = command(s, 'FINISH', 30000)
+    expect(s.rows[0]).toMatchObject({ practiceSeconds: 26, status: 'stopped' })
+    expect(s.status).toBe('partial')
+    expect(validateSession(s)).toEqual(s)
+  })
+  it('does not fabricate past duration when resuming a legacy active drill', () => {
+    let s = command(start(practice()), 'START', 0)
+    delete s.practiceTimer
+    s = command(validateSession(s), 'RECONCILE', 60000)
+    expect(getSessionView(s, 61000).practiceSeconds).toBe(1)
+  })
+  it('rejects corrupt duration and stopwatch ownership', () => {
+    const s = command(start(practice()), 'START', 0)
+    s.practiceTimer.ownerRowId = 'missing-row'
+    expect(() => validateSession(s)).toThrow('stopwatch')
+    const done = command(command(start(practice()), 'START', 0), 'DONE', 1000)
+    done.rows[0].practiceSeconds = -1
+    expect(() => validateSession(done)).toThrow()
+  })
+  it('preserves elapsed practice when the wall clock jumps', () => {
+    let s = command(start(practice()), 'START', 1000)
+    s = command(s, 'CLOCK_CHANGE', 5000, { previousNow: 11000, clockShiftMs: -6000, clockRevision: 0 })
+    expect(getSessionView(s, 6000).practiceSeconds).toBe(11)
+    expect(validateSession(s)).toEqual(s)
+  })
+})
