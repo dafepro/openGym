@@ -64,11 +64,21 @@ describe('training presentation boundaries', () => {
     const html = renderToStaticMarkup(<BuildPracticeView draft={{ title: '', drills: [] }} library={reviewAssignment.drills} saved={[]} history={[]} />)
     expect(html).toContain('>Practice</h1>')
     expect(html).toContain('Custom drill')
-    expect(html).toContain('With video only')
+    expect(html).toContain('With video')
     expect(html).not.toContain('Ready-made soccer practices')
     expect(html).toContain('Add Reference video')
-    expect(html).toContain('Unsaved draft')
+    expect(html).not.toContain('Practice name')
     expect(html).not.toContain('Reps per set')
+  })
+
+  it('shows edited targets on selected library rows while preserving the source drill', () => {
+    const source = reviewAssignment.drills[0]
+    const selected = { ...source, id: 'selected-instance', mode: 'time', sets: 2, durationSec: 45 }
+    const html = renderToStaticMarkup(<BuildPracticeView draft={{ title: 'Touches', drills: [selected] }} library={[source]} saved={[]} history={[]} />)
+    expect(html).toContain('Remove Reference video')
+    expect(html).toContain('2 × 45 sec')
+    expect(html).toContain('data-selected="true"')
+    expect(source.mode).toBe('watch')
   })
 
   it('never turns an external or unapproved media reference into a player', () => {

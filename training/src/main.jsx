@@ -7,3 +7,5 @@ import './styles/starter-practices.css'
 import './styles/workout-refinements.css'
 
 createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>)
+
+import './styles/selection.css'
