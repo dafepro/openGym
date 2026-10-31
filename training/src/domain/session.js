@@ -37,7 +37,7 @@ function advance(session) {
 function record(session, row, actual, now) {
   const before = clone(row)
   row.actual = actual; row.status = 'done'
-  row.prescriptionMet = row.mode === 'watch' || actual >= row.target
+  row.prescriptionMet = ['watch', 'practice'].includes(row.mode) || actual >= row.target
   session.lastCompletion = { rowId: row.id, before }
   session.lastActionAt = now
   const restSec = drillFor(session, row).restSec
@@ -86,6 +86,10 @@ export function reduceSession(original, command) {
       if (row.mode === 'time' && (!work.observed || now - work.observedAt > OBSERVED_GAP_MS)) {
         session.phase = 'review'; work.reviewElapsed = Math.min(86400, elapsed(work, now)); work.observed = false
         break
+      }
+      if (row.mode === 'practice') {
+        if (command.actual != null) throw new Error('Self-paced practice has no measured quantity')
+        record(session, row, null, now); break
       }
       { const actual = command.actual ?? (work ? elapsed(work, now) : row.target)
         quantity(actual, 'Actual work', row.mode === 'reps' ? 10000 : 86400)
@@ -187,7 +191,7 @@ export function getSessionView(session, now) {
   const timer = session.timer
   const remainingSec = timer?.kind === 'work' ? Math.max(0, (timer.deadline - now) / 1000)
     : timer?.kind === 'rest' ? Math.max(0, timer.paused ? timer.remainingSec : (timer.deadline - now) / 1000) : null
-  const types = { ready: row?.mode === 'watch' ? ['ACKNOWLEDGE', 'Mark reviewed'] : ['START', 'Start set'], working: ['DONE', 'Set done'],
+  const types = { ready: row?.mode === 'watch' ? ['ACKNOWLEDGE', 'Mark reviewed'] : ['START', row?.mode === 'practice' ? 'Start drill' : 'Start set'], working: ['DONE', row?.mode === 'practice' ? 'Drill done' : 'Set done'],
     review: ['CONFIRM_REVIEW', 'Confirm elapsed set'], rest: ['SKIP_REST', 'Skip rest'], complete: ['FINISH', 'Finish session'] }
   const [type, label] = types[session.phase]
   return { drill, currentRow: row || null, phase: session.phase, remainingSec,
@@ -209,9 +213,10 @@ export function validateSession(session) {
     if (!['pending', 'done', 'stopped'].includes(row.status) || typeof row.prescriptionMet !== 'boolean') throw new Error('Invalid row result')
     if (row.actual !== null) quantity(row.actual, 'Actual result', row.mode === 'reps' ? 10000 : 86400)
     if (row.mode === 'reps' && row.actual !== null && !Number.isInteger(row.actual)) throw new Error('Actual reps must be whole')
+    if (row.mode === 'practice' && row.actual !== null) throw new Error('Self-paced completion cannot claim a quantity')
     if (row.status === 'pending' && row.actual !== null || row.mode === 'watch' && (row.actual !== null || row.status === 'stopped')) throw new Error('Row result is inconsistent with its status or mode')
-    if (row.status === 'done' && row.mode !== 'watch' && row.actual === null) throw new Error('Completed work needs actual quantity')
-    if (row.prescriptionMet !== (row.status === 'done' && (row.mode === 'watch' || row.actual >= row.target))) throw new Error('Prescription completion is inconsistent')
+    if (row.status === 'done' && !['watch', 'practice'].includes(row.mode) && row.actual === null) throw new Error('Completed work needs actual quantity')
+    if (row.prescriptionMet !== (row.status === 'done' && (['watch', 'practice'].includes(row.mode) || row.actual >= row.target))) throw new Error('Prescription completion is inconsistent')
   })
   if (!phases.includes(session.phase) || !['active', 'completed', 'partial'].includes(session.status)) throw new Error('Invalid session state')
   if (session.phase === 'working' && current(session)?.mode === 'watch') throw new Error('Watch-only content cannot own a work phase')
@@ -235,6 +240,7 @@ export function validateSession(session) {
       quantity(saved.before.actual, 'Undo actual', expectedRow.mode === 'reps' ? 10000 : 86400)
       if (expectedRow.mode === 'reps' && !Number.isInteger(saved.before.actual)) throw new Error('Undo actual reps must be whole')
     }
+    if (expectedRow.mode === 'practice' && saved.before.actual !== null) throw new Error('Self-paced undo cannot claim a quantity')
     if (saved.before.status === 'pending' && saved.before.actual !== null || expectedRow.mode === 'watch' && (saved.before.status !== 'pending' || saved.before.actual !== null)) throw new Error('Undo checkpoint result is inconsistent')
   }
   if (session.status !== 'active') {

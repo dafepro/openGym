@@ -326,3 +326,17 @@ describe('open training access', () => {
     expect((await handleRequest(request('/api/catalog'), { ...env, APP_ORIGIN: undefined }, NOW)).status).toBe(503)
   })
 })
+
+it('serves self-paced drill assignments while refusing fabricated targets', async () => {
+  const { env, bucket, envelope } = await setup()
+  env.TRAINING_ACCESS_MODE = 'open'
+  const drill = envelope.catalog.assignments[0].drills[0]
+  drill.mode = 'practice'; delete drill.durationSec; drill.restSec = null
+  env.CATALOG_SHA256 = await bucket.put(`catalogs/${envelope.revision}.json`, JSON.stringify(envelope))
+  const response = await handleRequest(request('/api/catalog'), env, NOW)
+  expect(response.status).toBe(200)
+  expect(validateCatalog(await response.json()).assignments[0].drills[0].mode).toBe('practice')
+  drill.reps = 12
+  env.CATALOG_SHA256 = await bucket.put(`catalogs/${envelope.revision}.json`, JSON.stringify(envelope))
+  expect((await handleRequest(request('/api/catalog'), env, NOW)).status).toBe(503)
+})

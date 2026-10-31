@@ -23,7 +23,7 @@ export function createPractice(title, drills, { id, revision } = {}) {
 
 export function changePrescription(drill, values) {
   const next = { ...copy(drill), ...values }
-  if (next.mode === 'watch') {
+  if (['watch', 'practice'].includes(next.mode)) {
     next.sets = 1; next.side = 'both'; next.restSec = null
     delete next.reps; delete next.durationSec
   } else if (next.mode === 'reps') delete next.durationSec

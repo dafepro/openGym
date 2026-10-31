@@ -35,7 +35,7 @@ export function validateAssignment(assignment) {
     if (drill.metadata !== undefined) validateDrillMetadata(drill.metadata)
     requireId(drill.id, 'Drill occurrence ID'); text(drill.title, 'Drill title', 240)
     text(drill.instructions, 'Drill instructions')
-    if (!['reps', 'time', 'watch'].includes(drill.mode)) throw new Error('Drill mode must be reps, time or watch')
+    if (!['reps', 'time', 'practice', 'watch'].includes(drill.mode)) throw new Error('Drill mode must be reps, time, practice or watch')
     if (!['both', 'each'].includes(drill.side)) throw new Error('Drill side must be both or each')
     if (!Number.isInteger(drill.sets) || drill.sets < 1 || drill.sets > 100) throw new Error('Sets must be an integer from 1 to 100')
     if (drill.mode === 'reps') {
@@ -47,6 +47,7 @@ export function validateAssignment(assignment) {
       if (drill.durationSec <= 0) throw new Error('Duration must be positive')
     }
     if (drill.mode === 'watch' && (drill.sets !== 1 || drill.side !== 'both')) throw new Error('Watch-only content has one review, without sides')
+    if (drill.mode === 'practice' && (drill.sets !== 1 || drill.side !== 'both' || drill.restSec !== null || drill.reps != null || drill.durationSec != null)) throw new Error('Self-paced practice records one drill without a quantity or timer')
     if (drill.restSec !== null) quantity(drill.restSec, 'Rest duration', 3600)
     if (!plain(drill.media)) throw new Error('Media availability must be explicit')
     fields(drill.media, ['id', 'status', 'path'], 'Media')
