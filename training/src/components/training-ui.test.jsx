@@ -123,7 +123,7 @@ describe('practice-first assignments', () => {
   })
   it('loads demonstration only on request and keeps practice completion independent', () => {
     const html = renderToStaticMarkup(<PracticeView assignment={assignment} drill={assignment.drills[0]} primaryLabel="Start drill" />)
-    expect(html).toContain('Show demonstration')
+    expect(html).toContain('Watch demonstration')
     expect(html).toContain('aria-expanded="false"')
     expect(html).not.toContain('<video')
     expect(html).toContain('Start drill')
