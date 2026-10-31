@@ -243,7 +243,7 @@ export default function WorkoutFocus({
           {phase === 'rest'
             ? <button type="button" className="wf-pause" disabled={timer.ready} aria-label={t(timer.paused ? 'Resume' : 'Pause')} onClick={timer.paused ? useUI.getState().resumeRest : useUI.getState().pauseRest}><Icon name={timer.paused ? 'play' : 'pause'} /><span>{t(timer.paused ? 'Resume' : 'Pause')}</span></button>
             : <button type="button" className="wf-view-toggle" aria-label={t(view === 'workout' ? 'Live' : 'Workout')} aria-expanded={view === 'workout'} aria-controls={id + '-panel'} onClick={() => useUI.setState({ focusView: view === 'workout' ? 'live' : 'workout', focusPane: null, focusDetailsOpen: view !== 'workout' })}><Icon name={view === 'workout' ? 'target' : 'list'} /><span>{t(view === 'workout' ? 'Live' : 'Workout')}</span></button>}
-          <button type="button" className="wf-primary" aria-label={phase === 'set' ? t('Next') : primary.label} disabled={primary.disabled} onClick={primary.run}>
+          <button type="button" className="wf-primary" aria-label={phase === 'set' ? t('Done') : primary.label} disabled={primary.disabled} onClick={primary.run}>
             <span className="wf-primary-copy">{phase === 'set' && <small>{t('Done')}</small>}<strong>{phase === 'set' ? t('Next') : primary.label}</strong></span>
             <Icon name={phase === 'prep' ? 'play' : 'arrowRight'} />
           </button>
