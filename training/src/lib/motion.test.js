@@ -29,6 +29,7 @@ describe('navigation animation ownership', () => {
     vi.useFakeTimers()
     const old = environment()
     transitionView(() => {}, 'forward')
+    expect(document.querySelector).toHaveBeenCalledWith('#training-main')
     const next = environment()
     transitionView(() => {}, 'back')
     expect(old.snapshot.remove).toHaveBeenCalledOnce()

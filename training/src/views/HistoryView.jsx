@@ -4,7 +4,7 @@ import { isAssignedSession, newestSessions, sessionPracticeTime, sessionTimestam
 
 export default function HistoryView({ assignments = [], sessions = [], onOpenSession, onResume, onExport, onRestore, loading = false, embedded = false, selectedDay, onClearDay }) {
   return <section className={embedded ? 'qt-me-history' : 'qt-view qt-history'} aria-label="Session history" id={embedded ? 'player-history' : undefined}>
-    {embedded ? <div className="qt-me-section-heading"><div><p className="qt-eyebrow">Every session, in one place</p><h2>History</h2></div><span className="qt-me-count">{sessions.length}</span></div> : <PageHeading eyebrow="Your practice, kept in one place" title="History">Your saved sessions and practice in progress.</PageHeading>}
+    {embedded ? <div className="qt-me-section-heading"><div><h2>History</h2></div><span className="qt-me-count">{sessions.length}</span></div> : <PageHeading eyebrow="Your practice, kept in one place" title="History">Your saved sessions and practice in progress.</PageHeading>}
     {selectedDay && <div className="qt-history-filter"><span>{new Date(`${selectedDay}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span><Button variant="text" onClick={onClearDay}>Show all</Button></div>}
     {loading ? <LoadingState label="Loading history" /> : <div className="qt-history-list">{sessions.length ? newestSessions(sessions).map(session => {
       const time = sessionPracticeTime(session)
@@ -25,5 +25,5 @@ export default function HistoryView({ assignments = [], sessions = [], onOpenSes
 }
 
 export function HistoryStorage({ onExport, onRestore }) {
-  return <div className="qt-storage-note"><Icon name="info" size={19} /><div><strong>Saved on this device</strong><p>Session history stays in this browser. Export a backup before clearing site data or moving devices. Player details are saved separately and are not included in session backups.</p><div className="qt-history-backup-actions">{onExport && <Button variant="text" icon="download" onClick={onExport}>Export a backup</Button>}{onRestore && <Button variant="text" onClick={onRestore}>Restore a backup</Button>}</div></div></div>
+  return <details className="qt-backup-disclosure"><summary><Icon name="download" size={16}/> Backup &amp; device storage</summary><p>History stays in this browser. Export before changing devices or clearing site data. Player details are saved separately.</p><div className="qt-history-backup-actions">{onExport && <Button variant="text" icon="download" onClick={onExport}>Export a backup</Button>}{onRestore && <Button variant="text" onClick={onRestore}>Restore a backup</Button>}</div></details>
 }

@@ -5,7 +5,7 @@ let finishPrevious
 // Exactly one animation owns each navigation. The incoming surface is hidden
 // before React commits; no mount animations restart when this animation ends.
 // Drill transitions leave the fixed control panel in place.
-export function transitionView(update, direction = 'forward', selector = '.qt-shell') {
+export function transitionView(update, direction = 'forward', selector = '#training-main') {
   finishPrevious?.()
   document.documentElement.dataset.motion = direction
   const root = document.querySelector(selector)
@@ -25,6 +25,10 @@ export function transitionView(update, direction = 'forward', selector = '.qt-sh
   // The root itself must survive the update (no React key on the drill card).
   const incoming = root.animate([{ opacity: 0, transform: `translateX(${20 * sign}px)` }, { opacity: 1, transform: 'translateX(0)' }], timing)
   flushSync(update)
+  // Navigation may reset a scrolled page. Keep its outgoing content below
+  // the new content boundary so it cannot sweep across the stationary header.
+  const incomingTop = root.getBoundingClientRect().top
+  snapshot.style.clipPath = `inset(${Math.max(0, incomingTop - bounds.top)}px 0 0 0)`
   const outgoing = snapshot.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${-20 * sign}px)` }], timing)
   let fallback
   const finish = () => { clearTimeout(fallback); snapshot.remove(); outgoing.cancel(); incoming.cancel(); if (finishPrevious === finish) finishPrevious = null }

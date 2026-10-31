@@ -28,6 +28,13 @@ describe('public starter practice library', () => {
     drills[0].title = 'Changed draft'
     expect(standardDrills()[0].title).not.toBe('Changed draft')
   })
+  it('does not let repeated preparation blocks flood the independent picker', () => {
+    const drills = standardDrills()
+    expect(drills.filter(drill => drill.title === 'Easy movement warm-up')).toHaveLength(1)
+    expect(drills.filter(drill => drill.title === 'Easy walk and reset')).toHaveLength(1)
+    expect(standardWorkouts.flatMap(item => item.assignment.drills)).toHaveLength(89)
+    expect(drills.find(drill => drill.title === 'Easy movement warm-up').metadata.requirements.participants.min).toBe(1)
+  })
   it('includes rest between drills and sides, but not after the final row', () => {
     for (const { assignment } of standardWorkouts) {
       const rows = createSession(assignment, { id: 'summary', now: 1000 }).rows

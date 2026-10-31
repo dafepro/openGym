@@ -5,9 +5,22 @@ import { movementWorkouts } from '../data/movement-workouts.js'
 // approved catalog; starting a template never assigns it or edits that catalog.
 export const standardWorkouts = [...skillWorkouts, ...movementWorkouts]
 export function standardDrills() {
+  const drills = standardWorkouts.flatMap(item => item.assignment.drills)
+  const family = drill => /^std-move-.+-(warmup|cooldown)$/.exec(drill.id)?.[1]
+  // Full practices retain their setup-specific variants. The independent picker
+  // needs one solo, small-space option per repeated preparation/recovery drill.
+  const preferred = new Map()
+  const cost = drill => {
+    const requirement = drill.metadata.requirements
+    return requirement.participants.min * 10000 + requirement.space.lengthM * requirement.space.widthM
+  }
+  for (const drill of drills) {
+    const key = family(drill)
+    if (key && (!preferred.has(key) || cost(drill) < cost(preferred.get(key)))) preferred.set(key, drill)
+  }
   const seen = new Set()
-  return standardWorkouts.flatMap(item => item.assignment.drills).filter(drill => {
-    if (seen.has(drill.id)) return false
+  return drills.filter(drill => {
+    if (seen.has(drill.id) || family(drill) && preferred.get(family(drill)) !== drill) return false
     seen.add(drill.id); return true
   }).map(drill => structuredClone(drill))
 }

@@ -28,13 +28,13 @@ export default function PracticeView({ assignment, drill, drillIndex = 0, drillC
     <div className="qt-work-target" aria-label="Practice targets">
       <strong>{freeDrill ? 'Self-paced' : drill.mode === 'watch' ? 'Video review' : prescriptionLabel(drill)}</strong>
       {!freeDrill && drill.mode !== 'watch' && drill.restSec != null && <span>{drill.restSec}s rest</span>}
-      <Badge tone={rest ? 'rest' : working ? 'active' : 'neutral'}>{rest ? restPaused ? 'Rest paused' : 'Rest' : working ? 'Practicing' : phase === 'complete' ? 'Complete' : 'Ready'}</Badge>
+      <Badge tone={rest ? 'rest' : working ? 'active' : 'neutral'}>{rest ? restPaused ? 'Rest paused' : 'Rest' : working ? freeDrill && practicePaused ? 'Paused' : 'Practicing' : phase === 'complete' ? 'Complete' : 'Ready'}</Badge>
     </div>
     {!freeDrill && drill.mode !== 'watch' && phase !== 'complete' && <p className="qt-foot-target">Set {sets[currentSetIndex]?.setNumber || currentSetIndex + 1} of {drill.sets || 1}{sets[currentSetIndex]?.side && <> · {sets[currentSetIndex].side === 'left' ? 'Left foot' : 'Right foot'}</>}</p>}
     <CoachingBrief drill={drill} />
     {drill.media?.status === 'approved' ? <button className="qt-demo-trigger" type="button" aria-haspopup="dialog" aria-expanded={showDemo} onClick={() => { flushSync(() => setDemoFor(demoKey)); demoVideo.current?.play()?.catch(() => {}) }}>
       <span className="qt-demo-thumb" aria-hidden="true">{drill.media?.poster ? <img src={drill.media.poster} alt="" /> : <Icon name="ball" size={30} />}<span><Icon name="play" size={18} /></span></span>
-      <span>Watch demonstration<small>Opens in a popup</small></span><Icon name="arrow" size={18} />
+      <span>Watch demonstration<small>Tap to play · starts muted</small></span><Icon name="arrow" size={18} />
     </button> : <p className="qt-instructions-only">Written instructions · no demonstration video</p>}
     {showDemo && <Dialog title={drill.title} className="qt-video-dialog" onClose={() => setDemoFor(null)}><DrillDemonstration playerRef={demoVideo} media={drill.media} title={drill.title} autoPlay sample={sample} onPlaybackError={onMediaError} />{working && (drill.mode === 'time' || freeDrill && !practicePaused) && <p className="qt-fine-print">Your practice timer keeps running.</p>}</Dialog>}
     {saveError && <Notice tone="error" title="Progress could not be saved">{saveError}</Notice>}

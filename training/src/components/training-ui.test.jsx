@@ -47,10 +47,10 @@ describe('training presentation boundaries', () => {
 
   it('renders the independent builder with an empty draft and explicit add controls', () => {
     const html = renderToStaticMarkup(<BuildPracticeView draft={{ title: '', drills: [] }} library={reviewAssignment.drills} saved={[]} history={[]} />)
-    expect(html).toContain('Build practice')
+    expect(html).toContain('>Practice</h1>')
     expect(html).toContain('Custom drill')
-    expect(html).toContain('Add drill')
-    expect(html).toContain('unsaved')
+    expect(html).toContain('Add Reference video')
+    expect(html).toContain('Unsaved draft')
     expect(html).not.toContain('Reps per set')
   })
 
@@ -102,7 +102,7 @@ describe('training presentation boundaries', () => {
 
   it('keeps an active older edition separate from the current assignment action', () => {
     const html = renderToStaticMarkup(<TodayView assignment={{ id: 'same', revision: '2', title: 'Current edition', drills: [] }} activeSession={{ assignmentId: 'same', assignmentRevision: '1' }} onStart={() => {}} onResume={() => {}} />)
-    expect(html).toContain('earlier assignment edition')
+    expect(html).toContain('A practice is still in progress')
     expect(html).toContain('Start practice')
     expect(html).not.toContain('Resume practice')
   })
@@ -177,7 +177,8 @@ describe('practice-first assignments', () => {
   })
   it('shows self-paced completion honestly in history', () => {
     const html = renderToStaticMarkup(<SessionDetail session={{ assignment, assignmentRevision: 'v1', status: 'completed', rows: [{ id: 'row', drillId: 'review-video', mode: 'practice', status: 'done', prescriptionMet: true, actual: null, target: null, setNumber: 1 }] }} />)
-    expect(html).toContain('Practiced · no reps or duration tracked')
+    expect(html).toContain('Practiced')
+    expect(html).toContain('Time not tracked')
     expect(html).not.toContain('null reps')
     expect(html).not.toContain('Demonstration acknowledged')
   })

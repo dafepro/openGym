@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Icon from './Icon.jsx'
 import PlayPauseIcon from './PlayPauseIcon.jsx'
@@ -6,6 +7,16 @@ import { formatClock } from './ui.jsx'
 // Each phase has one start/pause action and one explicit record/advance action.
 // Browsing, pausing, and quitting never imply that a drill was completed.
 export default function PracticeActionDock({ drill, sets = [], currentSetIndex = 0, phase, primaryLabel, onPrimary, disabled, practiceSeconds = 0, practicePaused, onTogglePracticePause, remainingSeconds = 0, totalSeconds = 0, onPauseRest, onResumeRest, onAdjustRest, onStop, onUndo, onQuit, restPaused, onReviewUnfinished, actualValue, onActualChange }) {
+  const panelRef = useRef(null)
+  const focusedControl = useRef(null)
+  const previousDrill = useRef(drill?.id)
+  useEffect(() => {
+    if (previousDrill.current !== drill?.id) {
+      const previous = focusedControl.current
+      if (previous && (!previous.isConnected || previous.disabled)) panelRef.current?.querySelector('.qt-control-play:not(:disabled), .qt-control-next:not(:disabled)')?.focus({ preventScroll: true })
+      previousDrill.current = drill?.id
+    }
+  }, [drill?.id])
   const free = drill?.mode === 'practice', watch = drill?.mode === 'watch'
   const ready = phase === 'ready', working = phase === 'working', rest = phase === 'rest', review = phase === 'review', complete = phase === 'complete'
   const row = sets[currentSetIndex]
@@ -19,7 +30,7 @@ export default function PracticeActionDock({ drill, sets = [], currentSetIndex =
   const seconds = free ? Math.floor(practiceSeconds) : rest || working ? Math.ceil(remainingSeconds) : Math.max(0, (drill?.durationSec || 0) - (row?.actual || 0))
   const caption = watch ? 'Video review' : complete ? 'Practice recorded' : rest ? restPaused ? 'Rest paused' : 'Rest' : review ? 'Confirm elapsed set' : free ? working ? practicePaused ? 'Timer paused' : 'Time practiced' : 'Ready to practice' : `Set ${row?.setNumber || currentSetIndex + 1} of ${drill?.sets || 1}${row?.side ? ` · ${row.side} foot` : ''}`
   const changeCount = delta => onActualChange?.(String(Math.min(review ? 86400 : 9999, Math.max(0, Number(actualValue || 0) + delta))))
-  const panel = <section className="qt-workout-controls" data-phase={phase} aria-label="Practice controls">
+  const panel = <section ref={panelRef} onFocusCapture={event => { focusedControl.current = event.target }} className="qt-workout-controls" data-phase={phase} aria-label="Practice controls">
     <p className="qt-control-caption" key={`${phase}-${paused}`}>{caption}</p>
     <div className="qt-control-row">
       <button className="qt-control-edge qt-control-quit" type="button" onClick={onQuit} disabled={!onQuit} aria-label="Quit practice"><Icon name="close" size={25} /><span>Quit</span></button>
