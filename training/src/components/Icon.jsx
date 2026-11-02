@@ -1,4 +1,5 @@
 const paths = {
+  target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /><path d="M12 1v4m0 14v4M1 12h4m14 0h4" /></>,
   filter: <><path d="M4 6h16M7 12h10M10 18h4"/></>,
   up: <path d="m6 15 6-6 6 6"/>,
   down: <path d="m6 9 6 6 6-6"/>,

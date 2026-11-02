@@ -9,7 +9,7 @@ export default function TrainingNavigation({ page, visible = true, builder = fal
   // Retain the departure tab while the bar slides out, including rapid reversals.
   // Updating derived state here avoids an intermediate committed selection.
   if (visible && page !== selected) setSelected(page)
-  const items = [{ id: 'today', icon: 'home', label: 'Today' }, ...(builder ? [{ id: 'build', icon: 'ball', label: 'Practice' }] : []), { id: 'me', icon: 'user', label: 'Me' }]
+  const items = [{ id: 'today', icon: 'home', label: 'Today' }, ...(builder ? [{ id: 'build', icon: 'ball', label: 'Practice' }, { id: 'ball', icon: 'target', label: 'Ball control' }] : []), { id: 'me', icon: 'user', label: 'Me' }]
   const active = items.findIndex(item => item.id === (selected === 'shared' ? 'today' : selected))
   return <nav className={`qt-navigation${builder ? ' qt-navigation--builder' : ''}`} data-visible={visible} aria-label="Main navigation" aria-hidden={!visible || undefined} inert={!visible || undefined}>
     <div style={{ '--qt-nav-count': items.length, '--qt-nav-index': Math.max(0, active) }}>

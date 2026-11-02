@@ -6,14 +6,15 @@ const render = props => renderToStaticMarkup(<TrainingShell builder {...props}><
 const landmark = html => html.match(/<nav\b[\s\S]*?<\/nav>/)?.[0]
 
 describe('persistent main navigation', () => {
-  it('keeps the same three destinations in the document across browsing and workout routes', () => {
-    for (const page of ['today', 'build', 'me', 'practice']) {
+  it('keeps the same four destinations in the document across browsing and workout routes', () => {
+    for (const page of ['today', 'build', 'ball', 'me', 'practice']) {
       const html = render({ page, practice: page === 'practice' })
       const nav = landmark(html)
       expect(nav).toBeDefined()
-      expect(nav.match(/<button\b/g)).toHaveLength(3)
+      expect(nav.match(/<button\b/g)).toHaveLength(4)
       expect(nav).toContain('<span>Today</span>')
       expect(nav).toContain('<span>Practice</span>')
+      expect(nav).toContain('<span>Ball control</span>')
       expect(nav).toContain('<span>Me</span>')
       // Page snapshots contain only main. The fixed landmark must be a sibling.
       expect(html.indexOf('</main>')).toBeLessThan(html.indexOf('<nav'))
@@ -29,7 +30,7 @@ describe('persistent main navigation', () => {
     expect(nav).not.toContain('display:')
   })
   it('keeps visible routes interactive and identifies exactly one destination', () => {
-    for (const page of ['today', 'build', 'me', 'shared']) {
+    for (const page of ['today', 'build', 'ball', 'me', 'shared']) {
       const nav = landmark(render({ page }))
       expect(nav).toContain('data-visible="true"')
       expect(nav).not.toContain('aria-hidden="true" inert=')
