@@ -24,6 +24,7 @@ describe('training foundation boundaries', () => {
 
   it('routes only recognized local destinations and falls back to Today', () => {
     expect(routeFromHash('#/build')).toBe('build')
+    expect(routeFromHash('#/ball')).toBe('ball')
     expect(routeFromHash('#/shared/encoded-plan')).toBe('shared')
     expect(routeFromHash('#/history')).toBe('me')
     expect(routeFromHash('#/me')).toBe('me')

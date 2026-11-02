@@ -1,0 +1,1331 @@
+{
+  "schemaVersion": 1,
+  "title": "QuickTrack ball-control production ledger template",
+  "templateStatus": "all-assets-planned-no-instructional-footage-produced",
+  "updatedOn": "2026-11-01",
+  "privateLedgerInstructions": "Copy outside all Git checkouts before filling private photos, file paths, generator records, permission evidence, or reviewer identities. This template does not authorize catalog delivery.",
+  "masterPromptDocument": "VIDEO-PRODUCTION.md#pasteable-master-prompt",
+  "drillPromptDocument": "DRILL-PROMPTS.md",
+  "visualBibleRevision": "bc-visual-bible-v1",
+  "referencePack": {
+    "status": "awaiting-actual-equipment-and-locked-adult-reference",
+    "revision": null,
+    "adultReference": null,
+    "ballReference": null,
+    "matReference": null,
+    "floorLayoutReference": null,
+    "rightsEvidenceReference": null
+  },
+  "pilotMediaIds": [
+    "bc-side-roll-front-v1",
+    "bc-push-pull-front-v1",
+    "bc-side-roll-oblique45-v1",
+    "bc-push-pull-oblique45-v1"
+  ],
+  "statusValues": [
+    "planned",
+    "generated",
+    "in-review",
+    "approved",
+    "rejected"
+  ],
+  "approvalRule": "All five human review categories must pass against the exact delivery SHA-256; any changed bytes or reference revision reset review. Ledger approval is separate from selected-catalog approval. Never use generated pixels to qualify real camera tracking.",
+  "deliveryTarget": {
+    "container": "mp4",
+    "videoCodec": "h264",
+    "pixelFormat": "yuv420p",
+    "audio": "none",
+    "width": 1920,
+    "height": 1080,
+    "aspectRatio": "16:9",
+    "framesPerSecond": 30,
+    "durationSeconds": 16,
+    "entryHoldSeconds": 2,
+    "motionInSeconds": 2,
+    "motionOutSeconds": 14,
+    "exitHoldSeconds": 2,
+    "loop": "2-14 candidate only; approve contact phase, velocity and pose continuity separately"
+  },
+  "assets": [
+    {
+      "shotId": "BC-01-F",
+      "drillId": "bc-side-roll",
+      "promptId": "bc-side-roll",
+      "mediaId": "bc-side-roll-front-v1",
+      "filename": "bc-side-roll-front-v1.mp4",
+      "angle": "front",
+      "primaryAppAsset": true,
+      "batch": "pilot",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-side-roll--side-to-side-sole-rolls",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-01-O45",
+      "drillId": "bc-side-roll",
+      "promptId": "bc-side-roll",
+      "mediaId": "bc-side-roll-oblique45-v1",
+      "filename": "bc-side-roll-oblique45-v1.mp4",
+      "angle": "oblique45",
+      "primaryAppAsset": false,
+      "batch": "pilot",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-side-roll--side-to-side-sole-rolls",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-02-F",
+      "drillId": "bc-push-pull",
+      "promptId": "bc-push-pull",
+      "mediaId": "bc-push-pull-front-v1",
+      "filename": "bc-push-pull-front-v1.mp4",
+      "angle": "front",
+      "primaryAppAsset": true,
+      "batch": "pilot",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-push-pull--forwardback-sole-rolls",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-02-O45",
+      "drillId": "bc-push-pull",
+      "promptId": "bc-push-pull",
+      "mediaId": "bc-push-pull-oblique45-v1",
+      "filename": "bc-push-pull-oblique45-v1.mp4",
+      "angle": "oblique45",
+      "primaryAppAsset": false,
+      "batch": "pilot",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-push-pull--forwardback-sole-rolls",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-03-F",
+      "drillId": "bc-toe-taps",
+      "promptId": "bc-toe-taps",
+      "mediaId": "bc-toe-taps-front-v1",
+      "filename": "bc-toe-taps-front-v1.mp4",
+      "angle": "front",
+      "primaryAppAsset": true,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-toe-taps--alternating-toe-taps",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-03-O45",
+      "drillId": "bc-toe-taps",
+      "promptId": "bc-toe-taps",
+      "mediaId": "bc-toe-taps-oblique45-v1",
+      "filename": "bc-toe-taps-oblique45-v1.mp4",
+      "angle": "oblique45",
+      "primaryAppAsset": false,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-toe-taps--alternating-toe-taps",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-04-F",
+      "drillId": "bc-inside-touches",
+      "promptId": "bc-inside-touches",
+      "mediaId": "bc-inside-touches-front-v1",
+      "filename": "bc-inside-touches-front-v1.mp4",
+      "angle": "front",
+      "primaryAppAsset": true,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-inside-touches--inside-to-inside-touches",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-04-O45",
+      "drillId": "bc-inside-touches",
+      "promptId": "bc-inside-touches",
+      "mediaId": "bc-inside-touches-oblique45-v1",
+      "filename": "bc-inside-touches-oblique45-v1.mp4",
+      "angle": "oblique45",
+      "primaryAppAsset": false,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-inside-touches--inside-to-inside-touches",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-05-F",
+      "drillId": "bc-v-pull",
+      "promptId": "bc-v-pull",
+      "mediaId": "bc-v-pull-front-v1",
+      "filename": "bc-v-pull-front-v1.mp4",
+      "angle": "front",
+      "primaryAppAsset": true,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-v-pull--v-pulls",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-05-O45",
+      "drillId": "bc-v-pull",
+      "promptId": "bc-v-pull",
+      "mediaId": "bc-v-pull-oblique45-v1",
+      "filename": "bc-v-pull-oblique45-v1.mp4",
+      "angle": "oblique45",
+      "primaryAppAsset": false,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-v-pull--v-pulls",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-06-F",
+      "drillId": "bc-l-pull",
+      "promptId": "bc-l-pull",
+      "mediaId": "bc-l-pull-front-v1",
+      "filename": "bc-l-pull-front-v1.mp4",
+      "angle": "front",
+      "primaryAppAsset": true,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-l-pull--l-pulls",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-06-O45",
+      "drillId": "bc-l-pull",
+      "promptId": "bc-l-pull",
+      "mediaId": "bc-l-pull-oblique45-v1",
+      "filename": "bc-l-pull-oblique45-v1.mp4",
+      "angle": "oblique45",
+      "primaryAppAsset": false,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-l-pull--l-pulls",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-07-F",
+      "drillId": "bc-inside-outside",
+      "promptId": "bc-inside-outside",
+      "mediaId": "bc-inside-outside-front-v1",
+      "filename": "bc-inside-outside-front-v1.mp4",
+      "angle": "front",
+      "primaryAppAsset": true,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-inside-outside--insideoutside-touches",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-07-O45",
+      "drillId": "bc-inside-outside",
+      "promptId": "bc-inside-outside",
+      "mediaId": "bc-inside-outside-oblique45-v1",
+      "filename": "bc-inside-outside-oblique45-v1.mp4",
+      "angle": "oblique45",
+      "primaryAppAsset": false,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-inside-outside--insideoutside-touches",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-08-F",
+      "drillId": "bc-stepover",
+      "promptId": "bc-stepover",
+      "mediaId": "bc-stepover-front-v1",
+      "filename": "bc-stepover-front-v1.mp4",
+      "angle": "front",
+      "primaryAppAsset": true,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-stepover--inside-step-overs",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    },
+    {
+      "shotId": "BC-08-O45",
+      "drillId": "bc-stepover",
+      "promptId": "bc-stepover",
+      "mediaId": "bc-stepover-oblique45-v1",
+      "filename": "bc-stepover-oblique45-v1.mp4",
+      "angle": "oblique45",
+      "primaryAppAsset": false,
+      "batch": "remaining-after-pilot-approval",
+      "status": "planned",
+      "approved": false,
+      "attempt": 0,
+      "referencePackRevision": null,
+      "generator": {
+        "name": null,
+        "version": null,
+        "settings": null,
+        "requestReference": null
+      },
+      "sourceFile": null,
+      "deliveryFile": null,
+      "outputSha256": null,
+      "actual": {
+        "width": null,
+        "height": null,
+        "framesPerSecond": null,
+        "durationSeconds": null
+      },
+      "reviews": {
+        "technique": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "anatomyContact": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "continuity": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "rights": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        },
+        "playback": {
+          "status": "pending",
+          "reviewerReference": null,
+          "reviewedAt": null,
+          "deliverySha256": null,
+          "notes": null
+        }
+      },
+      "loopReview": {
+        "status": "pending",
+        "inSeconds": 2,
+        "outSeconds": 14,
+        "notes": null
+      },
+      "captionSource": "DRILL-PROMPTS.md#bc-stepover--inside-step-overs",
+      "publication": {
+        "status": "not-prepared",
+        "catalogRevision": null,
+        "catalogSha256": null,
+        "preparedReceiptReference": null
+      },
+      "rejectionReason": null
+    }
+  ]
+}

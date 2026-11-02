@@ -14,6 +14,7 @@
   transition: transform 240ms cubic-bezier(.22, 1, .36, 1), visibility 0s 240ms;
 }
 .qt-navigation > div { position: relative; isolation: isolate; }
+.qt-navigation.qt-navigation--builder > div { grid-template-columns: repeat(var(--qt-nav-count), minmax(0, 1fr)); }
 .qt-navigation .qt-navigation-highlight {
   position: absolute;
   inset: 0 auto 0 0;

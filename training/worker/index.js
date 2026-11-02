@@ -39,7 +39,7 @@ async function routeRequest(request, env, now) {
     headers.set('Vary', 'Cookie')
     headers.set('X-Content-Type-Options', 'nosniff')
     headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
-    headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
     return new Response(request.method === 'HEAD' ? null : asset.body, { status: asset.status, headers })
   } catch {
     // Do not expose private object keys, hashes, access values or service errors in logs.

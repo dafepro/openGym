@@ -23,7 +23,7 @@ for (const path of await walk(source)) {
       const fixture = relative(resolve(root, 'fixtures'), absoluteTarget)
       const allowedFixture = canUseFixtures && !fixture.startsWith('..') && !fixture.startsWith('/')
       if ((target.startsWith('..') || target.startsWith('/')) && !allowedFixture) throw new Error(`Import leaves training/src: ${relative(root, path)}`)
-    } else if (!['react', 'react-dom', 'react-dom/client', 'react-dom/server', 'vitest', 'fake-indexeddb', 'fake-indexeddb/auto'].includes(specifier)) {
+    } else if (!['react', 'react-dom', 'react-dom/client', 'react-dom/server', 'vitest', 'fake-indexeddb', 'fake-indexeddb/auto'].includes(specifier) && !(/\.test\.[jt]sx?$/.test(path) && specifier === 'node:fs')) {
       throw new Error(`Review a new training dependency before importing: ${specifier}`)
     }
   }

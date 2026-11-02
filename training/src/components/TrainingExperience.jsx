@@ -1,7 +1,7 @@
 import SelectionTray from './SelectionTray.jsx'
 import PracticeReview from './PracticeReview.jsx'
 import { isDrillSelected, toggleDrillSelection, draftMatchesPractice } from '../domain/drill-selection.js'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { APP_CONFIG } from '../config.js'
 import { transitionView } from '../lib/motion.js'
 import { ROUTES, useSharedPracticeToken } from '../lib/routes.js'
@@ -20,6 +20,8 @@ import PracticeView from '../views/PracticeView.jsx'
 import MeView from '../views/MeView.jsx'
 import { standardDrills } from '../domain/standard-workouts.js'
 import { AssignmentDetail, SessionDetail } from '../views/HistoryDetails.jsx'
+
+const BallControlExperience = lazy(() => import('../ball-control/BallControlExperience.jsx'))
 
 export default function TrainingExperience(props) {
   return props.controller ? <TrainingExperienceView {...props} /> : <ManagedTrainingExperience {...props} />
@@ -42,6 +44,8 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
   const [removalError, setRemovalError] = useState('')
   const [message, setMessage] = useState('')
   const [gallery, setGallery] = useState('loading')
+  const [ballVisited, setBallVisited] = useState(route === 'ball')
+  useEffect(() => { if (route === 'ball') setBallVisited(true) }, [route])
   const importInput = useRef(null)
   const [browseState, setBrowseState] = useState({ section: 'drills', limit: 12, search: '', focus: '', setting: '', strategy: 'balanced', videoOnly: false, videoOrder: 'first' })
   const [draft, setDraft] = useState({ id: null, title: '', drills: [] })
@@ -169,6 +173,7 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
       {route === 'today' && <><TodayView assignment={currentAssignment} activeSession={active} sample={sample} onStart={readOnly ? undefined : () => begin(currentAssignment)} onResume={() => { setFinished(null); navigate('practice') }} onBuild={() => navigate('build')} onShare={() => share(currentAssignment)} onOpenDrill={(selected, index) => setDialog({ type: 'drill', drill: selected, index })} />
         {sample && <details className="qt-state-gallery"><summary>Sample interface states</summary><p className="qt-fine-print">Visual examples only. These controls do not change your practice.</p><div className="qt-state-gallery-buttons">{['loading', 'empty', 'offline', 'save error'].map(state => <button type="button" key={state} aria-pressed={gallery === state} onClick={() => setGallery(state)}>{state}</button>)}</div><div className="qt-state-gallery-content">{gallery === 'loading' ? <LoadingState /> : gallery === 'empty' ? <EmptyState title="No assignment yet">Trainer content will appear when published.</EmptyState> : <Notice title={gallery === 'offline' ? 'Offline example' : 'Save error example'} tone={gallery === 'offline' ? 'warning' : 'error'}>{gallery === 'offline' ? 'The instructions may be available while the video still needs a connection.' : 'Work remains in memory until it can be saved or exported.'}</Notice>}</div></details>}
       </>}
+      {(ballVisited || route === 'ball') && <div hidden={route !== 'ball'}><Suspense fallback={<LoadingState label="Opening ball control…" />}><BallControlExperience routeActive={route === 'ball'} storageKey={`${databaseName}:ball-control-v1`} catalog={catalog} practiceActive={Boolean(active)} onResumePractice={() => navigate('practice')} disabled={readOnly || saveFailed} /></Suspense></div>}
       {route === 'build' && savedLibrary.error && <Notice title="Saved practices unavailable" tone="error">{savedLibrary.error}</Notice>}
       {route === 'build' && <BuildPracticeView browseState={browseState} onBrowseChange={setBrowseState} draft={draft} onChange={changeDraft} library={library} saved={savedLibrary.practices} history={progress.sessions} activeSession={active} onLoad={assignment => draft.drills.length && !draftSaved && !draftMatchesPractice(draft, assignment) ? setDialog({ type: 'load-practice', assignment }) : loadPractice(assignment)} onPreview={(drill, index) => setDialog({ type: 'drill', drill, index, selection: true })} assignment={currentAssignment} onOpenAssignment={() => navigate('today')} disabled={readOnly} />}
       {route === 'shared' && (shared?.assignment ? <TodayView assignment={shared.assignment} kind="shared" activeSession={active} onStart={readOnly ? undefined : () => begin(shared.assignment)} onResume={() => navigate('practice')} onBuild={copyShared} onOpenDrill={previewDrill} /> : <Notice title="Practice link unavailable" tone="error" action="Browse practices" onAction={() => navigate('build')}>{shared?.error || 'Ask for the complete practice link.'}</Notice>)}

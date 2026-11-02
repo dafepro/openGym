@@ -1,5 +1,25 @@
 # QuickTrack Training
 
+## Ball control candidate
+
+`#/ball` adds eight guided ball-control drills, adjustable practice rounds,
+optional manual counts and separate local history/export. The two sole-roll
+drills can use experimental, device-only color tracking with two calibrated
+targets. Its metric is **target arrivals**, never verified touches or technique.
+Camera access is optional and requested only by the Enable camera action.
+Navigation pauses unfinished rounds and releases the camera; returning requires
+fresh calibration. A currently active assigned practice must be finished before
+starting a ball-control round. App/sample histories remain separate.
+
+The text-guided flow works now. Demonstrations remain pending until reviewed
+videos enter the existing approved media catalog. Real ball/mat/phone accuracy
+has not been qualified. See the [implementation plan](docs/ball-control/IMPLEMENTATION-PLAN.md),
+[video-production master prompt](docs/ball-control/VIDEO-PRODUCTION.md),
+[eight drill prompts](docs/ball-control/DRILL-PROMPTS.md) and
+[camera qualification protocol](docs/ball-control/VISION-QUALIFICATION.md).
+
+## Existing practice foundation
+
 An isolated soccer-training app inside the openGym fork. Today, Practice and
 History connect approved demonstration videos to repetition, timed, each-foot
 and watch-only prescriptions. Playback and set timing remain independent. Local
