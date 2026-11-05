@@ -78,3 +78,31 @@ it('refuses invalid source content and non-web share origins', async () => {
   await expect(createPracticeCode({ ...original(), progress: { completed: true } }, 'https://train.quicktrack.cc')).rejects.toThrow()
   for (const origin of ['javascript:alert(1)', 'https://user:password@example.com']) await expect(createPracticeCode(original(), origin)).rejects.toThrow('training site')
 })
+
+it('references published drills with exact overrides and resolves retained editions', async () => {
+  const source = structuredClone(catalog.assignments[0])
+  source.drills[0].mode = 'time'; source.drills[0].durationSec = 600; source.drills[0].sets = 2; source.drills[0].side = 'each'; source.drills[0].restSec = 15
+  delete source.drills[0].reps
+  const pass = await createPracticeCode(source, 'https://train.quicktrack.cc', catalog)
+  expect(pass.code).toMatch(/^QT3\./)
+  const full = await createPracticeCode(source, 'https://train.quicktrack.cc')
+  expect(pass.code.length).toBeLessThan(full.code.length)
+  expect(pass.identity).toBe(full.identity)
+  const decoded = await readPracticeCode(pass.code, catalog)
+  expect(decoded.drills[0]).toMatchObject({ mode: 'time', durationSec: 600, sets: 2, side: 'each', restSec: 15 })
+  const later = { ...catalog, revision: 'new-edition', assignments: [] }
+  const recovered = await readPracticeCode(pass.code, later, async revision => { expect(revision).toBe(catalog.revision); return catalog })
+  expect(recovered.drills[0].instructions).toBe(source.drills[0].instructions)
+  expect(recovered.drills[0].media.status).toBe('unavailable')
+  const changed = structuredClone(catalog); changed.assignments[0].drills[0].instructions += ' Changed.'
+  await expect(readPracticeCode(pass.code, changed)).rejects.toThrow('edition has changed')
+})
+
+it('embeds custom drill instructions alongside compact published references', async () => {
+  const source = structuredClone(catalog.assignments[0])
+  source.drills.push(original().drills[2])
+  const pass = await createPracticeCode(source, 'https://train.quicktrack.cc', catalog)
+  const decoded = await readPracticeCode(pass.code, catalog)
+  expect(decoded.drills.at(-1).instructions).toBe(source.drills.at(-1).instructions)
+  expect(decoded.drills.at(-1).durationSec).toBe(600)
+})

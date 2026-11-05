@@ -36,10 +36,10 @@ function PracticeQR({ link }) {
   if (!matrix) return <div className="pb-qr-placeholder" role="status">Preparing QR…</div>
   const path = []
   for (let y = 0; y < matrix.size; y++) for (let x = 0; x < matrix.size; x++) if (matrix.data[y * matrix.size + x]) path.push(`M${x + 4} ${y + 4}h1v1h-1z`)
-  return <div ref={frame} className="pb-qr-frame">{pixels ? <svg style={{ width: pixels, height: pixels }} className="pb-practice-qr" viewBox={`0 0 ${matrix.size + 8} ${matrix.size + 8}`} role="img" aria-label="Scan to open this practice" shapeRendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d={path.join('')} fill="#242824"/></svg> : <p className="qt-fine-print">Use Copy link, or open this pass on a larger screen to scan it.</p>}</div>
+  return <div ref={frame} className="pb-qr-frame" style={{ maxWidth: Math.min(400, (matrix.size + 8) * 4), marginInline: 'auto' }}>{pixels ? <svg style={{ width: pixels, height: pixels }} className="pb-practice-qr" viewBox={`0 0 ${matrix.size + 8} ${matrix.size + 8}`} role="img" aria-label="Scan to open this practice" shapeRendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d={path.join('')} fill="#242824"/></svg> : <p className="qt-fine-print">Use Copy link, or open this pass on a larger screen to scan it.</p>}</div>
 }
 
-export default function PracticeShare({ assignment }) {
+export default function PracticeShare({ assignment, catalog }) {
   const [share, setShare] = useState(null)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -50,9 +50,9 @@ export default function PracticeShare({ assignment }) {
   useEffect(() => {
     let current = true
     setShare(null); setError(''); setMessage('')
-    createPracticeCode(assignment).then(value => { if (current) setShare(value) }).catch(failure => { if (current) setError(failure.message) })
+    createPracticeCode(assignment, window.location.origin, catalog).then(value => { if (current) setShare(value) }).catch(failure => { if (current) setError(failure.message) })
     return () => { current = false }
-  }, [assignment])
+  }, [assignment, catalog])
   const copy = async (value, kind) => {
     try { await navigator.clipboard.writeText(value); setMessage('Copied. Ready to send.') }
     catch { setFallbackCopy({ kind }); setDetailsOpen(true); setMessage(`Select the ${kind} below to copy it.`) }

@@ -20,7 +20,7 @@ export default function PracticeImport({ catalog, onOpen }) {
   }
   return <form className="pb-import" onSubmit={submit}>
     <p>Got a practice from your coach? Paste the link or complete code here.</p>
-    <label className="qt-field">Practice link or code<textarea autoFocus value={input} onChange={event => setInput(event.target.value)} rows={4} maxLength={12300} spellCheck={false} autoCapitalize="none" placeholder="Paste a link or QT2 code" disabled={pending}/></label>
+    <label className="qt-field">Practice link or code<textarea autoFocus value={input} onChange={event => setInput(event.target.value)} rows={4} maxLength={12300} spellCheck={false} autoCapitalize="none" placeholder="Paste a link or practice code" disabled={pending}/></label>
     {error && <Notice title="Check the code" tone="error">{error}</Notice>}
     <Button type="submit" disabled={pending || !input.trim()}>{pending ? 'Opening…' : 'Open practice'}</Button>
     <p className="qt-fine-print">For a QR code, open your phone’s camera and tap the link it finds.</p>

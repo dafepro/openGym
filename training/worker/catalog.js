@@ -65,3 +65,15 @@ export async function loadCatalog(env) {
   for (const id of approved) requireValue(registry.has(id))
   return { catalog, media: new Map([...registry].filter(([id]) => approved.has(id))) }
 }
+
+// Published edition objects are retained under immutable revision keys. Only the
+// child projection is exposed; historical approval never grants current media access.
+export async function loadCatalogEdition(env, revision) {
+  if (!safeId(revision)) throw new Error('Invalid catalog edition')
+  const stored = await env.TRAINING_CONTENT.get(`catalogs/${revision}.json`)
+  if (!stored?.body || !Number.isInteger(stored.size) || stored.size < 1 || stored.size > MAX_CATALOG) throw new Error('Catalog unavailable')
+  const bytes = await readLimited(stored.body, MAX_CATALOG)
+  const envelope = JSON.parse(new TextDecoder().decode(bytes))
+  requireValue(bytes.length === stored.size && object(envelope) && envelope.schemaVersion === 1 && envelope.revision === revision)
+  return childCatalog(envelope.catalog, revision)
+}

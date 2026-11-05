@@ -340,3 +340,25 @@ it('serves self-paced drill assignments while refusing fabricated targets', asyn
   env.CATALOG_SHA256 = await bucket.put(`catalogs/${envelope.revision}.json`, JSON.stringify(envelope))
   expect((await handleRequest(request('/api/catalog'), env, NOW)).status).toBe(503)
 })
+
+describe('retained practice catalog editions', () => {
+  it('protects archived editions, returns only the child projection and supports HEAD', async () => {
+    const { env, catalog, cookie } = await setup()
+    const path = `/api/catalogs/${catalog.revision}`
+    expect((await handleRequest(request(path), env, NOW)).status).toBe(401)
+    const response = await handleRequest(request(path, { cookie }), env, NOW)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual(catalog)
+    expect(await (await handleRequest(request(path, { cookie, method: 'HEAD' }), env, NOW)).text()).toBe('')
+    expect((await handleRequest(request(path, { cookie, method: 'POST' }), env, NOW)).status).toBe(405)
+    expect((await handleRequest(request(path), { ...env, TRAINING_ACCESS_MODE: 'open' }, NOW)).status).toBe(200)
+  })
+  it('rejects missing, mismatched and truncated editions', async () => {
+    const { env, bucket, catalog, cookie, envelope } = await setup()
+    expect((await handleRequest(request('/api/catalogs/missing', { cookie }), env, NOW)).status).toBe(503)
+    await bucket.put('catalogs/wrong.json', JSON.stringify(envelope))
+    expect((await handleRequest(request('/api/catalogs/wrong', { cookie }), env, NOW)).status).toBe(503)
+    bucket.records.get(`catalogs/${catalog.revision}.json`).size++
+    expect((await handleRequest(request(`/api/catalogs/${catalog.revision}`, { cookie }), env, NOW)).status).toBe(503)
+  })
+})

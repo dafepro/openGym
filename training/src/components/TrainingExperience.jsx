@@ -348,7 +348,7 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
       {dialog.type === 'video' && <DrillDemonstration playerRef={mediaPlayer} media={dialog.drill.media} title={dialog.drill.title} sample={sample} autoPlay onPlaybackError={onMediaError}/>}
       {dialog.type === 'pick-drills' && <BuildPracticeView browseState={browseState} onBrowseChange={setBrowseState} draft={draft} onChange={changeDraft} library={library} history={progress.sessions} activeSession={active} onSelect={dialog.swapId ? chooseReplacement : undefined} onCustom={() => openOwn(true)} onPreview={(drill, index) => previewDrill(drill, index, { ...dialog })} disabled={readOnly}/>}
       {dialog.type === 'new-practice' && <p>Remove all drills from this draft? Saved practices and history stay available.</p>}
-      {dialog.type === 'share' && <PracticeShare assignment={dialog.assignment}/>}
+      {dialog.type === 'share' && <PracticeShare catalog={catalog} assignment={dialog.assignment}/>}
       {dialog.type === 'import-practice' && <PracticeImport catalog={catalog} onOpen={code => { setDialog(null); window.location.hash = `#/shared/${code}` }}/>}
       {dialog.type === 'load-practice' && <p>Replace your current unsaved draft with a copy of “{dialog.assignment.title}”? Your saved practices and history stay available.</p>}
       {dialog.type === 'assignment' && <AssignmentDetail assignment={dialog.assignment} current={isCurrent(dialog.assignment)} />}

@@ -47,7 +47,7 @@ try {
     const dialog = page.getByRole('dialog')
     await expect(dialog.getByRole('img', { name: 'Scan to open this practice' })).toBeVisible()
     const scanned = await decodeVisibleQR(page)
-    expect(scanned).toContain('/#/shared/QT2.')
+    expect(scanned).toMatch(/\/#\/shared\/QT[23]\./)
     await shot(page, `${label}-pass`)
     await dialog.getByText('View link and code', { exact: true }).click()
     const link = await dialog.getByRole('textbox', { name: 'Practice link', exact: true }).inputValue()
