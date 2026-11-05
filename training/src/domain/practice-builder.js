@@ -16,9 +16,9 @@ export function drillLibrary(catalog) {
   }).map(copy)
 }
 
-export function createPractice(title, drills, { id, revision } = {}) {
+export function createPractice(title, drills, { id, revision, note } = {}) {
   requireId(id, 'Practice ID'); requireId(revision, 'Practice revision')
-  return validateAssignment({ id, revision, title: title.trim(), status: 'current', drills: copy(drills) })
+  return validateAssignment({ id, revision, title: title.trim(), ...(note !== undefined ? { note } : {}), status: 'current', drills: copy(drills) })
 }
 
 export function changePrescription(drill, values) {

@@ -6,14 +6,17 @@ const label = value => { const text = value.replace(/^futbol:/, '').replace(/[-_
 
 // Reorganize supplied wording; never generate coaching cues or training quantities.
 export function coachingBrief(drill) {
-  const lines = (Array.isArray(drill.instructions) ? drill.instructions : [drill.instructions || ''])
+  const paragraphs = (Array.isArray(drill.instructions) ? drill.instructions : [drill.instructions || ''])
+    .flatMap(line => line.split(/\n+/)).map(line => line.trim()).filter(Boolean)
+  const writtenSetup = paragraphs.filter(line => /^Setup:\s*\S/i.test(line))
+  const lines = paragraphs.filter(line => !writtenSetup.includes(line))
     .flatMap(line => line.split(/(?<=[.!?])\s+/)).filter(Boolean)
   const credit = lines.filter(line => /^(Demonstration:|Video by )/.test(line))
   const reminders = lines.filter(line => /^(Practice at your own pace; open the demonstration whenever you need a reminder\.)$/.test(line))
   const focus = lines.filter(line => /^(Keep |Focus on |Aim for |Remember )/i.test(line))
   const steps = lines.filter(line => !credit.includes(line) && !focus.includes(line) && !reminders.includes(line))
   const requirements = drill.metadata?.requirements
-  const setup = [...(requirements?.equipment || []).map(label)]
+  const setup = [...writtenSetup.map(line => line.replace(/^Setup:\s*/i, '')), ...(requirements?.equipment || []).map(label)]
   if (requirements?.space) setup.push(`${requirements.space.lengthM} × ${requirements.space.widthM} m`)
   return { steps, focus, credit, setup, reminders }
 }

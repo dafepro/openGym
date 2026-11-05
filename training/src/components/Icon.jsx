@@ -1,4 +1,8 @@
 const paths = {
+  clipboard: <><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 11h6M9 15h6"/></>,
+  share: <><path d="M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7L11.3 5M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></>,
+  shuffle: <><path d="M3 6h3c4 0 8 12 12 12h3m-4-4 4 4-4 4M3 18h3c1.5 0 3-1.7 4.5-4M14 8c1.4-1.3 2.7-2 4-2h3m-4-4 4 4-4 4"/></>,
+  pencil: <><path d="m15 4 5 5M4 20l5-1L21 7a2 2 0 0 0 0-3l-1-1a2 2 0 0 0-3 0L5 15Z"/></>,
   filter: <><path d="M4 6h16M7 12h10M10 18h4"/></>,
   up: <path d="m6 15 6-6 6 6"/>,
   down: <path d="m6 9 6 6 6-6"/>,

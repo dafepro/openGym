@@ -5,7 +5,7 @@ import './styles/index.css'
 import './styles/player.css'
 import './styles/starter-practices.css'
 import './styles/workout-refinements.css'
+import './styles/selection.css'
+import './styles/playbook.css'
 
 createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>)
-
-import './styles/selection.css'

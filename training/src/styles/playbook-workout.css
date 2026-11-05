@@ -1,0 +1,59 @@
+/* The work dock is outside route transforms and stays rectangular in every phase. */
+.qt-workout-controls[data-layout="playbook"]{padding:0;border-radius:8px;overflow:hidden;bottom:calc(12px + var(--qt-safe-bottom));max-width:600px;box-shadow:0 8px 24px #24282418;background:var(--qt-work-paper,#fffcf6);color:var(--qt-text);border:1px solid var(--qt-border);}
+.qt-workout-controls[data-layout="playbook"] .qt-control-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 18px;min-height:100px;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-readout{flex:1;min-width:0;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-caption{font:500 12px/1.3 var(--qt-body,Inter,sans-serif);text-transform:none;letter-spacing:0;text-align:left;margin:0 0 5px;color:var(--qt-muted);}
+.qt-workout-controls[data-layout="playbook"] .qt-control-measure{display:flex;flex-direction:row;align-items:baseline;gap:12px;text-align:left;min-width:0;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-measure strong{font:650 42px/1.08 var(--qt-body,Inter,sans-serif);font-variant-numeric:tabular-nums;color:var(--qt-text);letter-spacing:-.035em;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-measure strong small{font-size:18px;letter-spacing:0;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-measure>span{font-size:11px;white-space:normal;max-width:90px;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-play{display:flex;align-items:center;justify-content:center;gap:6px;flex:none;width:auto;min-width:84px;min-height:48px;padding:10px;border-radius:6px;background:var(--qt-work-paper,#fffcf6);border:1px solid var(--qt-border);color:var(--qt-text);font-size:13px;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-row{display:grid;grid-template-columns:76px minmax(0,1fr) 92px;gap:0;min-height:64px;border-top:1px solid var(--qt-border);}
+.qt-workout-controls[data-layout="playbook"] .qt-control-edge{width:100%;min-height:64px;border-radius:0;border:0;padding:7px 4px;display:flex;flex-direction:column;justify-content:center;gap:3px;font-size:12px;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-quit{background:#fbe3dc;color:var(--qt-danger,#a93e35);}
+.qt-workout-controls[data-layout="playbook"] .qt-control-next{background:#e0edcc;color:var(--qt-success,#315c36);}
+.qt-workout-controls[data-layout="playbook"] .qt-control-next:disabled{background:#f0eee7;color:#777970;opacity:1;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-context{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;text-align:center;background:var(--qt-work-ink,#242824);color:var(--qt-work-paper,#fffcf6);padding:8px;}
+.qt-control-context strong{font:600 12px/1.35 var(--qt-body,Inter,sans-serif);letter-spacing:.035em;}
+.qt-control-context small{font-size:11px;opacity:.8;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-extras{margin:0;padding:0 6px;min-height:44px;border-top:1px solid var(--qt-border);background:var(--qt-surface);color:var(--qt-muted);}
+.qt-workout-controls[data-layout="playbook"] .qt-control-extras button{min-height:44px;padding:8px;color:var(--qt-muted);font-size:11px;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-progress{margin:0;background:transparent;}
+.qt-workout-controls[data-layout="playbook"] .qt-count-stepper{justify-content:flex-start;gap:12px;}
+.qt-workout-controls[data-layout="playbook"] .qt-count-stepper button{width:44px;height:44px;background:var(--qt-surface-2);color:var(--qt-text);border:1px solid var(--qt-border);border-radius:6px;font-size:24px;}
+.qt-workout-controls[data-layout="playbook"] .qt-count-stepper input{width:80px;font-size:30px;color:var(--qt-text);background:transparent;}
+.qt-workout-controls[data-layout="playbook"] .qt-count-stepper label>span{color:var(--qt-muted);}
+.qt-practice .pb-drill-index{display:flex;align-items:center;gap:6px;list-style:none;padding:0;margin:0 0 20px;}
+.pb-drill-index li{min-width:0;flex:1;display:flex;justify-content:center;align-items:center;min-height:34px;border:1px solid var(--qt-border);border-radius:5px;font:600 12px/1 var(--qt-body,Inter,sans-serif);position:relative;transition:background-color 200ms,color 200ms;}
+.pb-drill-index li[data-current="true"]{background:var(--qt-accent,#d86732);border-color:var(--qt-accent,#d86732);color:var(--qt-accent-ink,#242824);}
+.pb-drill-index li[data-done="true"]{background:#e5edda;color:#315c36;}
+.pb-drill-index li:not(:last-child):after{content:"";position:absolute;top:50%;left:100%;width:7px;border-top:1px solid var(--qt-border);}
+.pb-drill-topline{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;margin-bottom:14px;}
+.pb-drill-topline .qt-drill-heading{flex:1;min-width:0;}
+.pb-drill-topline h1{font-size:clamp(25px,7vw,34px);line-height:1.12;}
+.pb-demo-compact{flex:none;align-self:flex-start;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;padding:0;min-height:68px;color:var(--qt-muted);font-size:10px;}
+.pb-demo-compact .qt-demo-thumb{width:72px;height:48px;border:1px solid var(--qt-border);border-radius:6px;background:var(--qt-surface-2);position:relative;overflow:hidden;}
+.pb-demo-compact .qt-demo-thumb>span{position:absolute;right:3px;bottom:3px;display:grid;place-items:center;width:23px;height:23px;border-radius:4px;background:var(--qt-work-ink,#242824);color:#fff;}
+.pb-demo-compact .qt-demo-thumb>img,.pb-demo-compact .qt-demo-thumb>video{width:100%;height:100%;object-fit:cover;}
+.pb-up-next{font-size:12px;line-height:1.45;color:var(--qt-muted);padding-top:18px;border-top:1px solid var(--qt-border);margin-top:16px;}
+.pb-up-next strong{font-weight:500;color:var(--qt-text);}
+.qt-practice .qt-set-progress{margin-top:12px;}
+.qt-practice .qt-set-progress .qt-set-status{border-radius:4px;border-bottom:1px solid var(--qt-border);}
+.qt-practice .qt-set-progress .qt-set-status--current{background:#e5edda;}
+.pb-demo-paused-note{font-size:12px;line-height:1.4;color:var(--qt-muted);text-align:center;padding:8px 0 0;}
+@media(max-width:350px){.qt-workout-controls[data-layout="playbook"] .qt-control-top{padding:10px 12px;gap:10px;}.qt-workout-controls[data-layout="playbook"] .qt-control-measure strong{font-size:36px;}.qt-workout-controls[data-layout="playbook"] .qt-control-play{min-width:76px;font-size:12px;}.qt-workout-controls[data-layout="playbook"] .qt-control-row{grid-template-columns:64px minmax(0,1fr) 82px;}.pb-demo-compact .qt-demo-thumb{width:60px;}.qt-practice .pb-drill-index{gap:4px;}.pb-drill-index li{min-height:30px;font-size:10px;}}
+@media(max-height:500px) and (orientation:landscape){.qt-workout-controls[data-layout="playbook"]{max-width:760px;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1fr);}.qt-workout-controls[data-layout="playbook"] .qt-control-row{border-top:0;border-left:1px solid var(--qt-border);}.qt-workout-controls[data-layout="playbook"] .qt-control-top{min-height:80px;padding:8px 12px;}.qt-workout-controls[data-layout="playbook"] .qt-control-measure strong{font-size:32px;}.qt-workout-controls[data-layout="playbook"] .qt-control-extras{grid-column:1/-1;}.qt-workout-controls[data-layout="playbook"] .qt-control-progress{grid-column:1/-1;}}
+@media(prefers-reduced-motion:reduce){.pb-drill-index li,.pb-demo-compact{transition:none;}}
+
+.pb-drill-index[data-long="true"]{overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding-bottom:6px;position:relative;}
+.pb-drill-index[data-long="true"] li{flex:0 0 38px;min-height:34px;}
+/* Active help occupies the upper screen, leaving the paused work dock visible.
+   Short screens scroll within the help sheet, never the instructions beneath. */
+.qt-video-dialog.pb-demo-dialog{top:calc(12px + env(safe-area-inset-top,0px));bottom:auto;margin:0 auto;height:min(600px,calc(100dvh - 256px - var(--qt-safe-bottom)));max-height:calc(100dvh - 256px - var(--qt-safe-bottom));}
+.pb-demo-dialog .qt-dialog-body{overflow-y:auto;overscroll-behavior:contain;}
+.pb-demo-dialog .qt-demonstration{flex:1 0 220px;}
+.pb-demo-dialog .pb-demo-paused-note{flex:none;}
+@media(max-height:500px) and (orientation:landscape){.qt-video-dialog.pb-demo-dialog{height:calc(100dvh - 156px - var(--qt-safe-bottom));max-height:calc(100dvh - 156px - var(--qt-safe-bottom));}.pb-demo-dialog .qt-demonstration{flex-basis:150px;min-height:150px;}}
+@media(max-height:580px) and (orientation:portrait){.qt-video-dialog.pb-demo-dialog{top:8px;height:calc(100dvh - 228px);max-height:calc(100dvh - 228px);}.pb-demo-dialog .qt-demonstration{flex-basis:200px;min-height:200px;}}
+.qt-workout-controls[data-layout="playbook"] .qt-control-row{align-items:stretch;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-context{align-self:stretch;}

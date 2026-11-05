@@ -2,6 +2,12 @@ import { useId, useLayoutEffect, useRef, useState } from 'react'
 import Icon from './Icon.jsx'
 import { createPortal } from 'react-dom'
 
+// Nested sheets can unmount parent-first during navigation. One shared lock
+// restores the original page state only after the final modal is gone.
+const modalLayers = new Set()
+let pageOverflow = ''
+let pageFocus = null
+
 export default function Dialog({ title, children, onClose, actions, className = '' }) {
   const dialog = useRef(null)
   const heading = useId()
@@ -19,10 +25,22 @@ export default function Dialog({ title, children, onClose, actions, className = 
   useLayoutEffect(() => {
     const element = dialog.current
     const before = document.activeElement
-    const overflow = document.body.style.overflow
+    if (!modalLayers.size) { pageOverflow = document.body.style.overflow; pageFocus = before }
+    modalLayers.add(element)
     document.body.style.overflow = 'hidden'
     element.showModal()
-    return () => { window.clearTimeout(closeTimer.current); element.close(); document.body.style.overflow = overflow; if (before?.isConnected) before.focus?.({ preventScroll: true }) }
+    return () => {
+      window.clearTimeout(closeTimer.current)
+      element.close()
+      modalLayers.delete(element)
+      const top = [...modalLayers].at(-1)
+      if (!top) document.body.style.overflow = pageOverflow
+      const target = top
+        ? before?.isConnected && top.contains(before) ? before : top.querySelector('[aria-label="Close dialog"]')
+        : pageFocus?.isConnected ? pageFocus : before?.isConnected ? before : null
+      target?.focus?.({ preventScroll: true })
+      if (!top) pageFocus = null
+    }
   }, [])
   useLayoutEffect(() => {
     const element = dialog.current

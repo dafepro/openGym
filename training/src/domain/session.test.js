@@ -57,11 +57,10 @@ describe('one session controller', () => {
     s = command(s, 'FINISH', 4000)
     expect(s.status).toBe('partial'); expect(validateSession(s)).toEqual(s)
   })
-  it('ignores duplicate, stale and immediate Start-to-Done actions', () => {
+  it('accepts an explicit fast completion while ignoring duplicate and stale actions', () => {
     const initial = start(one('reps'))
     let s = command(initial, 'START', 0)
-    expect(command(s, 'DONE', 200)).toBe(s)
-    const done = { type: 'DONE', now: 1000, id: 'same-command', sessionId: s.id, rowId: s.currentRowId }
+    const done = { type: 'DONE', now: 200, actual: 1, id: 'same-command', sessionId: s.id, rowId: s.currentRowId }
     s = reduceSession(s, done)
     expect(reduceSession(s, done)).toBe(s)
     expect(command(s, 'START', 2000, { rowId: initial.currentRowId })).toBe(s)
@@ -206,7 +205,7 @@ describe('self-paced physical practice', () => {
     s = command(s, 'START', 0)
     expect(s.timer).toBeNull()
     expect(getSessionView(s, 0).primaryAction.label).toBe('Drill done')
-    expect(command(s, 'DONE', 200)).toBe(s)
+    expect(command(s, 'DONE', 200).rows[0].practiceSeconds).toBe(0.2)
     s = validateSession(JSON.parse(JSON.stringify(s)))
     expect(command(s, 'TICK', 100000)).toEqual(s)
     expect(() => command(s, 'DONE', 100001, { actual: 20 })).toThrow('no measured quantity')

@@ -56,17 +56,18 @@ describe('observed foreground clock', () => {
     expect(() => validateSession(saved)).not.toThrow()
   })
 
-  it('recovers a reps gesture checkpoint after a reload with a backward wall clock', () => {
+  it('accepts an explicit reps completion after a reload with a backward wall clock', () => {
     let mono = 0
     const clock = createObservedClock({ wall: () => 40000 + mono, monotonic: () => mono })
     let session = reconcile(working(repsAssignment), clock)
     expect(session.lastActionAt).toBe(40000)
     mono = 100
-    expect(send(session, 'DONE', clock.now())).toBe(session)
-    mono = 1000
     session = send(session, 'DONE', clock.now(), { actual: 4 })
     expect(session.rows[0].actual).toBe(4)
     expect(session.rows[0].status).toBe('done')
+    expect(session.phase).toBe('rest')
+    expect(getSessionView(session, clock.now()).remainingSec).toBe(10)
+    expect(() => validateSession(roundTrip(session))).not.toThrow()
   })
 
   it('preserves nine seconds of a ten-second rest through a backward epoch shift and reload', () => {

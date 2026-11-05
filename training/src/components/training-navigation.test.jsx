@@ -6,13 +6,13 @@ const render = props => renderToStaticMarkup(<TrainingShell builder {...props}><
 const landmark = html => html.match(/<nav\b[\s\S]*?<\/nav>/)?.[0]
 
 describe('persistent main navigation', () => {
-  it('keeps the same three destinations in the document across browsing and workout routes', () => {
-    for (const page of ['today', 'build', 'me', 'practice']) {
+  it('keeps the same two destinations in the document across browsing and workout routes', () => {
+    for (const page of ['today', 'build', 'organizer', 'me', 'practice']) {
       const html = render({ page, practice: page === 'practice' })
       const nav = landmark(html)
       expect(nav).toBeDefined()
-      expect(nav.match(/<button\b/g)).toHaveLength(3)
-      expect(nav).toContain('<span>Today</span>')
+      expect(nav.match(/<button\b/g)).toHaveLength(2)
+      expect(nav).not.toContain('<span>Today</span>')
       expect(nav).toContain('<span>Practice</span>')
       expect(nav).toContain('<span>Me</span>')
       // Page snapshots contain only main. The fixed landmark must be a sibling.
@@ -29,12 +29,23 @@ describe('persistent main navigation', () => {
     expect(nav).not.toContain('display:')
   })
   it('keeps visible routes interactive and identifies exactly one destination', () => {
-    for (const page of ['today', 'build', 'me', 'shared']) {
+    for (const page of ['today', 'build', 'organizer', 'me', 'shared']) {
       const nav = landmark(render({ page }))
       expect(nav).toContain('data-visible="true"')
       expect(nav).not.toContain('aria-hidden="true" inert=')
       expect(nav).not.toContain('inert=')
       expect(nav.match(/aria-current="page"/g)).toHaveLength(1)
     }
+  })
+  it('groups saved sessions and organizer under Practice, keeping history within Me', () => {
+    for (const page of ['today', 'build', 'organizer', 'shared']) {
+      const nav = landmark(render({ page }))
+      expect(nav).toMatch(/aria-current="page"[^>]*>[\s\S]*?<span>Practice<\/span>/)
+    }
+    expect(landmark(render({ page: 'history' }))).toMatch(/aria-current="page"[^>]*>[\s\S]*?<span>Me<\/span>/)
+  })
+  it('offers the organizer as a compact optional header action outside active work', () => {
+    expect(render({ onOrganize: () => {} })).toContain('class="qt-organizer-link"')
+    expect(render({ practice: true, onOrganize: () => {} })).not.toContain('class="qt-organizer-link"')
   })
 })

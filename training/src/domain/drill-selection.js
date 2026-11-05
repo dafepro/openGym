@@ -43,6 +43,7 @@ export function draftMatchesPractice(draft, practice) {
     !!practice &&
     draft.id === practice.id &&
     draft.title === practice.title &&
+    (draft.note ?? '').trim() === (practice.note ?? '').trim() &&
     JSON.stringify(draft.drills) === JSON.stringify(practice.drills)
   )
 }

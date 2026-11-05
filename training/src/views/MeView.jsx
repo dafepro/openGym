@@ -48,7 +48,7 @@ function ActivityCalendar({ stats, selectedDay, onSelectDay }) {
       {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => <span className="qt-calendar-weekday" aria-hidden="true" key={`weekday-${index}`}>{day}</span>)}
       {Array.from({ length: padding }, (_, index) => <span className="qt-calendar-spacer" key={`spacer-${index}`} />)}
       {stats.days.map(day => <button type="button" key={day.day} className="qt-calendar-day" data-level={Math.min(day.sessions, 3)} aria-pressed={selectedDay === day.day} aria-label={`${day.date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}: ${day.sessions} saved ${day.sessions === 1 ? 'session' : 'sessions'}${day.day === stats.days.at(-1).day ? ', today' : ''}`} title={`${day.sessions} saved ${day.sessions === 1 ? 'session' : 'sessions'}`} data-today={day.day === stats.days.at(-1).day} onClick={() => onSelectDay(selectedDay === day.day ? null : day.day)}><span>{day.date.getDate()}</span>{day.sessions > 0 && <i aria-hidden="true" />}</button>)}
-    </div><div className="qt-calendar-footer"><p>{stats.periodSessions} saved {stats.periodSessions === 1 ? 'session' : 'sessions'} · includes video reviews</p><span aria-hidden="true">Less<i data-level="0" /><i data-level="1" /><i data-level="3" />More</span></div>
+    </div><div className="qt-calendar-footer"><p>{stats.periodSessions} saved {stats.periodSessions === 1 ? 'session' : 'sessions'}</p><span aria-hidden="true">Less<i data-level="0" /><i data-level="1" /><i data-level="3" />More</span></div>
     {selectedDay ? <Button variant="text" className="qt-calendar-jump" onClick={() => document.getElementById('player-history')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' })}>View sessions for {new Date(`${selectedDay}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} →</Button> : <p className="qt-me-caption">{stats.periodSessions ? 'Select a day to see its sessions below.' : 'Your next saved session will light up a day here.'}</p>}
   </section>
 }
@@ -68,7 +68,7 @@ function PracticeTime({ days, onCalendar, calendarOpen, selectedDay, onSelectDay
 function SkillExposure({ stats }) {
   const [expanded, setExpanded] = useState(false)
   const total = stats.skills.reduce((sum, skill) => sum + skill.count, 0)
-  const colors = ['#d0f878', '#a9ebca', '#8fbfc8', '#9fa8ad']
+  const colors = ['#b75b30', '#557354', '#527587', '#988a72']
   const remainder = stats.skills.slice(3).reduce((sum, skill) => sum + skill.count, 0)
   return <section className="qt-me-panel qt-mix-panel" aria-labelledby="skill-exposure-heading">
     <div className="qt-me-section-heading"><h2 id="skill-exposure-heading">Skill mix <small>28 days</small></h2>{stats.skills.length > 0 && <button type="button" className="qt-mix-toggle" aria-expanded={expanded} aria-controls="skill-detail" onClick={() => setExpanded(value => !value)}>{expanded ? 'Less' : 'Details'} <Icon name="arrow" size={12}/></button>}</div>
@@ -84,7 +84,7 @@ export default function MeView({ sessions = [], assignments = [], onOpenSession,
   const stats = useMemo(() => playerHistory(sessions, now), [sessions, today])
   const visible = selectedDay ? sessions.filter(session => session.status !== 'active' && localDay(sessionTimestamp(session)) === selectedDay) : sessions
   return <div className="qt-view qt-me"><PlayerProfile key={databaseName} databaseName={databaseName} />
-    {loading ? <LoadingState label="Loading your practice history" /> : <><PracticeTime days={stats.recentDays} onCalendar={() => setCalendarOpen(value => !value)} calendarOpen={calendarOpen} selectedDay={selectedDay} onSelectDay={chooseDay}/><Reveal open={calendarOpen} id="full-calendar"><ActivityCalendar stats={stats} selectedDay={selectedDay} onSelectDay={chooseDay} /></Reveal><SkillExposure stats={stats} /></>}
+    {loading ? <LoadingState label="Loading your practice history" /> : <><PracticeTime days={stats.recentDays} onCalendar={() => setCalendarOpen(value => !value)} calendarOpen={calendarOpen} selectedDay={selectedDay} onSelectDay={chooseDay}/><Reveal open={calendarOpen} id="full-calendar"><ActivityCalendar stats={stats} selectedDay={selectedDay} onSelectDay={chooseDay} /></Reveal>{stats.skills.length > 0 && <SkillExposure stats={stats} />}</>}
     <HistoryView embedded assignments={assignments} sessions={visible} loading={loading} onOpenSession={onOpenSession} onResume={onResume} selectedDay={selectedDay} onClearDay={() => setSelectedDay(null)} />
     <HistoryStorage onExport={onExport} onRestore={onRestore} />
   </div>

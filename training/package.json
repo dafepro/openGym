@@ -17,15 +17,20 @@
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:build": "node scripts/check-build.mjs",
     "test:private-preview": "node --test scripts/private-preview.test.mjs",
-    "test:release": "python3 -m unittest discover -s scripts -p test_release.py && node --test scripts/source-notice.test.mjs"
+    "test:release": "python3 -m unittest discover -s scripts -p test_release.py && node --test scripts/source-notice.test.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8",
     "@vitejs/plugin-react": "6.0.4",
     "fake-indexeddb": "6.2.5",
+    "happy-dom": "21.0.4",
     "vite": "8.3.5",
     "vitest": "4.1.12"
   }

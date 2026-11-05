@@ -1,12 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { transitionView } from './motion.js'
-function surface() { return { classList: { add: vi.fn(), remove: vi.fn() }, getBoundingClientRect: vi.fn(() => ({ left: 12, top: 700, width: 366 })), animate: vi.fn(), remove: vi.fn(), removeAttribute: vi.fn(), setAttribute: vi.fn(), querySelectorAll: () => [], style: {} } }
+function surface({ copy = true, children = {} } = {}) {
+  const node = { classList: { add: vi.fn(), remove: vi.fn() }, getBoundingClientRect: vi.fn(() => ({ left: 12, top: 100, width: 366, height: 400 })), animate: vi.fn(), remove: vi.fn(), removeAttribute: vi.fn(), setAttribute: vi.fn(), matches: vi.fn(() => false), querySelectorAll: selector => children[selector] || [], style: {} }
+  if (copy) { node.copy = surface({ copy: false, children }); node.cloneNode = vi.fn(() => node.copy) }
+  return node
+}
 function environment(reduced = false) {
-  const content = surface(), main = surface()
-  let dock = null
-  vi.stubGlobal('document', { documentElement: { dataset: {} }, visibilityState: 'visible', body: { append: vi.fn() }, querySelector: vi.fn(selector => selector === '.qt-workout-controls' ? dock : selector === '#training-main' ? main : content) })
+  let content = surface(), dock = null
+  const original = content, main = surface()
+  vi.stubGlobal('document', { documentElement: { dataset: {} }, visibilityState: 'visible', body: { append: vi.fn(), getBoundingClientRect: vi.fn() }, querySelector: vi.fn(selector => selector === '.qt-workout-controls' ? dock : selector === '#training-main' ? main : content) })
   vi.stubGlobal('window', { matchMedia: () => ({ matches: reduced }) })
-  return { content, main, setDock: value => { dock = value } }
+  return { content: original, main, setDock: value => { dock = value }, setContent: value => { content = value } }
 }
 afterEach(() => { vi.runAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals() })
 describe('interactive view transitions', () => {
@@ -19,36 +23,85 @@ describe('interactive view transitions', () => {
     expect(main.classList.add).not.toHaveBeenCalled()
     expect(content.classList.add).toHaveBeenCalledWith('qt-content-enter')
     expect(content.inert).not.toBe(true)
-    expect(document.body.append).not.toHaveBeenCalled()
+    expect(content.copy.inert).toBe(true)
+    expect(content.copy.style.pointerEvents).toBe('none')
+    expect(document.body.append).toHaveBeenCalledWith(content.copy)
     vi.runAllTimers()
     expect(content.classList.remove).toHaveBeenCalledWith('qt-content-enter', 'qt-dock-enter')
+    expect(content.copy.remove).toHaveBeenCalledOnce()
   })
   it('cleans interrupted navigation and reverses direction', () => {
     vi.useFakeTimers()
-    const { content } = environment()
-    transitionView(() => {})
+    const env = environment(), next = surface()
+    transitionView(() => env.setContent(next))
     transitionView(() => {}, 'back')
-    expect(content.classList.remove).toHaveBeenCalledWith('qt-content-enter', 'qt-dock-enter')
+    expect(env.content.copy.remove).toHaveBeenCalledOnce()
+    expect(next.classList.remove).toHaveBeenCalledWith('qt-content-enter', 'qt-dock-enter')
     expect(document.documentElement.dataset.motion).toBe('back')
+    vi.runAllTimers()
+    expect(next.copy.remove).toHaveBeenCalledOnce()
   })
-  it('honors reduced motion', () => {
+  it('stages all outgoing and incoming surfaces before a single shared animation start', () => {
+    vi.useFakeTimers()
+    const env = environment(), next = surface(), oldDock = surface(), nextDock = surface()
+    env.setDock(oldDock)
+    transitionView(() => { env.setContent(next); env.setDock(nextDock) })
+    const layout = document.body.getBoundingClientRect
+    expect(layout).toHaveBeenCalledOnce()
+    const layoutOrder = layout.mock.invocationCallOrder[0]
+    expect(document.body.append.mock.invocationCallOrder.every(order => order < layoutOrder)).toBe(true)
+    for (const [element, className] of [[env.content.copy, 'qt-content-exit'], [next, 'qt-content-enter'], [oldDock.copy, 'qt-dock-exit'], [nextDock, 'qt-dock-enter']]) {
+      expect(element.classList.add).toHaveBeenCalledWith(className)
+      expect(element.classList.add.mock.invocationCallOrder.every(order => order > layoutOrder)).toBe(true)
+    }
+    // No per-surface layout flush may start one animation ahead of its partner.
+    expect(next.getBoundingClientRect).not.toHaveBeenCalled()
+    expect(nextDock.getBoundingClientRect).not.toHaveBeenCalled()
+    expect(env.content.copy.getBoundingClientRect).not.toHaveBeenCalled()
+    expect(oldDock.copy.getBoundingClientRect).not.toHaveBeenCalled()
+    vi.runAllTimers()
+    expect(env.content.copy.remove).toHaveBeenCalledOnce()
+    expect(oldDock.copy.remove).toHaveBeenCalledOnce()
+  })
+  it('honors reduced motion without taking snapshots or delaying updates', () => {
     vi.useFakeTimers()
     const { content } = environment(true), update = vi.fn()
     transitionView(update)
     expect(update).toHaveBeenCalledOnce()
     expect(content.classList.add).not.toHaveBeenCalled()
+    expect(content.cloneNode).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
   })
   it('slides docks without locking live controls and cleans the departing visual', () => {
     vi.useFakeTimers()
-    const env = environment(), old = surface(), ghost = surface(), next = surface()
-    old.cloneNode = () => ghost
+    const env = environment(), old = surface(), next = surface()
     env.setDock(old)
     transitionView(() => env.setDock(next))
-    expect(ghost.inert).toBe(true)
+    expect(old.copy.inert).toBe(true)
     expect(next.inert).not.toBe(true)
     expect(next.classList.add).toHaveBeenCalledWith('qt-dock-enter')
-    expect(document.body.append).toHaveBeenCalledWith(ghost)
+    expect(document.body.append).toHaveBeenCalledWith(old.copy)
     vi.runAllTimers()
-    expect(ghost.remove).toHaveBeenCalledOnce()
+    expect(old.copy.remove).toHaveBeenCalledOnce()
+  })
+  it('leaves a persistent workout dock stationary through drill changes', () => {
+    vi.useFakeTimers()
+    const env = environment(), dock = surface()
+    env.setDock(dock)
+    transitionView(() => {}, 'forward', '.qt-drill-card')
+    expect(dock.classList.add).not.toHaveBeenCalled()
+    expect(dock.cloneNode).not.toHaveBeenCalled()
+  })
+  it('strips duplicate IDs, native modals, and playable media from departing visuals', () => {
+    vi.useFakeTimers()
+    const id = surface(), modal = surface(), source = surface(), video = surface({ children: { source: [source] } })
+    const env = environment(), content = surface({ children: { '[id]': [id], dialog: [modal], 'video, audio': [video] } })
+    env.setContent(content)
+    transitionView(() => {})
+    expect(id.removeAttribute).toHaveBeenCalledWith('id')
+    expect(modal.remove).toHaveBeenCalledOnce()
+    expect(video.removeAttribute).toHaveBeenCalledWith('src')
+    expect(video.removeAttribute).toHaveBeenCalledWith('autoplay')
+    expect(source.remove).toHaveBeenCalledOnce()
   })
 })

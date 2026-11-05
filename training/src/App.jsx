@@ -14,8 +14,8 @@ const PrivatePreviewShell = __TRAINING_PRIVATE_PREVIEW__ ? lazy(() => import('./
 
 export default function App() {
   const route = useHashRoute()
-  if (PrivatePreviewShell) return <Suspense fallback={<p role="status">Opening local private preview…</p>}><PrivatePreviewShell route={route} /></Suspense>
-  if (DemoShell) return <Suspense fallback={<p role="status">Opening sample preview…</p>}><DemoShell route={route} /></Suspense>
+  if (PrivatePreviewShell) return <Suspense fallback={<TrainingShell page={route} localPreview><LoadingState label="Opening local preview…" /></TrainingShell>}><PrivatePreviewShell route={route} /></Suspense>
+  if (DemoShell) return <Suspense fallback={<TrainingShell page={route} sample><LoadingState label="Opening sample practice…" /></TrainingShell>}><DemoShell route={route} /></Suspense>
   return <TrainingApplication route={route} />
 }
 

@@ -11,6 +11,7 @@ export default function DrillDemonstration({ media, title, workActive = false, a
   const playerFrame = useRef(null)
   const localVideo = useRef(null)
   const video = playerRef || localVideo
+  const requestedMute = useRef(true)
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(true)
   const [error, setError] = useState(false)
@@ -28,7 +29,14 @@ export default function DrillDemonstration({ media, title, workActive = false, a
   const src = media?.url || media?.path
   const approvedPath = typeof media?.id === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(media.id) && src === `/media/${media.id}`
   const available = approvedPath && media?.status === 'approved'
-  useEffect(() => { setError(false); setLoading(false); setPlaying(false); setPosition(0); setCaptions(!!media?.captions); setMuted(true); if (video.current) video.current.muted = true; setRepeat(false); setRate(1); setDuration(0); setStart(0); setEnd(10); setPortrait(!!video.current && video.current.videoHeight > video.current.videoWidth); if (video.current) video.current.playbackRate = 1 }, [src, title, available])
+  useEffect(() => {
+    setError(false); setLoading(false); setPlaying(false); setPosition(0); setCaptions(!!media?.captions)
+    requestedMute.current = true; setMuted(true)
+    if (video.current) { video.current.defaultMuted = true; video.current.muted = true }
+    setRepeat(false); setRate(1); setDuration(0); setStart(0); setEnd(10)
+    setPortrait(!!video.current && video.current.videoHeight > video.current.videoWidth)
+    if (video.current) video.current.playbackRate = 1
+  }, [src, title, available])
   useEffect(() => { if (workActive && !autoPlay) video.current?.pause() }, [workActive, autoPlay])
   useEffect(() => { if (autoPlay && available) { const attempt = video.current?.play(); attempt?.catch(() => setPlaying(false)) } }, [autoPlay, available, src])
   useEffect(() => { const player = video.current; return () => player?.pause() }, [src, title, available])
@@ -69,7 +77,25 @@ export default function DrillDemonstration({ media, title, workActive = false, a
     } catch { /* The inline player remains fully usable if fullscreen is unavailable. */ }
   }
   const togglePlayback = () => { if (!video.current) return; if (video.current.paused) video.current.play()?.catch(() => setPlaying(false)); else video.current.pause() }
-  const toggleMuted = () => { if (video.current) { video.current.muted = !muted; if (!video.current.muted && video.current.volume === 0) video.current.volume = 1; setMuted(video.current.muted) } }
+  const syncMuted = () => {
+    const player = video.current
+    if (!player) return
+    // Native fullscreen exposes its own audio controls. Inline, keep the user's
+    // custom-control choice: some media pipelines reset mute when changing speed.
+    if (player.webkitDisplayingFullscreen || document.fullscreenElement === player) requestedMute.current = player.muted
+    else if (player.muted !== requestedMute.current) player.muted = requestedMute.current
+    player.defaultMuted = requestedMute.current
+    setMuted(player.muted || player.volume === 0)
+  }
+  const toggleMuted = () => {
+    const player = video.current
+    if (!player) return
+    requestedMute.current = !muted
+    player.defaultMuted = requestedMute.current
+    player.muted = requestedMute.current
+    if (!requestedMute.current && player.volume === 0) player.volume = 1
+    setMuted(requestedMute.current)
+  }
   const frameLoop = (begin, finish) => setLoopBounds([Math.max(0, begin - 5), Math.min(duration, finish + 5)])
   const toggleRepeat = () => {
     if (repeat) { setRepeat(false); return }
@@ -87,7 +113,7 @@ export default function DrillDemonstration({ media, title, workActive = false, a
   return <section ref={playerFrame} className={`qt-demonstration${repeat ? ' is-repeating' : ''}`} aria-label={`Demonstration: ${title}`}>
     {sample && available && <p className="qt-playback-sample">Playback test clip · not a drill demonstration</p>}
     <div className="qt-media-frame" data-portrait={portrait ? 'true' : undefined} data-landscape={duration > 0 && !portrait ? 'true' : undefined}>
-      {available && <video ref={video} key={src} src={src} poster={media?.poster} playsInline muted={muted} onVolumeChange={() => setMuted(!!video.current?.muted || video.current?.volume === 0)} autoPlay={autoPlay} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={ended} onError={failed} onLoadedMetadata={loaded} onCanPlay={() => setLoading(false)} onWaiting={() => setLoading(true)} onPlaying={() => setLoading(false)} onTimeUpdate={repeatTime} onClick={togglePlayback} aria-label={`${title} demonstration`}>
+      {available && <video ref={video} key={src} src={src} poster={media?.poster} playsInline muted={muted} onVolumeChange={syncMuted} onRateChange={syncMuted} onSeeked={syncMuted} autoPlay={autoPlay} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={ended} onError={failed} onLoadedMetadata={loaded} onCanPlay={() => setLoading(false)} onWaiting={() => setLoading(true)} onPlaying={() => setLoading(false)} onTimeUpdate={repeatTime} onClick={togglePlayback} aria-label={`${title} demonstration`}>
         {media?.captions && <track kind="captions" src={media.captions} srcLang={media.captionLanguage || 'en'} label="Captions" default />}
       </video>}
       {available && !error && <div className="qt-video-overlay-tools">{media?.captions && <button type="button" aria-label={captions ? 'Hide captions' : 'Show captions'} aria-pressed={captions} onClick={toggleCaptions}>CC</button>}<button type="button" aria-label={fullscreen ? 'Exit fullscreen' : 'View video fullscreen'} onClick={toggleFullscreen}><Icon name="expand" size={18} /></button></div>}

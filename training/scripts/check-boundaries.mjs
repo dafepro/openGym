@@ -14,7 +14,10 @@ for (const path of await walk(source)) {
   if (!['.js', '.jsx', '.css'].includes(extname(path))) continue
   const text = await readFile(path, 'utf8')
   const sourcePath = relative(source, path)
-  const canUseFixtures = /\.test\.[jt]sx?$/.test(path) || sourcePath.startsWith('demo/')
+  const isTest = /\.test\.[jt]sx?$/.test(path)
+  const canUseFixtures = isTest || sourcePath.startsWith('demo/')
+  const runtimeDependencies = ['react', 'react-dom', 'react-dom/client', 'react-dom/server']
+  const testDependencies = ['vitest', 'fake-indexeddb', 'fake-indexeddb/auto', '@testing-library/react', '@testing-library/user-event']
   const imports = [...text.matchAll(/(?:\bfrom\s*|\bimport\s*(?:\(\s*)?|@import\s*)['"]([^'"]+)['"]/g)]
   for (const [, specifier] of imports) {
     if (specifier.startsWith('.')) {
@@ -23,7 +26,7 @@ for (const path of await walk(source)) {
       const fixture = relative(resolve(root, 'fixtures'), absoluteTarget)
       const allowedFixture = canUseFixtures && !fixture.startsWith('..') && !fixture.startsWith('/')
       if ((target.startsWith('..') || target.startsWith('/')) && !allowedFixture) throw new Error(`Import leaves training/src: ${relative(root, path)}`)
-    } else if (!['react', 'react-dom', 'react-dom/client', 'react-dom/server', 'vitest', 'fake-indexeddb', 'fake-indexeddb/auto'].includes(specifier)) {
+    } else if (!runtimeDependencies.includes(specifier) && !(isTest && testDependencies.includes(specifier))) {
       throw new Error(`Review a new training dependency before importing: ${specifier}`)
     }
   }

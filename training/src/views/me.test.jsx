@@ -14,7 +14,7 @@ describe('Me presentation', () => {
     expect(html).toContain('Your player profile')
     expect(html).toContain('Your first session starts here')
     expect(html).toContain('No timed practice recorded')
-    expect(html).toContain('Your completed drills will build your skill mix.')
+    expect(html).not.toContain('Skill mix')
     expect(html).toContain('Export a backup')
     expect(html).toContain('Restore a backup')
     expect(html.match(/class="qt-calendar-day"/g)).toHaveLength(28)
@@ -26,8 +26,16 @@ describe('Me presentation', () => {
     expect(html).toContain('Untimed work excluded.')
     expect(html).toContain('Practice time not tracked')
     expect(html).toContain('first touch')
+    expect(html).toContain('Skill mix')
     expect(html).toContain('This shows exposure, not a skill rating.')
     expect(html.match(/>Assigned</g)).toHaveLength(2)
+  })
+  it('keeps unlabeled practice in time and history without showing an empty skill panel', () => {
+    const unlabeled = { ...record, assignment: { ...assignment, drills: [{ ...assignment.drills[0], metadata: undefined }] }, rows: [{ ...record.rows[0], practiceSeconds: 45 }] }
+    const html = renderToStaticMarkup(<MeView now={now} sessions={[unlabeled]} />)
+    expect(html).toContain('0:45')
+    expect(html).toContain('First touch practice')
+    expect(html).not.toContain('skill-exposure-heading')
   })
   it('offers saved-session deletion only when a handler is provided', () => {
     expect(renderToStaticMarkup(<SessionDetail session={record} onDelete={() => {}} />)).toContain('Delete session')

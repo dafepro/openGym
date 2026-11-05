@@ -19,11 +19,10 @@ describe('practice bottom action tray', () => {
       drill={{ mode: 'practice' }} practiceSeconds={83} />)
     expect(html).toContain('Time practiced')
     expect(html).toContain('1:23')
-    expect(html).toContain('>Quit</span>')
+    expect(html).toContain('>Exit</span>')
     expect(html).toContain('aria-label="Pause practice timer"')
     expect(html).toContain('aria-label="Next drill"')
-    expect(html.indexOf('qt-control-quit')).toBeLessThan(html.indexOf('qt-control-play'))
-    expect(html.indexOf('qt-control-play')).toBeLessThan(html.indexOf('qt-control-next'))
+    expect(html.indexOf('qt-control-quit')).toBeLessThan(html.indexOf('qt-control-next'))
   })
 
   it('uses the same pause target to resume rest without finishing a set', () => {
@@ -60,10 +59,11 @@ describe('training presentation boundaries', () => {
     expect(html).not.toContain('Current assignment')
   })
 
-  it('renders the independent builder with an empty draft and explicit add controls', () => {
-    const html = renderToStaticMarkup(<BuildPracticeView draft={{ title: '', drills: [] }} library={reviewAssignment.drills} saved={[]} history={[]} />)
-    expect(html).toContain('>Practice</h1>')
-    expect(html).toContain('Custom drill')
+  it('keeps individual drill selection contextual to an existing practice', () => {
+    const html = renderToStaticMarkup(<BuildPracticeView draft={{ title: '', drills: [] }} library={reviewAssignment.drills} onCustom={() => {}} history={[]} />)
+    expect(html).toContain('Adding to')
+    expect(html).toContain('My own drill')
+    expect(html).not.toContain('>Practice</h1>')
     expect(html).toContain('With video')
     expect(html).not.toContain('Ready-made soccer practices')
     expect(html).toContain('Add Reference video')
@@ -191,7 +191,9 @@ describe('practice-first assignments', () => {
     const html = renderToStaticMarkup(<PracticeView assignment={assignment} drill={assignment.drills[0]} primaryLabel="Start drill" />)
     expect(html).toContain('Watch demonstration')
     expect(html).toContain('aria-expanded="false"')
-    expect(html).not.toContain('<video')
+    expect(html).toContain('preload="metadata"')
+    expect(html).not.toContain('autoPlay')
+    expect(html).not.toContain('Video position')
     expect(html).toContain('Start drill')
     expect(html).not.toContain('Watch &amp; learn')
     const saved = renderToStaticMarkup(<PracticeView assignment={assignment} saved complete completedCount={1} totalCount={1} />)
