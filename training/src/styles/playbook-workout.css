@@ -55,3 +55,5 @@
 .pb-demo-dialog .pb-demo-paused-note{flex:none;}
 @media(max-height:500px) and (orientation:landscape){.qt-video-dialog.pb-demo-dialog{height:calc(100dvh - 156px - var(--qt-safe-bottom));max-height:calc(100dvh - 156px - var(--qt-safe-bottom));}.pb-demo-dialog .qt-demonstration{flex-basis:150px;min-height:150px;}}
 @media(max-height:580px) and (orientation:portrait){.qt-video-dialog.pb-demo-dialog{top:8px;height:calc(100dvh - 228px);max-height:calc(100dvh - 228px);}.pb-demo-dialog .qt-demonstration{flex-basis:200px;min-height:200px;}}
+.qt-workout-controls[data-layout="playbook"] .qt-control-row{align-items:stretch;}
+.qt-workout-controls[data-layout="playbook"] .qt-control-context{align-self:stretch;}

@@ -8,6 +8,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import TrainingExperience from './TrainingExperience.jsx'
 import { useHashRoute } from '../lib/routes.js'
 import { createTrainingRepository } from '../storage/index.js'
+import * as storage from '../storage/index.js'
 import { decodePractice } from '../domain/practice-builder.js'
 import { validateCatalog } from '../domain/content.js'
 
@@ -24,6 +25,21 @@ const load = async (content = catalog) => {
   return mounted
 }
 const state = () => repository.load()
+// Delay one real repository write without replacing controller or IndexedDB.
+const saveBarrier = () => {
+  const original = storage.createTrainingRepository
+  let armed = false, release, entered
+  const gate = new Promise(resolve => { release = resolve })
+  const started = new Promise(resolve => { entered = resolve })
+  vi.spyOn(storage, 'createTrainingRepository').mockImplementation(options => {
+    const actual = original(options)
+    return { ...actual, save: async (...args) => {
+      if (armed) { armed = false; entered(); await gate }
+      return actual.save(...args)
+    } }
+  })
+  return { arm: () => { armed = true }, release, started }
+}
 const approvedCatalog = mode => {
   const content = structuredClone(catalog)
   const drill = content.assignments[0].drills[0]
@@ -77,6 +93,54 @@ describe('Playbook connected React flows with durable local storage', () => {
     expect(saved.sessions).toHaveLength(1)
     expect(saved.sessions[0].rows[0].practiceSeconds).toBe(2)
     expect(screen.getByRole('navigation', { name: 'Main navigation' }).getAttribute('aria-hidden')).toBeNull()
+  })
+
+  it.each(['practice', 'time'])('resumes %s work after a pending Back pause even before that pause has committed', async mode => {
+    const barrier = saveBarrier()
+    try {
+      await load(approvedCatalog(mode))
+      await user.click(button('Start practice'))
+      await waitFor(async () => expect((await state()).activeSession?.phase).toBe('working'))
+      const sessionId = (await state()).activeSession.id
+      elapsed += 1000
+      barrier.arm()
+      await user.click(button('Back to practice, keeping your progress'))
+      await barrier.started
+      await screen.findByRole('button', { name: 'Resume practice', exact: true })
+      // The rendered and persisted snapshots still show working while Pause waits.
+      expect((await state()).activeSession.phase).toBe('working')
+      await user.click(button('Resume practice'))
+      barrier.release()
+      await screen.findByRole('button', { name: mode === 'practice' ? 'Pause practice timer' : 'Pause set', exact: true })
+      const resumed = (await state()).activeSession
+      expect(resumed.phase).toBe('working')
+      if (mode === 'practice') expect(resumed.practiceTimer.paused).toBe(false)
+      else expect(resumed.timer.elapsedBefore).toBe(1)
+      expect((await state()).activeSession.id).toBe(sessionId)
+    } finally { barrier.release() }
+  })
+
+  it('does not show a committed paused control until the pause write is durable', async () => {
+    const barrier = saveBarrier()
+    try {
+      const mounted = await load()
+      await user.click(button('Start practice'))
+      await waitFor(async () => expect((await state()).activeSession?.phase).toBe('working'))
+      elapsed += 1000
+      barrier.arm()
+      await user.click(button('Pause practice timer'))
+      await barrier.started
+      expect(button('Pause practice timer')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Resume practice timer', exact: true })).toBeNull()
+      expect((await state()).activeSession.practiceTimer.paused).toBe(false)
+      barrier.release()
+      await screen.findByRole('button', { name: 'Resume practice timer', exact: true })
+      expect((await state()).activeSession.practiceTimer.paused).toBe(true)
+      mounted.unmount()
+      render(<App/>)
+      await screen.findByRole('button', { name: 'Resume practice timer', exact: true })
+      expect((await state()).activeSession.practiceTimer.paused).toBe(true)
+    } finally { barrier.release() }
   })
 
   it.each(['practice', 'time'])('opening help pauses %s work, and closing it requires an explicit resume', async mode => {

@@ -105,6 +105,6 @@ export function generateRandomPractice(library, {
     assignment, context: checkedContext, seed: String(seed), skills,
     warnings, uncheckedSpaceIds,
     eligibleCount: eligible.length, requestedCount: count, selectedCount: selected.length,
-    explanation: `${selected.length} ${selected.length === 1 ? 'drill selected' : 'drills selected'}${selected.length < count ? ` (${count} requested)` : ''}. ${uncheckedSpaceIds.length ? 'Equipment and players match; some space needs must be checked.' : 'All match your setup.'} ${hasBallWork ? 'A mix of ball skills' : 'Movement and coordination'} using the existing drill targets.`,
+    explanation: `${selected.length < count ? `${selected.length} of ${count} requested drills fit. ` : ''}${uncheckedSpaceIds.length ? 'Your gear fits. Check the space needed before starting.' : hasBallWork ? 'Ball skills for your space and gear.' : 'Movement and coordination for your setup.'}`,
   }
 }

@@ -1,7 +1,6 @@
 import { clone, quantity, requireId, validateAssignment } from './content.js'
 
 const OBSERVED_GAP_MS = 2500
-const GUARD_MS = 600
 const phases = ['ready', 'working', 'review', 'rest', 'complete']
 const at = value => {
   if (!Number.isFinite(value) || value < 0) throw new Error('A valid timestamp is required')
@@ -112,7 +111,7 @@ export function reduceSession(original, command) {
         record(session, row, row.actual || 0, now)
         break
       }
-      if (session.phase !== 'working' || now - session.lastActionAt < GUARD_MS) return original
+      if (session.phase !== 'working') return original
       if (row.mode === 'time' && (!work.observed || now - work.observedAt > OBSERVED_GAP_MS)) {
         session.phase = 'review'; work.reviewElapsed = Math.min(86400, elapsed(work, now)); work.observed = false
         break

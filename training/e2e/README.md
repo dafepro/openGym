@@ -29,9 +29,29 @@ screenshots. Screenshots are review artifacts, not automatically approved visual
 baselines. Review them against the approved Playbook concept before accepting a
 run as visually validated.
 
-Execution status on 2026-11-04: collection passes (36 cases). Local browser use
-is disabled in Work settings, and the alternate headless-browser choice is
-pending. These authored checks are not a claim that the flows or screenshots
-have passed browser validation. The pull-request/manual Training checks workflow
-also includes this suite and retains its report as `playbook-browser-review`; no
-remote run has been triggered for this implementation checkpoint.
+Execution status: the final isolated browser run passed 64 active cases:
+36 user-flow journeys, 12 frame-sampled motion checks, 12 native-media/recovery
+checks and 4 layout-stress cases. Eight inapplicable stress/project combinations
+are deliberately skipped (the compact boundary is tested on both mobile engines
+and reduced motion; CSS zoom is tested only on desktop Chromium).
+
+Frame samples verify real intermediate translation/opacity, continuous outgoing
+and incoming drill content, stable work controls, persistent navigation, inert
+visual snapshots and complete cleanup. Media tests verify actual native looping,
+speed, mute resets, and recovery from injected playback failure. Layout stress
+covers 320×568, long text, a 12-drill rail, 10,000 reps, and a 24-hour timer. The 200%
+CSS zoom fixture is explicitly not evidence of OS text scaling or hardware testing.
+
+The pull-request/manual Training checks workflow includes this suite and retains
+its report as `playbook-browser-review`; no remote run or deployment has been
+triggered. The actual four-video screenshot harness is separate:
+
+```sh
+TRAINING_VISUAL_BUNDLE=/absolute/path/to/approved/bundle.json \
+TRAINING_VISUAL_OUTPUT=/absolute/path/outside/git/screenshots \
+node scripts/playbook-visual-review.mjs
+```
+
+It expects a normal local Vite server on port 4189, intercepts its API/media routes
+inside the isolated browser, and never changes the production catalog. The bundle
+is validated by the private-preview loader. Keep private screenshots outside Git.

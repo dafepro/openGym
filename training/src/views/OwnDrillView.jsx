@@ -27,7 +27,7 @@ export default function OwnDrillView({ savedDrills = [], onSubmit, onStartSaved,
   }
   return <div className="pb-own-drill">
     {savedDrills.length > 0 && <Disclosure className="pb-saved-drills" summary={<>My saved drills <span className="pb-disclosure-count">{savedDrills.length}</span></>}><div>{savedDrills.map(drill => <article className="pb-own-saved-row" key={drill.id}><span><strong>{drill.title}</strong><small>{compactTarget(drill)}</small></span><div className="pb-own-row-actions">{onEditSaved && <Button variant="text" aria-label={`Edit ${drill.title}`} disabled={disabled || pending} onClick={() => onEditSaved(drill)}>Edit</Button>}<Button variant="secondary" icon={adding ? 'plus' : 'play'} disabled={disabled || pending} onClick={() => adding ? onAddSaved(drill) : onStartSaved(drill)}>{adding ? 'Add' : 'Start'}</Button></div></article>)}</div></Disclosure>}
-    <p className="pb-own-intro">Name your drill, jot down how it works, then track your time or sets.</p>
+    <p className="pb-own-intro">Set up a drill. Track your time or sets.</p>
     <form ref={editor} noValidate onSubmit={event => { event.preventDefault(); void submit(editingId ? 'update' : adding ? 'add' : 'start') }}>
       <label className="qt-field">Drill name<input autoComplete="off" maxLength={240} required placeholder="e.g. Backyard close touches" value={fields.title} onChange={event => update('title', event.target.value)}/></label>
       <label className="qt-field">Setup <span className="pb-optional">optional</span><input maxLength={500} placeholder="Ball, two markers, a little space" value={fields.setup} onChange={event => update('setup', event.target.value)}/></label>

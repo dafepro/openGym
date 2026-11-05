@@ -238,9 +238,7 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
   }
   const resumePausedWork = async () => {
     if (readOnly || !active) return
-    if (view?.phase === 'rest' && active?.timer?.paused) await send('RESUME_REST')
-    else if (view?.phase === 'working' && drill?.mode === 'practice' && view.practicePaused) await send('RESUME_PRACTICE')
-    else if (view?.phase === 'ready' && view.currentRow?.mode !== 'watch') await send('START')
+    await controller.resume(active.id)
   }
   const resumeFromExit = async close => { await resumePausedWork(); close() }
   const resumePractice = async () => { await resumePausedWork(); setFinished(null); navigate('practice') }

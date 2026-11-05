@@ -34,6 +34,10 @@ export default function useTrainingController({ databaseName, suspended = false 
       const saved = await repository.save(next, next.revision)
       publish(saved); saveFailure.current = null; setError(null)
     } catch (failure) {
+      // Keep failed writes available for retry/export, but successful UI states
+      // are published only after their transaction commits. In particular a
+      // visible Pause must survive an immediate reload.
+      publish(next)
       saveFailure.current = failure; setError(failure.message)
       if (failure instanceof ProgressConflictError) { canWrite.current = false; setReadOnly(true) }
     } finally { setSaving(false) }
@@ -45,8 +49,8 @@ export default function useTrainingController({ databaseName, suspended = false 
       try {
         const next = transform(current.current)
         if (next === current.current) return null
-        publish(next)
-        if (!saveFailure.current) await persist(next)
+        if (saveFailure.current) publish(next)
+        else await persist(next)
         return next
       } catch (failure) { setError(failure.message); return null }
     })
@@ -130,6 +134,20 @@ export default function useTrainingController({ databaseName, suspended = false 
     if (state.activeSession) throw new Error('A practice is already in progress. Resume or finish it before starting another.')
     return { ...state, activeSession: createStartedSession(assignment, { id: crypto.randomUUID(), now: clock.now(), commandId: crypto.randomUUID() }) }
   })
+  // A Resume tap may arrive while Back's pause is still being persisted.
+  // Resolve the intent inside the same queue, from the latest committed state;
+  // a rendered snapshot can still say working until that earlier write finishes.
+  const resume = sessionId => change(state => {
+    const session = state.activeSession
+    if (!session || session.id !== sessionId) return state
+    const row = session.rows.find(item => item.id === session.currentRowId)
+    const type = session.phase === 'rest' && session.timer?.paused ? 'RESUME_REST'
+      : session.phase === 'working' && session.practiceTimer?.paused ? 'RESUME_PRACTICE'
+      : session.phase === 'ready' && row && row.mode !== 'watch' ? 'START' : null
+    if (!type) return state
+    const resumed = reduceSession(session, { type, id: crypto.randomUUID(), sessionId, rowId: session.currentRowId, now: clock.now() })
+    return resumed === session ? state : { ...state, activeSession: resumed }
+  })
   const retrySave = () => {
     queue.current = queue.current.catch(() => {}).then(() => canWrite.current ? persist(current.current) : null)
     return queue.current
@@ -154,5 +172,5 @@ export default function useTrainingController({ databaseName, suspended = false 
   }
   const restore = imported => change(state => mergeProgress(state, imported))
   const active = progress.activeSession
-  return { progress, active, view: active ? getSessionView(active, now) : null, ready, saving, error, saveFailed: !!saveFailure.current, readOnly, command, start, retrySave, restore, discardActive: id => removeSession('discardActive', id), deleteSession: id => removeSession('deleteSession', id), exportData: () => exportProgress(current.current, { now: Date.now() }) }
+  return { progress, active, view: active ? getSessionView(active, now) : null, ready, saving, error, saveFailed: !!saveFailure.current, readOnly, command, start, resume, retrySave, restore, discardActive: id => removeSession('discardActive', id), deleteSession: id => removeSession('deleteSession', id), exportData: () => exportProgress(current.current, { now: Date.now() }) }
 }

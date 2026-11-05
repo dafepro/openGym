@@ -1,10 +1,50 @@
 # Playbook visual acceptance
 
-Status: **browser verification pending**. This is an acceptance checklist, not a record of passing visual tests. Reference: the approved Concept C `concept-v2.png` in the workspace design folder. Keep populated profile charts in this review.
+Status: **scoped browser and visual review passed** on 2026-11-04. Reference:
+the approved Concept C `concept-v2.png` in the workspace design folder. The
+original four-video assignment and populated profile charts were visually
+reviewed in isolated headless browsers with explicit user authorization.
+
+## Executed evidence
+
+- Final browser matrix: 64 active cases passed; 8 inapplicable stress/project
+  combinations deliberately skipped. Includes 36 user-flow cases, 12 real-frame
+  motion checks, 12 native-media/recovery cases, and 4 layout-stress cases.
+- Chromium and WebKit, mobile and desktop, 320×740 compact, 844×390 landscape,
+  reduced motion; additional 320×568 boundaries and 200% desktop CSS zoom.
+- Actual private-video harness: 35 screenshot states across 390×844, 320×740,
+  844×390 and 1280×900. No positive horizontal overflow. Active help clears the
+  landscape dock by 12px, both with and without Undo controls.
+- Visually reviewed assigned plan, whole-practice chooser, organizer/player
+  preview, compact active drill and dock, muted video, repeat handles, random
+  mix, personal-drill setup/recording/recap, populated Me/skill mix, and calendar.
+- Screenshots and a size-switching gallery remain outside Git at workspace
+  `docs/quality/playbook-2026-11-04/`. Browser report and raw motion/media samples
+  are in `training/.playwright/` (ignored by Git).
+- 258 app tests, 21 worker tests, 4 content tests, 6 private-preview tests and 12
+  release/source tests passed. Production build/boundary/no-sample checks passed.
+
+## Review changes
+
+The browser pass fixed valid fast Finish taps being ignored, Pause persistence
+on immediate reload, and Back→Resume during a delayed write. Visual refinement
+added a custom pitch-and-route mark/favicon, quiet paper shadows and highlights,
+inset row rules, refined controls, compact form spacing and an upper landscape
+video layout with full repeat controls. Random Start moved before its drill list.
+
+The following checklist documents the reviewed intent. Hardware phone behavior,
+OS text scaling, and actual browser-menu zoom were not exercised; the 200% fixture
+is specifically CSS zoom stress. Screenshot captures establish layout; the
+separate native-video, hit-testing and frame-sampling cases establish behavior.
 
 ## Review fixtures
 
-Use the original four-video practice, then a temporary practice with 10 drills and a final drill numbered 100. Include a long drill title, a 240-character practice title, a 500-character parent note (with an unbroken word), and a long custom skill label. Exercise 10,000 reps, 86,400 confirmed seconds, and a 24-hour timer (`1440:00`). Include an empty profile and a profile with timed, untimed, labeled, and unlabeled history.
+Used the original four-video practice and a temporary 12-drill boundary fixture.
+The boundary fixture includes 240-character titles and a 500-character parent
+note with unbroken words. Browser cases exercise 10,000 reps and a 24-hour target
+(`1440:00`, or 86,400 seconds). Actual screenshots include an empty profile and
+labeled personal-drill history. Synthetic user-flow cases also preserve actual
+reps, timed work, and immutable earlier instructions.
 
 ## Viewports
 
@@ -14,7 +54,7 @@ Use the original four-video practice, then a temporary practice with 10 drills a
 | 320 × 568 compact | No body overflow. Title and thumbnail remain separate and readable. Numeric field shows all five digits; plus/minus remain 44 px targets. `1440:00` does not collide with Start/Pause; the readiness hint may wrap beneath it. Random setup, own-drill saved-row actions, and organizer controls stay usable. |
 | 844 × 390 landscape | Dock uses its two-column arrangement, keeps timer and exit/advance visible, and leaves scrollable instructions above it. Video dialog keeps all controls reachable. Long drill rail scrolls internally, never the page. |
 | 1280 × 900 desktop | Content remains centered at 640 px maximum; warm full-width bottom navigation has a centered inner region. Active dock centers independently. Hover/focus states remain visible and there are no legacy dark panels outside the video canvas and dock's center strip. |
-| Large text | At 200% browser zoom on desktop, then increased device text size in portrait, verify title wrapping, caption height, dialog scrolling, five-digit fields, and buttons. No essential action or user note may be clipped. Maintain full label access and visible keyboard focus. |
+| Large layout | The executed 200% desktop CSS-zoom fixture keeps numeric fields and essential dock actions reachable. Actual browser-menu zoom and OS text scaling remain outside this review; no claim is made for those settings. |
 | Reduced motion | Repeat Practice ↔ Me, practice start/exit, next/back drill, all disclosures, and video open/close. State changes remain immediate and usable; page slides, shimmer, icon transitions, and disclosure motion stop. |
 
 ## Shared visual gates
