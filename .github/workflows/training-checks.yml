@@ -54,7 +54,8 @@ jobs:
           # Native WebKit provides Safari-platform media and animation timing.
           # Linux's software WebKit skips complete short composited transitions.
           - platform: macos-webkit
-            os: macos-14
+            # macOS 14 silently falls back to frozen WebKit r2251.
+            os: macos-26
             engines: webkit
             projects: --project=mobile-webkit
     runs-on: ${{ matrix.os }}
