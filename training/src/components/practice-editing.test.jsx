@@ -27,7 +27,7 @@ describe('organizer correction without losing edited targets', () => {
     await user.click(screen.getByRole('button', { name: 'Undo', exact: true }))
     const rows = [...document.querySelectorAll('[data-drill]')]
     expect(rows.map(row => row.dataset.drill)).toEqual(['two', 'one'])
-    expect(within(rows[1]).getByText('2 × 75 sec', { exact: true })).toBeTruthy()
+    expect(within(rows[1]).getByText('2 × 1 min 15 sec', { exact: true })).toBeTruthy()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Edit Close touches', exact: true }))
     expect(screen.getByRole('textbox', { name: /Note for the player/ }).value).toBe('Keep it close.')
   })

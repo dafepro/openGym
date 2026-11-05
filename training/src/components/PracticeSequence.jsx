@@ -1,11 +1,29 @@
+import { useEffect, useRef } from 'react'
 import Icon from './Icon.jsx'
 import { compactTarget } from '../domain/drill-selection.js'
 import { hasDemonstration } from '../domain/drill-library.js'
 
 export function DrillThumbnail({ drill, onClick, disabled, label }) {
   const video = hasDemonstration(drill)
+  const thumbnail = useRef(null)
+  useEffect(() => {
+    const element = thumbnail.current
+    if (!element) return
+    let visible = false, positioned = false
+    // Paused native video can retain an empty compositor surface while its
+    // expanding card is offscreen. Request its static frame once it is visible.
+    const showFrame = () => {
+      if (!visible || positioned || element.readyState < 2) return
+      positioned = true
+      element.currentTime = Math.min(0.12, element.duration / 2)
+    }
+    element.addEventListener('loadeddata', showFrame)
+    const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; showFrame() })
+    observer.observe(element)
+    return () => { observer.disconnect(); element.removeEventListener('loadeddata', showFrame) }
+  }, [drill.media.path])
   return <button type="button" className={`pb-media-thumb${video ? ' has-video' : ''}`} onClick={onClick} disabled={disabled || !onClick} aria-label={label || `${video ? 'Watch' : 'Instructions for'} ${drill.title}`}>
-    {video ? <video src={`${drill.media.path}#t=0.1`} muted playsInline preload="metadata" tabIndex="-1" aria-hidden="true" /> : <Icon name="ball" size={22} />}
+    {video ? <video ref={thumbnail} src={`${drill.media.path}#t=0.1`} muted playsInline preload="metadata" tabIndex="-1" aria-hidden="true" /> : <Icon name="ball" size={22} />}
     <span className="pb-media-action" aria-hidden="true"><Icon name={video ? 'play' : 'arrow'} size={16} /></span>
   </button>
 }

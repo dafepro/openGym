@@ -1,27 +1,31 @@
+import { useState } from 'react'
+import Disclosure from '../components/Disclosure.jsx'
 import Icon from '../components/Icon.jsx'
 import PracticeSequence from '../components/PracticeSequence.jsx'
 import { Badge, Button, EmptyState, LoadingState, Notice, countLabel, isVideoReview } from '../components/ui.jsx'
 
-export default function TodayView({ assignment, activeSession, onStart, onResume, onOpenDrill, onWatchDrill, loading = false, error, onRetry, sample = false, kind = 'assigned', onBuild, onShare, onRandom, onOwnDrill, disabled = false, preview = false }) {
+export default function TodayView({ assignment, activeSession, onStart, onResume, onOpenDrill, onWatchDrill, loading = false, error, onRetry, sample = false, kind = 'assigned', onBuild, onShare, onRandom, onOwnDrill, disabled = false, preview = false, compact = false, onSave, saved = false, onStar, starred = false }) {
+  const [detailsOpened, setDetailsOpened] = useState(false)
   const sameEdition = !!activeSession && activeSession.assignmentId === assignment?.id && activeSession.assignmentRevision === assignment?.revision
   const reviewOnly = isVideoReview(assignment)
   const label = sameEdition ? reviewOnly ? 'Resume review' : 'Resume practice' : reviewOnly ? 'Start review' : 'Start practice'
-  return <div className="qt-view qt-today pb-today">
+  return <div className={`qt-view qt-today pb-today${compact ? ' pb-featured-assignment' : ''}`}>
     {loading ? <LoadingState /> : error ? <Notice title="Assignment could not load" tone="error" action="Try again" onAction={onRetry}>{error}</Notice> : !assignment ? <EmptyState title="No assigned practice yet">Choose your own practice to get moving.</EmptyState> : <>
       {activeSession && !sameEdition && !preview && <Notice title="A practice is still in progress" action="Resume" onAction={onResume}>{activeSession.assignment?.title || 'Your current practice'}</Notice>}
       <section className="qt-assignment-card pb-practice-sheet" aria-label="Complete practice">
         <div className="qt-assignment-body">
-          <div className="qt-card-meta"><Badge tone="active">{preview ? 'Player preview' : kind === 'shared' ? 'Shared practice' : kind === 'personal' ? 'Your practice' : 'Assigned practice'}</Badge></div>
-          <h1>{assignment.title}</h1>
-          <p className="pb-practice-caption">{countLabel(assignment.drills.length, reviewOnly ? 'video' : 'drill')}<span aria-hidden="true"> · </span>{reviewOnly ? 'Reference session' : 'One complete practice'}</p>
+          <div className="qt-card-meta"><Badge tone="active">{preview ? 'Player preview' : kind === 'shared' ? 'Shared practice' : kind === 'personal' ? 'Your practice' : 'Assigned practice'}</Badge>{compact && onStar && <button type="button" className="pb-star-button" aria-label={starred ? "Unstar assigned practice" : "Star assigned practice"} aria-pressed={starred} disabled={disabled} onClick={onStar}><Icon name="star" size={18}/></button>}</div>
+          {compact ? <h2>{assignment.title}</h2> : <h1>{assignment.title}</h1>}
+          {!compact && <p className="pb-practice-caption">{countLabel(assignment.drills.length, reviewOnly ? 'video' : 'drill')}<span aria-hidden="true"> · </span>{' '}{reviewOnly ? 'Reference session' : 'One complete practice'}</p>}
           <Button icon="forward" className="qt-assignment-start pb-practice-start" disabled={preview || disabled || (sameEdition ? !onResume : !onStart)} onClick={sameEdition ? onResume : onStart}>{preview ? 'Start practice' : label}</Button>
           {assignment.note && <p className="pb-practice-note"><Icon name="pencil" size={15}/><span>{assignment.note}</span></p>}
-          <PracticeSequence drills={assignment.drills} onOpenDrill={onOpenDrill} onWatchDrill={onWatchDrill}/>
+          {compact ? <Disclosure className="pb-featured-details" summary={`See the ${assignment.drills.length} drills`} onOpenChange={open => { if (open) setDetailsOpened(true) }}>{detailsOpened && <PracticeSequence drills={assignment.drills} onOpenDrill={onOpenDrill} onWatchDrill={onWatchDrill}/>}</Disclosure> : <PracticeSequence drills={assignment.drills} onOpenDrill={onOpenDrill} onWatchDrill={onWatchDrill}/>}
+          {!compact && (onSave || onStar) && <div className="pb-receive-actions"><span className="qt-live-status" role="status">{saved ? "Saved to My practices on this device." : ""}</span>{onSave && <Button variant="secondary" icon={saved ? 'check' : 'plus'} disabled={saved || disabled} onClick={onSave}>{saved ? 'Saved to My practices' : 'Save to My practices'}</Button>}{onStar && <Button variant="text" icon="star" aria-pressed={starred} disabled={disabled} onClick={onStar}>{starred ? 'Starred' : 'Star practice'}</Button>}</div>}
           {reviewOnly && <p className="qt-fine-print">Video review does not record athletic work.</p>}
           {sample && <p className="qt-fine-print">Sample assignment · quantities are examples, not training advice.</p>}
         </div>
       </section>
-      {onBuild && <Button variant="text" className="pb-choose-practice" icon="arrow" onClick={onBuild}>{kind === 'shared' ? 'Make a copy' : 'Choose my own practice'}</Button>}
+      {onBuild && <Button variant="text" className="pb-choose-practice" icon="arrow" disabled={disabled} onClick={onBuild}>{kind === 'shared' ? 'Make a copy' : 'Choose my own practice'}</Button>}
       {onShare && <Button variant="text" onClick={onShare}>Share assignment</Button>}
     </>}
     {(onRandom || onOwnDrill) && <section className="pb-quick-start" aria-label="Practice your way"><div className="pb-section-heading"><h2>Practice your way</h2><span>No plan needed</span></div><div className="pb-quick-actions">

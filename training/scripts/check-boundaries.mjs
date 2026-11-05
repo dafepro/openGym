@@ -16,9 +16,9 @@ for (const path of await walk(source)) {
   const sourcePath = relative(source, path)
   const isTest = /\.test\.[jt]sx?$/.test(path)
   const canUseFixtures = isTest || sourcePath.startsWith('demo/')
-  const runtimeDependencies = ['react', 'react-dom', 'react-dom/client', 'react-dom/server']
+  const runtimeDependencies = ['react', 'react-dom', 'react-dom/client', 'react-dom/server', 'qrcode']
   const testDependencies = ['vitest', 'fake-indexeddb', 'fake-indexeddb/auto', '@testing-library/react', '@testing-library/user-event']
-  const imports = [...text.matchAll(/(?:\bfrom\s*|\bimport\s*(?:\(\s*)?|@import\s*)['"]([^'"]+)['"]/g)]
+  const imports = [...text.matchAll(/(?:\bfrom\s*|(?<![\w-])import\s*(?:\(\s*)?|@import\s*)['"]([^'"]+)['"]/g)]
   for (const [, specifier] of imports) {
     if (specifier.startsWith('.')) {
       const absoluteTarget = resolve(dirname(path), specifier)

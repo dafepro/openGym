@@ -1,6 +1,7 @@
 import { test, expect, firstTitle, capture } from './fixtures.js'
 
 test('native video obeys repeat handles and speed, then reopens muted with fresh controls', async ({ page }, testInfo) => {
+  await page.getByText('See the 2 drills', { exact: true }).click()
   const open = page.getByRole('button', { name: `Watch ${firstTitle}`, exact: true })
   await open.click()
   const demo = page.getByRole('dialog', { name: firstTitle, exact: true })

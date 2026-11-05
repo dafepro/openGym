@@ -1,3 +1,4 @@
+import { readPracticeCode } from '../domain/practice-code.js'
 // @vitest-environment happy-dom
 // Real React/hooks/storage integration in a virtual DOM. This is not a browser
 // rendering, media-playback, hit-testing, animation, or screenshot test.
@@ -388,11 +389,12 @@ describe('Playbook connected React flows with durable local storage', () => {
     expect((await state()).activeSession).toBeNull()
     await user.click(button('Create practice link'))
     const share = screen.getByRole('dialog', { name: 'Share this practice', exact: true })
+    await user.click(await within(share).findByText('View link and code'))
     const link = within(share).getByRole('textbox', { name: 'Practice link', exact: true }).value
-    const shared = decodePractice(new URL(link).hash.slice('#/shared/'.length), catalog)
+    const shared = await readPracticeCode(link, catalog)
     expect(shared.title).toBe('Tuesday touches')
     expect(shared.note).toBe('Use your left foot first.')
-    expect(shared.drills).toEqual(catalog.assignments[0].drills)
+    expect(shared.drills.map(({ id, ...drill }) => drill)).toEqual(catalog.assignments[0].drills.map(({ id, ...drill }) => drill))
     expect((await state()).sessions).toEqual([])
   })
 })

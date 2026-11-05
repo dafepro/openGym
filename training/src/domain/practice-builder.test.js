@@ -115,3 +115,18 @@ it('shares self-paced practice without forcing a numeric target', () => {
   expect(decodePractice(encodePractice(a), syntheticCatalog)).toEqual(a)
   expect(rankTrainingDrills([drill], { now: 1000, plannedDrills: [drill] })).toHaveLength(1)
 })
+
+it('makes received custom drills reusable without collisions or changing their saved targets', async () => {
+  const { reusableDrills } = await import('./practice-builder.js')
+  const first = { ...practice().drills[0], id: 'drill-1', title: 'Received cone circuit', mode: 'time', sets: 2, durationSec: 600, media: { id: 'custom-cones', status: 'unavailable' } }
+  delete first.reps
+  const second = { ...first, title: 'Received wall hold', durationSec: 30, media: { id: 'custom-wall', status: 'unavailable' } }
+  const stored = [{ drills: [first] }, { drills: [second] }]
+  const before = structuredClone(stored)
+  const result = reusableDrills({ assignments: [] }, [first], stored)
+  expect(result).toHaveLength(2)
+  expect(new Set(result.map(drill => drill.id)).size).toBe(2)
+  expect(result[0].durationSec).toBe(600)
+  result[0].durationSec = 45
+  expect(stored).toEqual(before)
+})
