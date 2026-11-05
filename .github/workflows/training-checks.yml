@@ -42,8 +42,22 @@ jobs:
           npm run build
           npm run check:build
   browser:
-    name: Playbook browser journeys and screenshots
-    runs-on: ubuntu-24.04
+    name: Playbook browser journeys (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-chromium
+            os: ubuntu-24.04
+            engines: chromium
+            projects: --project=mobile-chromium --project=desktop-chromium --project=reduced-motion --project=compact-mobile --project=short-landscape
+          # Native WebKit provides Safari-platform media and animation timing.
+          # Linux's software WebKit skips complete short composited transitions.
+          - platform: macos-webkit
+            os: macos-14
+            engines: webkit
+            projects: --project=mobile-webkit
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     defaults:
       run:
@@ -59,14 +73,14 @@ jobs:
           cache-dependency-path: training/package-lock.json
       - run: npm ci
       - name: Install isolated browser engines
-        run: npx playwright install --with-deps chromium webkit
+        run: npx playwright install --with-deps ${{ matrix.engines }}
       - name: Exercise synthetic practice flows
-        run: npm run test:e2e
+        run: npm run test:e2e -- ${{ matrix.projects }}
       - name: Retain screenshots and failure traces for review
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: playbook-browser-review
+          name: playbook-browser-review-${{ matrix.platform }}
           path: training/.playwright/
           retention-days: 7
           include-hidden-files: true

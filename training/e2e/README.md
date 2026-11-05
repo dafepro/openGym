@@ -43,7 +43,13 @@ covers 320×568, long text, a 12-drill rail, 10,000 reps, and a 24-hour timer. T
 CSS zoom fixture is explicitly not evidence of OS text scaling or hardware testing.
 
 The pull-request/manual Training checks workflow includes this suite and retains
-its report as `playbook-browser-review`. Playwright is pinned to 1.63.0 while
+its reports as `playbook-browser-review-linux-chromium` and
+`playbook-browser-review-macos-webkit`. The five Chromium projects run on Linux;
+the iPhone WebKit project runs on native macOS for Safari-platform media and
+frame timing. Every project retains the same flow, motion, and playback assertions.
+Linux software WebKit also passed the flow/media cases but did not consistently
+sample intermediate frames of short composited animations.
+Playwright is pinned to 1.63.0 while
 investigating Linux WebKit failures with 1.64.1; that version has a documented
 [rendering regression](https://github.com/microsoft/playwright/issues/43426).
 All browser assertions remain enabled. The actual four-video screenshot harness
