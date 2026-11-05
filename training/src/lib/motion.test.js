@@ -8,7 +8,7 @@ function surface({ copy = true, children = {} } = {}) {
 function environment(reduced = false) {
   let content = surface(), dock = null
   const original = content, main = surface()
-  vi.stubGlobal('document', { documentElement: { dataset: {} }, visibilityState: 'visible', body: { append: vi.fn() }, querySelector: vi.fn(selector => selector === '.qt-workout-controls' ? dock : selector === '#training-main' ? main : content) })
+  vi.stubGlobal('document', { documentElement: { dataset: {} }, visibilityState: 'visible', body: { append: vi.fn(), getBoundingClientRect: vi.fn() }, querySelector: vi.fn(selector => selector === '.qt-workout-controls' ? dock : selector === '#training-main' ? main : content) })
   vi.stubGlobal('window', { matchMedia: () => ({ matches: reduced }) })
   return { content: original, main, setDock: value => { dock = value }, setContent: value => { content = value } }
 }
@@ -40,6 +40,28 @@ describe('interactive view transitions', () => {
     expect(document.documentElement.dataset.motion).toBe('back')
     vi.runAllTimers()
     expect(next.copy.remove).toHaveBeenCalledOnce()
+  })
+  it('stages all outgoing and incoming surfaces before a single shared animation start', () => {
+    vi.useFakeTimers()
+    const env = environment(), next = surface(), oldDock = surface(), nextDock = surface()
+    env.setDock(oldDock)
+    transitionView(() => { env.setContent(next); env.setDock(nextDock) })
+    const layout = document.body.getBoundingClientRect
+    expect(layout).toHaveBeenCalledOnce()
+    const layoutOrder = layout.mock.invocationCallOrder[0]
+    expect(document.body.append.mock.invocationCallOrder.every(order => order < layoutOrder)).toBe(true)
+    for (const [element, className] of [[env.content.copy, 'qt-content-exit'], [next, 'qt-content-enter'], [oldDock.copy, 'qt-dock-exit'], [nextDock, 'qt-dock-enter']]) {
+      expect(element.classList.add).toHaveBeenCalledWith(className)
+      expect(element.classList.add.mock.invocationCallOrder.every(order => order > layoutOrder)).toBe(true)
+    }
+    // No per-surface layout flush may start one animation ahead of its partner.
+    expect(next.getBoundingClientRect).not.toHaveBeenCalled()
+    expect(nextDock.getBoundingClientRect).not.toHaveBeenCalled()
+    expect(env.content.copy.getBoundingClientRect).not.toHaveBeenCalled()
+    expect(oldDock.copy.getBoundingClientRect).not.toHaveBeenCalled()
+    vi.runAllTimers()
+    expect(env.content.copy.remove).toHaveBeenCalledOnce()
+    expect(oldDock.copy.remove).toHaveBeenCalledOnce()
   })
   it('honors reduced motion without taking snapshots or delaying updates', () => {
     vi.useFakeTimers()

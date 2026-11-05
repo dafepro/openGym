@@ -5,7 +5,7 @@ const DOCK = '.qt-workout-controls'
 
 // A departing visual is never the live page. It cannot receive a tap, focus,
 // play media, or keep native modal inertness alive after navigation.
-function snapshot(element, className) {
+function snapshot(element) {
   if (!element) return null
   const bounds = element.getBoundingClientRect()
   if (!bounds.width || !bounds.height) return null
@@ -22,7 +22,6 @@ function snapshot(element, className) {
   clone.setAttribute('data-motion-snapshot', '')
   clone.inert = true
   clone.classList.remove('qt-content-enter', 'qt-dock-enter')
-  clone.classList.add(className)
   // Preserve ancestor-dependent drill typography without copying the shell.
   if (element.matches('.qt-drill-card')) clone.classList.add('qt-practice')
   Object.assign(clone.style, {
@@ -43,34 +42,44 @@ export function transitionView(update, direction = 'forward', selector = '#train
   const reduced = document.visibilityState !== 'visible' || window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const contentSelector = selector === '#training-main' ? '#training-main .qt-view' : selector
   const oldDock = selector === '#training-main' ? document.querySelector(DOCK) : null
-  const oldContent = !reduced && snapshot(document.querySelector(contentSelector), 'qt-content-exit')
-  const oldDockVisual = !reduced && snapshot(oldDock, 'qt-dock-exit')
+  const oldContent = !reduced && snapshot(document.querySelector(contentSelector))
+  const oldDockVisual = !reduced && snapshot(oldDock)
   flushSync(update)
   if (reduced) return
   const root = document.querySelector(contentSelector)
   const nextDock = selector === '#training-main' ? document.querySelector(DOCK) : null
   let fallback
   const surfaces = []
-  const ghosts = [oldContent].filter(Boolean)
+  const ghosts = []
+  const starts = []
   const finish = () => {
     clearTimeout(fallback)
     surfaces.forEach(element => element.classList.remove('qt-content-enter', 'qt-dock-enter'))
     ghosts.forEach(element => element.remove())
     if (finishPrevious === finish) finishPrevious = null
   }
-  const enter = (element, className) => {
+  const stageEnter = (element, className) => {
     if (!element) return
     element.classList.remove(className)
-    element.getBoundingClientRect() // Restart repeated drill motion before paint.
-    element.classList.add(className)
     surfaces.push(element)
+    starts.push([element, className])
   }
-  if (oldContent) document.body.append(oldContent)
-  enter(root, 'qt-content-enter')
+  const stageExit = (element, className) => {
+    if (!element) return
+    document.body.append(element)
+    ghosts.push(element)
+    starts.push([element, className])
+  }
+  stageExit(oldContent, 'qt-content-exit')
+  stageEnter(root, 'qt-content-enter')
   if (oldDock !== nextDock) {
-    if (oldDockVisual) { document.body.append(oldDockVisual); ghosts.push(oldDockVisual) }
-    enter(nextDock, 'qt-dock-enter')
+    stageExit(oldDockVisual, 'qt-dock-exit')
+    stageEnter(nextDock, 'qt-dock-enter')
   }
+  // Establish every unanimated surface together. A layout read after starting
+  // the outgoing animation can give it a head start and expose a blank frame.
+  document.body.getBoundingClientRect()
+  starts.forEach(([element, className]) => element.classList.add(className))
   finishPrevious = finish
   fallback = setTimeout(finish, 360)
 }

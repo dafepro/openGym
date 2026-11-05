@@ -54,7 +54,7 @@ desktop, compact, landscape, and reduced-motion configurations. This does not
 claim physical-device testing. The final E2E totals are recorded in the visual
 acceptance report and browser HTML report.
 
-- 263 app tests in 30 files, including 15 connected React/controller/storage
+- 264 app tests in 30 files, including 15 connected React/controller/storage
   journeys; 21 worker tests; 4 content tests; 6 private-preview tests; 12 release and
   source-notice tests passed. The private-preview suite requires loopback access.
 - Production build, dependency-boundary validation, and no-sample-content build
