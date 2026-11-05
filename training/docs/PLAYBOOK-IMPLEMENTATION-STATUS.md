@@ -54,7 +54,7 @@ desktop, compact, landscape, and reduced-motion configurations. This does not
 claim physical-device testing. The final E2E totals are recorded in the visual
 acceptance report and browser HTML report.
 
-- 258 app tests in 29 files, including 15 connected React/controller/storage
+- 263 app tests in 30 files, including 15 connected React/controller/storage
   journeys; 21 worker tests; 4 content tests; 6 private-preview tests; 12 release and
   source-notice tests passed. The private-preview suite requires loopback access.
 - Production build, dependency-boundary validation, and no-sample-content build
@@ -76,4 +76,9 @@ browser contexts. They are retained outside the Git checkout in the workspace's
 access data, or trainer content is committed. The screenshot harness accepts an
 explicit approved local bundle and output path via environment variables.
 
-Deployment remains on hold for the user's separate go-ahead.
+The user approved deployment. Release checks must pass before the reviewed source
+is published and selected through the existing GitHub Actions deployment flow.
+
+Release validation also covers preserving explicit mute intent through native
+rate/seek resets and retaining native fullscreen audio controls. The test browser
+is pinned to Playwright 1.63.0 while the Linux 1.64.1 rendering regression is avoided.

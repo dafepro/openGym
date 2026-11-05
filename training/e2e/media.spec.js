@@ -8,8 +8,10 @@ test('native video obeys repeat handles and speed, then reopens muted with fresh
   await expect.poll(() => video.evaluate(element => !element.paused && element.muted && element.duration > 4)).toBe(true)
   await demo.getByRole('combobox', { name: 'Playback speed', exact: true }).selectOption('0.5')
   await expect.poll(() => video.evaluate(element => element.playbackRate)).toBe(0.5)
+  await expect.poll(() => video.evaluate(element => element.muted && element.defaultMuted)).toBe(true)
   await demo.getByRole('combobox', { name: 'Playback speed', exact: true }).selectOption('1.5')
   await expect.poll(() => video.evaluate(element => element.playbackRate)).toBe(1.5)
+  await expect.poll(() => video.evaluate(element => element.muted && element.defaultMuted)).toBe(true)
   await demo.getByRole('button', { name: 'Pause video', exact: true }).click()
   await expect.poll(() => video.evaluate(element => element.paused)).toBe(true)
 
@@ -51,6 +53,7 @@ test('native video obeys repeat handles and speed, then reopens muted with fresh
     const samples = await page.evaluate(() => window.__videoLoopProbe.stop())
     await testInfo.attach('native-video-loop-times', { body: JSON.stringify(samples), contentType: 'application/json' })
   }
+  await expect.poll(() => video.evaluate(element => element.muted && element.defaultMuted)).toBe(true)
   await demo.getByRole('button', { name: 'Unmute video', exact: true }).click()
   await expect.poll(() => video.evaluate(element => element.muted)).toBe(false)
   await capture(page, testInfo, 'video-repeat-handles')
