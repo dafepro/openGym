@@ -7,7 +7,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : 3,
+  // Linux WebKit software rendering needs the hosted runner's CPU budget for
+  // frame-sampled animation checks; competing browsers can skip entire motions.
+  workers: process.env.CI ? 1 : 3,
   timeout: 45_000,
   expect: { timeout: 8_000 },
   outputDir: './.playwright/results',
