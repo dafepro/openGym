@@ -43,8 +43,11 @@ covers 320×568, long text, a 12-drill rail, 10,000 reps, and a 24-hour timer. T
 CSS zoom fixture is explicitly not evidence of OS text scaling or hardware testing.
 
 The pull-request/manual Training checks workflow includes this suite and retains
-its report as `playbook-browser-review`; no remote run or deployment has been
-triggered. The actual four-video screenshot harness is separate:
+its report as `playbook-browser-review`. Playwright is pinned to 1.63.0 while
+investigating Linux WebKit failures with 1.64.1; that version has a documented
+[rendering regression](https://github.com/microsoft/playwright/issues/43426).
+All browser assertions remain enabled. The actual four-video screenshot harness
+is separate:
 
 ```sh
 TRAINING_VISUAL_BUNDLE=/absolute/path/to/approved/bundle.json \

@@ -368,7 +368,9 @@ describe('Playbook connected React flows with durable local storage', () => {
     await waitFor(async () => expect((await state()).activeSession?.phase).toBe('working'))
     expect((await state()).activeSession.assignment.drills.map(drill => drill.title)).toEqual(shownTitles)
     await user.click(button('Quit practice'))
-    await user.click(button('Discard without saving'))
+    // Quit persists the timer pause before opening the exit sheet.
+    const exit = await screen.findByRole('dialog', { name: 'Leave practice?', exact: true })
+    await user.click(within(exit).getByRole('button', { name: 'Discard without saving', exact: true }))
     await screen.findByRole('heading', { name: 'Assigned close touches', exact: true })
     expect((await state()).activeSession).toBeNull()
     expect((await state()).sessions).toEqual([])

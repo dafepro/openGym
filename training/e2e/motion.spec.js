@@ -69,7 +69,9 @@ test('navigation slides out and back in while its persistent node remains safe',
   if (reduced) {
     expect(exit.every(frame => frame.navTransition === '0s' && !frame.snapshots.length)).toBe(true)
   } else {
-    expect(exit.some(frame => frame.navY > 0.1 && frame.navY < frame.navHeight && frame.navVisibility === 'visible'), 'Exit has real intermediate translated frames before hiding').toBe(true)
+    // The destination includes the clearance below the bar, not just its height.
+    // Fast easing can traverse the height before the first sampled WebKit frame.
+    expect(exit.some(frame => frame.navY > 0.1 && frame.navY < exit.at(-1).navY - 0.1 && frame.navVisibility === 'visible'), 'Exit has real intermediate translated frames before hiding').toBe(true)
   }
 
   await observeMotion(page)
@@ -83,7 +85,7 @@ test('navigation slides out and back in while its persistent node remains safe',
   if (reduced) {
     expect(entry.every(frame => frame.navTransition === '0s' && !frame.snapshots.length)).toBe(true)
   } else {
-    expect(entry.some(frame => frame.navState === 'true' && frame.navY > 0.1 && frame.navY < frame.navHeight && frame.navVisibility === 'visible'), 'Entry traverses real intermediate frames').toBe(true)
+    expect(entry.some(frame => frame.navState === 'true' && frame.navY > 0.1 && frame.navY < entry[0].navY - 0.1 && frame.navVisibility === 'visible'), 'Entry traverses real intermediate frames').toBe(true)
   }
   await nav.getByRole('button', { name: 'Me', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Me', exact: true })).toBeVisible()
