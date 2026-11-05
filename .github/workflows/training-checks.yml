@@ -41,3 +41,32 @@ jobs:
         run: |
           npm run build
           npm run check:build
+  browser:
+    name: Playbook browser journeys and screenshots
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: training
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: training/package-lock.json
+      - run: npm ci
+      - name: Install isolated browser engines
+        run: npx playwright install --with-deps chromium webkit
+      - name: Exercise synthetic practice flows
+        run: npm run test:e2e
+      - name: Retain screenshots and failure traces for review
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: playbook-browser-review
+          path: training/.playwright/
+          retention-days: 7
+          if-no-files-found: warn

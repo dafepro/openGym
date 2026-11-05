@@ -104,6 +104,14 @@ describe('deterministic, inspectable optional drill ranking', () => {
     expect(byId(rank([changed, passing], { history }), 'same-id').exposure.performed['futbol:shooting']).toBe(0)
     expect(byId(rank([changed, passing], { history }), 'same-id').breakdown.familiarity).toBe(0)
   })
+  it('recognizes an unchanged drill inside a random mix or copied practice despite a new occurrence ID', () => {
+    const history = [sessionFor({ ...structuredClone(passing), id: 'mix-random-1' })]
+    const result = byId(rank([passing], { history }), passing.id)
+    expect(result.breakdown.familiarity).toBeGreaterThan(0)
+    const changedTarget = { ...passing, reps: passing.reps + 1 }
+    expect(rank([changedTarget], { history })[0].breakdown.familiarity).toBe(0)
+    expect(history[0].assignment.drills[0].id).toBe('mix-random-1')
+  })
   it('does not traverse old session payloads and does not double count duplicate sessions', () => {
     const old = { id: 'old', startedAt: NOW - 100 * DAY, endedAt: NOW - 100 * DAY, status: 'partial', get assignment() { throw new Error('must not read old content') } }
     expect(rank(undefined, { history: [old] })).toEqual(rank())

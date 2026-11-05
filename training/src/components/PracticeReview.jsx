@@ -1,32 +1,50 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { changePrescription } from '../domain/practice-builder.js'
 import { compactTarget, practiceFocus } from '../domain/drill-selection.js'
 import { Button, EmptyState, countLabel } from './ui.jsx'
 import Icon from './Icon.jsx'
 import Reveal from './Reveal.jsx'
+import Disclosure from './Disclosure.jsx'
+import { hasDemonstration } from '../domain/drill-library.js'
+import { DrillThumbnail } from './PracticeSequence.jsx'
 
 const number = (value) => (value === '' ? '' : Number(value))
-export default function PracticeReview({ draft, onChange, onPreview, onNew, disabled, saved }) {
+export default function PracticeReview({ draft, onChange, onPreview, onNew, onAdd, onSwap, onWatchDrill, disabled, saved }) {
   const focus = practiceFocus(draft.drills)
-  const colors = ['var(--qt-lime)', 'var(--qt-mint)', '#a8c6e8', '#84908b']
+  const colors = ['var(--qt-lime)', 'var(--qt-mint)', '#527587', '#988a72']
   const [expanded, setExpanded] = useState(null)
+  const [removed, setRemoved] = useState(null)
   const list = useRef(null)
   const positions = useRef(null)
   const movedId = useRef(null)
   const removedIndex = useRef(null)
+  const order = draft.drills.map(drill => drill.id).join('|')
+  useEffect(() => { if (removed && order !== removed.after) setRemoved(null) }, [order, removed])
   useLayoutEffect(() => {
     if (removedIndex.current === null) return
     const rows = [...list.current.children]
     const target =
       rows[Math.min(removedIndex.current, rows.length - 1)]?.querySelector('.qt-builder-edit') ||
-      list.current.closest('dialog')?.querySelector('[aria-label="Close dialog"]')
+      list.current.closest('.qt-practice-review')?.querySelector('.pb-add-drill')
     removedIndex.current = null
     target?.focus({ preventScroll: true })
   }, [draft.drills])
   const remove = (drill, index) => {
     removedIndex.current = index
     if (expanded === drill.id) setExpanded(null)
-    onChange({ ...draft, drills: draft.drills.filter((item) => item.id !== drill.id) })
+    const drills = draft.drills.filter((item) => item.id !== drill.id)
+    positions.current = new Map([...list.current.children].map(row => [row.dataset.drill, row.getBoundingClientRect().top]))
+    setRemoved({ drill: structuredClone(drill), index, after: drills.map(item => item.id).join('|') })
+    onChange({ ...draft, drills })
+  }
+  const undoRemove = () => {
+    if (!removed || disabled) return
+    const drills = draft.drills.slice()
+    drills.splice(Math.min(removed.index, drills.length), 0, removed.drill)
+    positions.current = new Map([...list.current.children].map(row => [row.dataset.drill, row.getBoundingClientRect().top]))
+    movedId.current = removed.drill.id
+    setRemoved(null)
+    onChange({ ...draft, drills })
   }
   useLayoutEffect(() => {
     if (!positions.current) return
@@ -98,18 +116,22 @@ export default function PracticeReview({ draft, onChange, onPreview, onNew, disa
           disabled={disabled}
         />
       </label>
+      <label className="qt-field pb-parent-note-field">
+        Note for the player <span className="pb-optional">optional</span>
+        <input maxLength={500} value={draft.note || ''} placeholder="A focus or reminder for this practice" onChange={event => onChange({ ...draft, note: event.target.value })} disabled={disabled}/>
+      </label>
       <div className="qt-review-caption">
         <span>{countLabel(draft.drills.length, 'drill')} · tap to edit targets</span>
         <Button variant="text" onClick={onNew} disabled={disabled}>
           Clear
         </Button>
       </div>
-      {!draft.drills.length && <EmptyState title="Choose a drill first">Close this sheet to keep browsing.</EmptyState>}
+      {!draft.drills.length && <EmptyState title="Start with one drill">Add a drill, then arrange your practice here.</EmptyState>}
       <ol ref={list} className="qt-builder-selected qt-review-list">
         {draft.drills.map((drill, index) => (
           <li key={drill.id} data-drill={drill.id}>
             <div className="qt-builder-selected-heading">
-              <span className="qt-drill-number">{index + 1}</span>
+              <span className="qt-drill-number">{String(index + 1).padStart(2, '0')}</span>
               <button
                 type="button"
                 className="qt-builder-edit"
@@ -121,20 +143,7 @@ export default function PracticeReview({ draft, onChange, onPreview, onNew, disa
                 <strong>{drill.title}</strong>
                 <small>{compactTarget(drill)}</small>
               </button>
-              <Icon
-                name="arrow"
-                size={16}
-                className={expanded === drill.id ? 'qt-review-chevron is-open' : 'qt-review-chevron'}
-              />
-              <button
-                type="button"
-                className="qt-icon-button"
-                aria-label={`Remove ${drill.title}`}
-                disabled={disabled}
-                onClick={() => remove(drill, index)}
-              >
-                <Icon name="close" size={17} />
-              </button>
+              <DrillThumbnail drill={drill} onClick={() => (hasDemonstration(drill) ? onWatchDrill || onPreview : onPreview)?.(drill, index)} disabled={disabled}/>
             </div>
             <Reveal open={expanded === drill.id} id={`edit-${drill.id}`}>
               <div className="qt-builder-prescription">
@@ -157,7 +166,7 @@ export default function PracticeReview({ draft, onChange, onPreview, onNew, disa
                     <option value="practice">Self-paced</option>
                     <option value="reps">Count repetitions</option>
                     <option value="time">Timed sets</option>
-                    <option value="watch">Watch / review</option>
+                    {drill.mode === 'watch' && <option value="watch">Watch / review</option>}
                   </select>
                 </label>
                 {['reps', 'time'].includes(drill.mode) && (
@@ -252,6 +261,8 @@ export default function PracticeReview({ draft, onChange, onPreview, onNew, disa
                   >
                     <Icon name="down" size={18} />
                   </button>
+                  {onSwap && <Button variant="text" disabled={disabled} onClick={() => onSwap(drill)}>Swap</Button>}
+                  <Button variant="text" disabled={disabled} onClick={() => remove(drill, index)} aria-label={`Remove ${drill.title}`}>Remove</Button>
                   <Button variant="text" onClick={() => onPreview(drill, index)}>
                     Instructions <Icon name="arrow" size={14} />
                   </Button>
@@ -261,9 +272,10 @@ export default function PracticeReview({ draft, onChange, onPreview, onNew, disa
           </li>
         ))}
       </ol>
+      {removed && <div className="pb-removal-notice" role="status"><span>{removed.drill.title} removed.</span><Button variant="text" onClick={undoRemove} disabled={disabled}>Undo</Button></div>}
+      {onAdd && <Button variant="secondary" className="pb-add-drill" icon="plus" onClick={onAdd} disabled={disabled || draft.drills.length >= 100}>Add drill</Button>}
       {focus.length > 0 && (
-        <section className="qt-review-focus" aria-label="Selected drill labels">
-          <span>Drill focus</span>
+        <Disclosure className="qt-review-focus pb-focus-details" summary="Drill focus">
           <div className="qt-review-focus-bar" aria-hidden="true">
             {focus.slice(0, 3).map((item, index) => (
               <i key={item.tag} style={{ flex: item.count, background: colors[index] }} />
@@ -281,7 +293,7 @@ export default function PracticeReview({ draft, onChange, onPreview, onNew, disa
             ))}
             {focus.length > 3 && <li>+{focus.length - 3} labels</li>}
           </ul>
-        </section>
+        </Disclosure>
       )}
       <p className="qt-fine-print" role="status">
         {saved ? 'Saved on this device.' : draft.id ? 'Unsaved changes.' : 'Save to use this practice again.'}

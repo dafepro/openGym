@@ -3,6 +3,8 @@ import { syntheticCatalog } from '../../fixtures/catalog.js'
 import { changePrescription, createPractice, decodePractice, drillLibrary, encodePractice, MAX_SHARE_LENGTH, practiceLink, readSavedPractices, savePractice } from './practice-builder.js'
 import { rankTrainingDrills } from './recommendations.js'
 import { createSession } from './session.js'
+import { validateAssignment, validateCatalog } from './content.js'
+import { draftMatchesPractice } from './drill-selection.js'
 
 const source = syntheticCatalog.assignments[0]
 const practice = () => createPractice('Touch & turn ⚽', structuredClone(source.drills), { id: 'personal-practice', revision: 'edition-1' })
@@ -16,6 +18,36 @@ describe('personal practice composition and sharing', () => {
     expect(practiceLink(original, 'https://train.quicktrack.cc/')).toBe(`https://train.quicktrack.cc/#/shared/${token}`)
     expect(atob(token.replaceAll('-', '+').replaceAll('_', '/'))).not.toContain('activeSession')
     expect(() => encodePractice({ ...original, sessions: [] })).toThrow()
+  })
+
+  it('preserves an optional parent note through saving, sharing and session snapshots', () => {
+    const original = createPractice('Tuesday', source.drills, { id: 'note-practice', revision: 'v1', note: '  Keep each touch close ⚽  ' })
+    expect(original.note).toBe('Keep each touch close ⚽')
+    expect(decodePractice(encodePractice(original), syntheticCatalog).note).toBe(original.note)
+    let stored = null
+    const storage = { getItem: () => stored, setItem: (_, next) => { stored = next } }
+    savePractice(storage, 'practices', null, original)
+    expect(readSavedPractices(stored)[0].note).toBe(original.note)
+    const session = createSession(original, { id: 'note-session', now: 1000 })
+    original.note = 'Edited later'
+    expect(session.assignment.note).toBe('Keep each touch close ⚽')
+    expect(draftMatchesPractice({ ...original, note: ' Edited later ' }, original)).toBe(true)
+    expect(draftMatchesPractice({ ...original, note: 'Different cue' }, original)).toBe(false)
+    const legacy = practice()
+    expect(decodePractice(encodePractice(legacy), syntheticCatalog)).toEqual(legacy)
+    expect(draftMatchesPractice({ ...legacy, note: '' }, legacy)).toBe(true)
+  })
+
+  it('normalizes only bounded printable parent notes without changing supplied content', () => {
+    const input = { ...source, note: '  Have fun.  ' }
+    expect(validateAssignment(input).note).toBe('Have fun.')
+    expect(input.note).toBe('  Have fun.  ')
+    const catalog = { ...syntheticCatalog, assignments: [input] }
+    expect(validateCatalog(catalog).assignments[0].note).toBe('Have fun.')
+    expect(validateAssignment({ ...source, note: '   ' })).not.toHaveProperty('note')
+    for (const note of ['x'.repeat(501), 'line\nbreak', 'control\u0000', 1, null]) {
+      expect(() => validateAssignment({ ...source, note })).toThrow('500 printable characters')
+    }
   })
 
   it('cannot authorize media just by putting its identity in a link', () => {

@@ -13,6 +13,11 @@ const text = (value, label, max = 2000) => {
 export function quantity(value, label, max = 86400) {
   if (!Number.isFinite(value) || value < 0 || value > max) throw new Error(`${label} must be between 0 and ${max}`)
 }
+export function normalizePracticeNote(value) {
+  if (value === undefined) return undefined
+  if (typeof value !== 'string' || /[\u0000-\u001f\u007f]/.test(value) || value.trim().length > 500) throw new Error('Practice note must contain at most 500 printable characters')
+  return value.trim() || undefined
+}
 function fields(value, allowed, label) {
   if (Object.keys(value).some(key => !allowed.includes(key))) throw new Error(`${label} contains unsupported fields; publish a child-safe projection`)
 }
@@ -22,7 +27,8 @@ function unique(items, label) {
 }
 export function validateAssignment(assignment) {
   if (!plain(assignment)) throw new Error('Assignment must be an object')
-  fields(assignment, ['id', 'revision', 'title', 'assignedOn', 'status', 'drills'], 'Assignment')
+  fields(assignment, ['id', 'revision', 'title', 'note', 'assignedOn', 'status', 'drills'], 'Assignment')
+  const note = normalizePracticeNote(assignment.note)
   requireId(assignment.id, 'Assignment ID'); requireId(assignment.revision, 'Assignment revision')
   text(assignment.title, 'Assignment title', 240)
   if (!['current', 'archived'].includes(assignment.status)) throw new Error('Assignment status must be current or archived')
@@ -57,7 +63,10 @@ export function validateAssignment(assignment) {
     if (drill.media.path?.split('/').some(segment => segment === '.' || segment === '..')) throw new Error('Media path cannot traverse directories')
     if (drill.media.status === 'approved' && drill.media.path !== `/media/${drill.media.id}`) throw new Error('Approved media path must match its manifest media ID')
   }
-  return clone(assignment)
+  const checked = clone(assignment)
+  if (note) checked.note = note
+  else delete checked.note
+  return checked
 }
 export function validateCatalog(catalog) {
   if (!plain(catalog) || catalog.schemaVersion !== 1) throw new Error('Unsupported catalog schema')
@@ -67,7 +76,7 @@ export function validateCatalog(catalog) {
   if (!Array.isArray(catalog.assignments) || catalog.assignments.length > 1000) throw new Error('Catalog assignments must be a bounded list')
   const editions = catalog.assignments.map(item => `${item.id}:${item.revision}`)
   if (new Set(editions).size !== editions.length) throw new Error('Assignment editions must have unique ID/revision pairs')
-  catalog.assignments.forEach(validateAssignment)
+  const assignments = catalog.assignments.map(validateAssignment)
   requireId(catalog.currentAssignmentId, 'Current assignment')
   if (catalog.currentAssignmentRevision != null) requireId(catalog.currentAssignmentRevision, 'Current assignment revision')
   const matches = catalog.assignments.filter(item => item.id === catalog.currentAssignmentId && (!catalog.currentAssignmentRevision || item.revision === catalog.currentAssignmentRevision))
@@ -75,7 +84,7 @@ export function validateCatalog(catalog) {
   const selected = matches[0]
   if (!selected || selected.status !== 'current') throw new Error('Current selection must reference an available current assignment')
   if (catalog.synthetic === true && !catalog.assignments.every(item => item.title.startsWith('Synthetic'))) throw new Error('Synthetic assignments must be visibly labeled')
-  return clone(catalog)
+  return { ...clone(catalog), assignments }
 }
 export function selectCurrentAssignment(catalog) {
   const checked = validateCatalog(catalog)

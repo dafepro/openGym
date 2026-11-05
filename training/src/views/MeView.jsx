@@ -68,7 +68,7 @@ function PracticeTime({ days, onCalendar, calendarOpen, selectedDay, onSelectDay
 function SkillExposure({ stats }) {
   const [expanded, setExpanded] = useState(false)
   const total = stats.skills.reduce((sum, skill) => sum + skill.count, 0)
-  const colors = ['#d0f878', '#a9ebca', '#8fbfc8', '#9fa8ad']
+  const colors = ['#b75b30', '#557354', '#527587', '#988a72']
   const remainder = stats.skills.slice(3).reduce((sum, skill) => sum + skill.count, 0)
   return <section className="qt-me-panel qt-mix-panel" aria-labelledby="skill-exposure-heading">
     <div className="qt-me-section-heading"><h2 id="skill-exposure-heading">Skill mix <small>28 days</small></h2>{stats.skills.length > 0 && <button type="button" className="qt-mix-toggle" aria-expanded={expanded} aria-controls="skill-detail" onClick={() => setExpanded(value => !value)}>{expanded ? 'Less' : 'Details'} <Icon name="arrow" size={12}/></button>}</div>
@@ -84,7 +84,7 @@ export default function MeView({ sessions = [], assignments = [], onOpenSession,
   const stats = useMemo(() => playerHistory(sessions, now), [sessions, today])
   const visible = selectedDay ? sessions.filter(session => session.status !== 'active' && localDay(sessionTimestamp(session)) === selectedDay) : sessions
   return <div className="qt-view qt-me"><PlayerProfile key={databaseName} databaseName={databaseName} />
-    {loading ? <LoadingState label="Loading your practice history" /> : <><PracticeTime days={stats.recentDays} onCalendar={() => setCalendarOpen(value => !value)} calendarOpen={calendarOpen} selectedDay={selectedDay} onSelectDay={chooseDay}/><Reveal open={calendarOpen} id="full-calendar"><ActivityCalendar stats={stats} selectedDay={selectedDay} onSelectDay={chooseDay} /></Reveal><SkillExposure stats={stats} /></>}
+    {loading ? <LoadingState label="Loading your practice history" /> : <><PracticeTime days={stats.recentDays} onCalendar={() => setCalendarOpen(value => !value)} calendarOpen={calendarOpen} selectedDay={selectedDay} onSelectDay={chooseDay}/><Reveal open={calendarOpen} id="full-calendar"><ActivityCalendar stats={stats} selectedDay={selectedDay} onSelectDay={chooseDay} /></Reveal>{stats.skills.length > 0 && <SkillExposure stats={stats} />}</>}
     <HistoryView embedded assignments={assignments} sessions={visible} loading={loading} onOpenSession={onOpenSession} onResume={onResume} selectedDay={selectedDay} onClearDay={() => setSelectedDay(null)} />
     <HistoryStorage onExport={onExport} onRestore={onRestore} />
   </div>

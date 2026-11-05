@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createSession, getSessionView, reduceSession } from '../domain/index.js'
+import { createStartedSession, getSessionView, reduceSession } from '../domain/index.js'
 import { createTrainingRepository, emptyProgress, exportProgress, mergeProgress, ProgressConflictError } from '../storage/index.js'
 import { transitionView } from '../lib/motion.js'
 import { createObservedClock } from './observed-clock.js'
@@ -128,7 +128,7 @@ export default function useTrainingController({ databaseName, suspended = false 
 
   const start = assignment => change(state => {
     if (state.activeSession) throw new Error('A practice is already in progress. Resume or finish it before starting another.')
-    return { ...state, activeSession: createSession(assignment, { id: crypto.randomUUID(), now: clock.now() }) }
+    return { ...state, activeSession: createStartedSession(assignment, { id: crypto.randomUUID(), now: clock.now(), commandId: crypto.randomUUID() }) }
   })
   const retrySave = () => {
     queue.current = queue.current.catch(() => {}).then(() => canWrite.current ? persist(current.current) : null)

@@ -3,10 +3,11 @@ import { createPortal } from 'react-dom'
 import Icon from './Icon.jsx'
 import PlayPauseIcon from './PlayPauseIcon.jsx'
 import { formatClock } from './ui.jsx'
+import '../styles/playbook-workout.css'
 
-// Each phase has one start/pause action and one explicit record/advance action.
-// Browsing, pausing, and quitting never imply that a drill was completed.
-export default function PracticeActionDock({ drill, drillIndex = 0, drillCount = 1, sets = [], currentSetIndex = 0, phase, primaryLabel, onPrimary, disabled, practiceSeconds = 0, practicePaused, onTogglePracticePause, remainingSeconds = 0, totalSeconds = 0, onPauseRest, onResumeRest, onAdjustRest, onStop, onUndo, onQuit, restPaused, onReviewUnfinished, actualValue, onActualChange }) {
+// All work actions share one stable surface. Completing a set records actual
+// work; navigating or pausing never grants completion of the target.
+export default function PracticeActionDock({ drill, drillIndex = 0, drillCount = 1, sets = [], currentSetIndex = 0, phase, primaryLabel, onPrimary, disabled, practiceSeconds = 0, practicePaused, onTogglePracticePause, remainingSeconds = 0, totalSeconds = 0, onPauseRest, onResumeRest, onAdjustRest, onStop, onRecordStopped, onUndo, onQuit, restPaused, onReviewUnfinished, actualValue, onActualChange }) {
   const panelRef = useRef(null)
   const focusedControl = useRef(null)
   useEffect(() => {
@@ -25,30 +26,38 @@ export default function PracticeActionDock({ drill, drillIndex = 0, drillCount =
   const playAction = canStart ? onPrimary : rest ? restPaused ? onResumeRest : onPauseRest : working && free ? onTogglePracticePause : working && drill?.mode === 'time' ? onStop : null
   const playLabel = canStart ? paused ? 'Resume set' : primaryLabel || (free ? 'Start drill' : 'Start set') : rest ? restPaused ? 'Resume rest' : 'Pause rest' : free ? practicePaused ? 'Resume practice timer' : 'Pause practice timer' : 'Pause set'
   const lastDrill = drillIndex + 1 >= drillCount
-  const nextLabel = complete ? 'Save session' : rest ? 'Skip rest' : review ? 'Confirm time' : watch ? 'Mark reviewed' : free ? lastDrill ? 'Finish drill' : 'Next drill' : 'Set done'
-  const nextEnabled = !canStart && !!onPrimary && !disabled
+  const lastSet = currentSetIndex >= Math.max(0, sets.length - 1)
+  const workForwardLabel = free || lastSet ? lastDrill ? 'Finish practice' : 'Next drill' : 'Finish set'
+  const nextLabel = complete ? 'Finish practice' : rest ? 'Skip rest' : review ? 'Confirm time' : watch ? 'Mark reviewed' : workForwardLabel
+  const recordPausedTime = ready && paused && drill?.mode === 'time'
+  const forwardAction = recordPausedTime ? onRecordStopped : onPrimary
+  const nextEnabled = (!canStart || recordPausedTime) && !!forwardAction && !disabled
   const seconds = free ? Math.floor(practiceSeconds) : rest || working ? Math.ceil(remainingSeconds) : Math.max(0, (drill?.durationSec || 0) - (row?.actual || 0))
-  const caption = watch ? 'Video review' : complete ? 'Practice recorded' : rest ? restPaused ? 'Rest paused' : 'Rest' : review ? 'Confirm elapsed set' : free ? working ? practicePaused ? 'Timer paused' : 'Time practiced' : 'Ready to practice' : `${paused ? 'Paused · ' : working ? 'Work · ' : ''}Set ${row?.setNumber || currentSetIndex + 1} of ${drill?.sets || 1}${row?.side ? ` · ${row.side} foot` : ''}`
-  const changeCount = delta => onActualChange?.(String(Math.min(review ? 86400 : 9999, Math.max(0, Number(actualValue || 0) + delta))))
-  const panel = <section ref={panelRef} onFocusCapture={event => { focusedControl.current = event.target }} className="qt-workout-controls" data-phase={phase} aria-label="Practice controls">
-    <p className="qt-control-caption" key={`${phase}-${paused}`}>{caption}</p>
-    <div className="qt-control-row">
-      <button className="qt-control-edge qt-control-quit" type="button" onClick={onQuit} disabled={!onQuit} aria-label="Quit practice"><Icon name="close" size={25} /><span>Quit</span></button>
-      <div className="qt-control-center">
+  const caption = watch ? 'Video review' : complete ? 'Practice recorded' : rest ? restPaused ? 'Rest paused' : 'Rest time left' : review ? 'Confirm time worked' : free ? working ? practicePaused ? 'Elapsed · paused' : 'Time practiced' : 'Elapsed · ready' : counting ? 'Repetitions completed' : paused ? 'Time left · paused' : 'Time left'
+  const context = complete ? 'Ready to save' : free || watch ? `Drill ${drillIndex + 1} / ${drillCount}` : `${rest ? 'NEXT' : working ? 'WORK' : paused ? 'PAUSED' : 'READY'} · SET ${row?.setNumber || currentSetIndex + 1} / ${drill?.sets || 1}`
+  const changeCount = delta => onActualChange?.(String(Math.min(review ? 86400 : 10000, Math.max(0, Number(actualValue || 0) + delta))))
+  const panel = <section ref={panelRef} onFocusCapture={event => { focusedControl.current = event.target }} className="qt-workout-controls" data-layout="playbook" data-phase={phase} aria-label="Practice controls">
+    <div className="qt-control-top">
+      <div className="qt-control-readout">
+        <p className="qt-control-caption" key={`${phase}-${paused}`}>{caption}</p>
         {counting ? <div className="qt-count-stepper">
           <button type="button" onClick={() => changeCount(-1)} disabled={!onActualChange || Number(actualValue) <= 0} aria-label={review ? 'Subtract one second' : 'Subtract one repetition'}>−</button>
-          <label><input type="number" min="0" max={review ? 86400 : 9999} inputMode="numeric" aria-label={review ? 'Seconds actually completed' : 'Repetitions completed'} value={actualValue ?? ''} onChange={event => onActualChange?.(event.target.value)} readOnly={!onActualChange} /><span>{review ? 'seconds' : `of ${drill.reps} reps`}</span></label>
-          <button type="button" onClick={() => changeCount(1)} disabled={!onActualChange || Number(actualValue) >= (review ? 86400 : 9999)} aria-label={review ? 'Add one second' : 'Add one repetition'}>+</button>
-        </div> : <>
-          <div className="qt-control-measure">{complete ? <Icon name="check" size={30} /> : watch ? <Icon name="video" size={30} /> : drill?.mode === 'reps' && !rest ? <strong>{drill.reps}<small> reps</small></strong> : <strong role="timer" aria-label={free ? 'Time practiced' : `${rest ? 'Rest' : 'Work'} time remaining`}>{formatClock(seconds)}</strong>}<span>{complete ? 'Ready to save' : canStart ? paused ? 'Resume when ready' : free ? 'Time practiced' : drill?.mode === 'reps' ? 'Target' : 'Work time' : free ? 'Self-paced' : rest ? `Next: set ${row?.setNumber || currentSetIndex + 1}${row?.side ? ` · ${row.side}` : ''}` : 'remaining'}</span></div>
-          {!complete && !watch && <button className="qt-control-play" type="button" aria-label={playLabel} onClick={playAction} disabled={!playAction || canStart && disabled}><PlayPauseIcon playing={!!playAction && !canStart && !paused} /></button>}
-        </>}
+          <label><input type="number" min="0" max={review ? 86400 : 10000} inputMode="numeric" aria-label={review ? 'Seconds actually completed' : 'Repetitions completed'} value={actualValue ?? ''} onChange={event => onActualChange?.(event.target.value)} readOnly={!onActualChange} /><span>{review ? 'seconds' : `of ${drill.reps} reps`}</span></label>
+          <button type="button" onClick={() => changeCount(1)} disabled={!onActualChange || Number(actualValue) >= (review ? 86400 : 10000)} aria-label={review ? 'Add one second' : 'Add one repetition'}>+</button>
+        </div> : <div className="qt-control-measure">
+          {complete ? <Icon name="check" size={32} /> : watch ? <Icon name="video" size={32} /> : drill?.mode === 'reps' && !rest ? <strong>{drill.reps}<small> reps</small></strong> : <strong role="timer" aria-label={free ? 'Time practiced' : `${rest ? 'Rest' : 'Work'} time remaining`}>{formatClock(seconds)}</strong>}
+          {canStart && <span>{paused ? 'Resume when ready' : free ? 'Self-paced' : 'Start when ready'}</span>}
+        </div>}
       </div>
-      <button className="qt-control-edge qt-control-next" type="button" onClick={nextEnabled ? onPrimary : undefined} disabled={!nextEnabled} aria-label={nextLabel} title={working ? free ? lastDrill ? 'Record the final drill' : 'Record this drill and move on' : 'Record this set' : nextLabel}><Icon name="forward" size={26} /><span>{complete ? 'Save' : rest ? 'Skip' : review || watch ? 'Confirm' : free ? lastDrill ? 'Finish' : 'Next' : 'Set done'}</span></button>
+      {!counting && !complete && !watch && <button className="qt-control-play" type="button" aria-label={playLabel} onClick={playAction} disabled={!playAction || canStart && disabled}><PlayPauseIcon playing={!!playAction && !canStart && !paused} /><span>{canStart ? paused ? 'Resume' : 'Start' : paused ? 'Resume' : 'Pause'}</span></button>}
     </div>
-    <div className="qt-control-extras">{rest ? <><button type="button" onClick={() => onAdjustRest?.(-15)} disabled={!onAdjustRest} aria-label="Reduce rest by 15 seconds">−15s</button>{onUndo && <button type="button" onClick={onUndo}>Undo set</button>}<button type="button" onClick={() => onAdjustRest?.(15)} disabled={!onAdjustRest} aria-label="Add 15 seconds of rest">+15s</button></> : review ? <button type="button" onClick={onReviewUnfinished} disabled={!onReviewUnfinished}>Keep unfinished</button> : onUndo ? <button type="button" onClick={onUndo}><Icon name="undo" size={14} />Undo last {free ? 'drill' : 'set'}</button> : <div className="qt-dock-progress" aria-label={free || watch ? `Drill ${drillIndex + 1} of ${drillCount}` : `${sets.filter(set => set.status === 'done').length} of ${sets.length} sets recorded`}><span>{complete ? 'Ready to save' : free || watch ? `Drill ${drillIndex + 1} of ${drillCount}` : `${sets.filter(set => set.status === 'done').length} / ${sets.length} sets recorded`}</span><div aria-hidden="true">{(free || watch ? Array.from({ length: drillCount }, (_, index) => ({ done: index < drillIndex, current: index === drillIndex })) : sets.map((set, index) => ({ done: set.status === 'done', current: index === currentSetIndex }))).map((step, index) => <i key={index} className={step.done ? 'is-done' : step.current ? 'is-current' : ''} />)}</div></div>}</div>
+    <div className="qt-control-row">
+      <button className="qt-control-edge qt-control-quit" type="button" onClick={onQuit} disabled={!onQuit} aria-label="Quit practice"><Icon name="close" size={24} /><span>Exit</span></button>
+      <div className="qt-control-context"><strong key={`${phase}-${currentSetIndex}`}>{context}</strong>{row?.side && <small>{row.side === 'left' ? 'Left foot' : 'Right foot'}</small>}</div>
+      <button className="qt-control-edge qt-control-next" type="button" onClick={nextEnabled ? forwardAction : undefined} disabled={!nextEnabled} aria-label={nextLabel} title={working ? free ? lastDrill ? 'Record the final drill' : 'Record this drill and move on' : 'Record the work completed in this set' : nextLabel}><Icon name="forward" size={25} /><span>{complete ? 'Save' : rest ? 'Skip rest' : review || watch ? 'Confirm' : workForwardLabel}</span></button>
+    </div>
+    {(rest || review || onUndo) && <div className="qt-control-extras">{rest ? <><button type="button" onClick={() => onAdjustRest?.(-15)} disabled={!onAdjustRest} aria-label="Reduce rest by 15 seconds">−15s rest</button>{onUndo && <button type="button" onClick={onUndo}>Undo set</button>}<button type="button" onClick={() => onAdjustRest?.(15)} disabled={!onAdjustRest} aria-label="Add 15 seconds of rest">+15s rest</button></> : review ? <button type="button" onClick={onReviewUnfinished} disabled={!onReviewUnfinished}>Keep unfinished</button> : <button type="button" onClick={onUndo}><Icon name="undo" size={14} />Undo last {free ? 'drill' : 'set'}</button>}</div>}
     <div className="qt-control-progress" aria-hidden="true"><i style={{ transform: `scaleX(${totalSeconds > 0 && (rest || working) ? Math.max(0, Math.min(1, remainingSeconds / totalSeconds)) : 0})` }} /></div>
   </section>
-  // Keep fixed controls outside any transformed navigation surface.
   return typeof document === 'undefined' ? panel : createPortal(panel, document.body)
 }

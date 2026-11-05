@@ -36,6 +36,12 @@ export function createSession(assignment, { id, now }) {
     appliedCommandIds: [], lastCompletion: null, lastActionAt: null, clockRevision: 0,
   }
 }
+// The entry action begins the first drill atomically. A watch-only reference
+// still requires acknowledgement and never starts an athletic work timer.
+export function createStartedSession(assignment, { id, now, commandId = `start-${id}` }) {
+  const session = createSession(assignment, { id, now })
+  return reduceSession(session, { type: 'START', id: commandId, sessionId: id, rowId: session.currentRowId, now })
+}
 function advance(session) {
   const next = session.rows.find(pending)
   session.currentRowId = next?.id || null
@@ -100,6 +106,12 @@ export function reduceSession(original, command) {
       session.practiceTimer.startedAt = now; session.practiceTimer.paused = false
       break
     case 'DONE':
+      if (session.phase === 'ready' && row?.mode === 'time' && row.status === 'stopped') {
+        // Pausing checkpoints observed work. Finishing while paused records
+        // exactly that checkpoint, never the target or time spent deciding.
+        record(session, row, row.actual || 0, now)
+        break
+      }
       if (session.phase !== 'working' || now - session.lastActionAt < GUARD_MS) return original
       if (row.mode === 'time' && (!work.observed || now - work.observedAt > OBSERVED_GAP_MS)) {
         session.phase = 'review'; work.reviewElapsed = Math.min(86400, elapsed(work, now)); work.observed = false
