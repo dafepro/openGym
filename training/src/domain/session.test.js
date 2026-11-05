@@ -46,6 +46,31 @@ describe('validated content and immutable assignment snapshots', () => {
   })
 })
 describe('one session controller', () => {
+  it('checkpoints a timed set when switching drills and keeps the recorded rest', () => {
+    const a = assignment()
+    const timed = { ...a.drills.find(drill => drill.mode === 'time'), sets: 1 }
+    const reps = { ...a.drills.find(drill => drill.mode === 'reps'), sets: 1, restSec: 10 }
+    const extra = { ...timed, id: 'extra-timed' }
+    a.drills = [timed, reps, extra]
+    let s = command(start(a), 'START', 0)
+    s = command(s, 'SELECT_DRILL', 2000, { drillId: reps.id })
+    expect(s.rows[0]).toMatchObject({ status: 'stopped', actual: 2 })
+    expect(s.timer).toBeNull()
+    expect(validateSession(s)).toEqual(s)
+    s = command(s, 'START', 3000)
+    s = command(s, 'DONE', 4000, { actual: reps.reps })
+    expect(getSessionView(s, 4000)).toMatchObject({ drill: { id: extra.id }, phase: 'rest' })
+    expect(command(s, 'SELECT_DRILL', 4000, { drillId: reps.id })).toBe(s)
+    const rest = s.timer
+    s = command(s, 'SELECT_DRILL', 4500, { drillId: timed.id })
+    expect(s.timer).toEqual(rest)
+    expect(getSessionView(s, 4500)).toMatchObject({ drill: { id: timed.id }, phase: 'rest' })
+    s = command(s, 'SKIP_REST', 5000)
+    s = command(s, 'START', 6000)
+    expect(s.timer.elapsedBefore).toBe(2)
+    expect(validateSession(s)).toEqual(s)
+  })
+
   it('records independent sides and preserves zero actual reps as unmet', () => {
     let s = start(one('reps', { sets: 1, side: 'each', restSec: 0 }))
     expect(s.rows.map(row => row.side)).toEqual(['left', 'right'])

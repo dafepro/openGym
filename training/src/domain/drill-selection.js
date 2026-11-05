@@ -15,10 +15,16 @@ export function toggleDrillSelection(draft, drill, makeId = () => `drill-${crypt
     drills: [...draft.drills, { ...structuredClone(drill), id: makeId() }]
   }
 }
+export function durationLabel(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '— sec'
+  if (seconds < 60) return `${seconds} sec`
+  const minutes = Math.floor(seconds / 60), remainder = seconds % 60
+  return `${minutes} min${remainder ? ` ${remainder} sec` : ''}`
+}
 export function compactTarget(drill) {
   if (drill.mode === 'practice') return 'Self-paced'
   if (drill.mode === 'watch') return 'Video review'
-  const target = drill.mode === 'time' ? `${drill.durationSec || '—'} sec` : `${drill.reps || '—'} reps`
+  const target = drill.mode === 'time' ? durationLabel(drill.durationSec) : `${drill.reps || '—'} reps`
   return `${drill.sets || '—'} × ${target}${drill.side === 'each' ? ' · each foot' : ''}`
 }
 export function drillSetup(drill) {

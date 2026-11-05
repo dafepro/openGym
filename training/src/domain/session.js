@@ -19,6 +19,11 @@ const checkpointPractice = (session, now) => {
   session.practiceTimer = null
 }
 const pending = row => row.status !== 'done'
+function nextUnfinished(session, row) {
+  const index = session.rows.indexOf(row)
+  return session.rows.slice(index + 1).find(pending)
+    || session.rows.find(item => item !== row && pending(item))
+}
 export function createSession(assignment, { id, now }) {
   const snapshot = validateAssignment(assignment)
   requireId(id, 'Session ID'); at(now)
@@ -41,8 +46,8 @@ export function createStartedSession(assignment, { id, now, commandId = `start-$
   const session = createSession(assignment, { id, now })
   return reduceSession(session, { type: 'START', id: commandId, sessionId: id, rowId: session.currentRowId, now })
 }
-function advance(session) {
-  const next = session.rows.find(pending)
+function advance(session, row) {
+  const next = nextUnfinished(session, row)
   session.currentRowId = next?.id || null
   session.phase = next ? 'ready' : 'complete'
   session.timer = null
@@ -55,7 +60,7 @@ function record(session, row, actual, now) {
   session.lastCompletion = { rowId: row.id, before }
   session.lastActionAt = now
   const restSec = drillFor(session, row).restSec
-  advance(session)
+  advance(session, row)
   if (session.currentRowId && restSec > 0) {
     session.phase = 'rest'
     session.timer = { kind: 'rest', ownerRowId: row.id, deadline: now + restSec * 1000, remainingSec: restSec, paused: false }
@@ -77,7 +82,7 @@ export function reduceSession(original, command) {
   if (!original || original.status !== 'active' || command.sessionId !== original.id) return original
   requireId(command.id, 'Command ID'); at(command.now)
   if (original.appliedCommandIds.includes(command.id)) return original
-  if (['START', 'DONE', 'STOP', 'PAUSE_PRACTICE', 'RESUME_PRACTICE', 'ACKNOWLEDGE', 'CONFIRM_REVIEW', 'SKIP_REST', 'PAUSE_REST', 'RESUME_REST', 'ADJUST_REST', 'UNDO'].includes(command.type) && command.rowId !== original.currentRowId) return original
+  if (['START', 'DONE', 'STOP', 'SELECT_DRILL', 'PAUSE_PRACTICE', 'RESUME_PRACTICE', 'ACKNOWLEDGE', 'CONFIRM_REVIEW', 'SKIP_REST', 'PAUSE_REST', 'RESUME_REST', 'ADJUST_REST', 'UNDO'].includes(command.type) && command.rowId !== original.currentRowId) return original
   if (command.rowId != null && command.rowId !== original.currentRowId) return original
   const session = clone(original)
   const row = current(session)
@@ -85,6 +90,28 @@ export function reduceSession(original, command) {
   const work = session.timer?.kind === 'work' ? session.timer : null
   let changed = true
   switch (command.type) {
+    case 'SELECT_DRILL': {
+      if (!row || row.drillId === command.drillId) return original
+      const target = session.rows.find(item => item.drillId === command.drillId && pending(item))
+      if (!target) return original
+      if (session.phase === 'working' || session.phase === 'review') {
+        checkpointPractice(session, now)
+        if (work) row.actual = observedElapsed(work, now)
+        if (row.mode === 'reps' && command.actual != null) {
+          quantity(command.actual, 'Actual repetitions', 10000)
+          if (!Number.isInteger(command.actual)) throw new Error('Actual repetitions must be whole')
+          row.actual = command.actual
+        }
+        row.status = 'stopped'
+        row.prescriptionMet = false
+      }
+      session.currentRowId = target.id
+      if (session.phase !== 'rest') {
+        session.phase = 'ready'
+        session.timer = null
+      }
+      break
+    }
     case 'START':
       if (session.phase !== 'ready' || !row || row.mode === 'watch') return original
       session.phase = 'working'; session.lastActionAt = now; session.lastCompletion = null
@@ -234,7 +261,8 @@ export function getSessionView(session, now) {
   const types = { ready: row?.mode === 'watch' ? ['ACKNOWLEDGE', 'Mark reviewed'] : ['START', row?.mode === 'practice' ? 'Start drill' : 'Start set'], working: ['DONE', row?.mode === 'practice' ? 'Drill done' : 'Set done'],
     review: ['CONFIRM_REVIEW', 'Confirm elapsed set'], rest: ['SKIP_REST', 'Skip rest'], complete: ['FINISH', 'Finish session'] }
   const [type, label] = types[session.phase]
-  return { drill, currentRow: row || null, phase: session.phase, remainingSec,
+  const nextRow = row && nextUnfinished(session, row)
+  return { drill, nextDrill: nextRow && drillFor(session, nextRow), currentRow: row || null, phase: session.phase, remainingSec,
     practiceSeconds: session.practiceTimer ? practiceElapsed(session.practiceTimer, now) : row?.practiceSeconds || 0,
     practicePaused: !!session.practiceTimer?.paused,
     elapsedSec: timer?.kind === 'work' ? session.phase === 'review' ? timer.reviewElapsed ?? observedElapsed(timer, now) : elapsed(timer, now) : row?.actual ?? 0,
@@ -269,8 +297,10 @@ export function validateSession(session) {
   if (session.clockRevision != null && (!Number.isSafeInteger(session.clockRevision) || session.clockRevision < 0)) throw new Error('Invalid clock revision')
   if (session.status === 'active') {
     if (session.endedAt !== null) throw new Error('Active work cannot have an end time')
-    const next = session.rows.find(pending)
-    if (session.currentRowId !== (next?.id || null) || (session.phase === 'complete') !== !next) throw new Error('Active row and phase do not match unfinished work')
+    const selected = current(session)
+    const unfinished = session.rows.some(pending)
+    if (unfinished ? !selected || selected !== session.rows.find(row => row.drillId === selected.drillId && pending(row)) || session.phase === 'complete'
+      : session.currentRowId !== null || session.phase !== 'complete') throw new Error('Active row and phase do not match unfinished work')
   }
   if (session.lastCompletion) {
     const saved = session.lastCompletion

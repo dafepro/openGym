@@ -874,7 +874,7 @@ body {
 .qt-time-track > i { background: linear-gradient(0deg, #a64d28, #c86b3e); box-shadow: inset 0 1px 0 #ffffff30; }
 .qt-navigation.qt-navigation--playbook { background: #fffcf7; border-top-color: #d5c9b7; box-shadow: 0 -3px 12px #57452906; }
 .qt-drill-card { border-color: #d0c4b2; box-shadow: inset 0 1px 0 #fff, 0 2px 5px #57452907; }
-.qt-practice-header > span {
+.qt-practice-back > span {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -901,3 +901,99 @@ body {
   .pb-practice-choice { transition: none; }
   .pb-practice-choice:hover, .pb-quick-actions > button:hover:not(:disabled) { transform: none; }
 }
+
+/* My practices is the everyday home. The assignment is a featured paper slip. */
+.pb-home { gap: 0; }
+.pb-home-heading { margin: 7px 0 20px; align-items: center; }
+.pb-home-heading .qt-eyebrow { margin-bottom: 6px; font-size: 10px; letter-spacing: .14em; }
+.pb-home-heading h1 { font-size: clamp(32px, 8vw, 42px); }
+.pb-home-mark { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid #c6c6ae; border-radius: 50%; color: #536347; background: #ebe9da; transform: rotate(-12deg); box-shadow: inset 0 0 0 4px #f5f0e6; }
+.pb-featured-assignment { margin: 0 0 18px; }
+.pb-featured-assignment .qt-assignment-card { border: 1px solid #c7cdbb; border-top: 3px solid #526544; background: linear-gradient(125deg, #f3f3e9, #fffcf6 70%); box-shadow: 0 3px 3px #4c403106, 0 8px 18px #4c40310b; }
+.pb-featured-assignment .qt-assignment-body { padding: 18px 20px 8px; }
+.pb-featured-assignment .qt-card-meta { margin-bottom: 9px; }
+.pb-featured-assignment .qt-badge { color: #465c39; background: #e6ebda; font-size: 10px; }
+.pb-featured-assignment h2 { padding-bottom: 10px; font: 600 clamp(24px, 6.3vw, 30px)/1.13 var(--qt-display); letter-spacing: -.035em; margin: 0 0 8px; text-wrap: balance; }
+.pb-featured-assignment .pb-practice-caption { font-size: 12px; margin-bottom: 14px; }
+.pb-featured-assignment .pb-practice-start { min-height: 46px; margin: 0; background: #3d5c40; color: #fffdf6; border-color: #3d5c40; }
+.pb-featured-assignment .pb-practice-start:hover { background: #304d33; }
+.pb-featured-assignment .pb-practice-note { font-size: 12px; margin: 12px 0 4px; }
+.pb-featured-details { margin-top: 5px; }
+.pb-home-tools { margin: 0 0 26px; }
+.pb-home-create { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pb-home-create .qt-button { min-height: 46px; font-size: 13px; gap: 8px; padding: 10px; box-shadow: 0 2px 0 #c9bfad25; }
+.pb-home-create .qt-button svg { width: 18px; height: 18px; }
+.pb-home .pb-quick-actions { margin-top: 10px; gap: 10px; }
+.pb-home .pb-quick-actions > button { min-height: 46px; padding: 11px 12px; gap: 9px; background: transparent; border-color: #d8cfbe; box-shadow: none; }
+.pb-home .pb-quick-actions > button > svg:first-child { width: 18px; height: 18px; color: #8c4e2c; }
+.pb-home .pb-quick-actions > button > svg:last-child { display: none; }
+.pb-home .pb-quick-actions strong { font-size: 13px; }
+.pb-home .pb-quick-actions small { font-size: 11px; margin-top: 3px; }
+.pb-home-collection { padding-top: 19px; border-top: 1px solid #d4ccbe; }
+.pb-home-collection > .pb-section-heading { margin-bottom: 12px; }
+.pb-home-collection > .pb-section-heading h2 { font: 600 24px/1.2 var(--qt-display); letter-spacing: -.03em; }
+.pb-home .pb-tabs { margin: 0 0 14px; gap: 4px; }
+.pb-home .pb-tabs > button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 12px; min-height: 44px; transition: color 160ms, background-color 160ms; }
+.pb-home .qt-empty { padding: 28px 20px; border: 1px dashed #cfc4b2; border-radius: 12px; background: #f9f5ed; min-height: unset; }
+.pb-home .qt-empty-icon { display: none; }
+.pb-home .qt-empty h2 { font: 600 21px/1.2 var(--qt-display); margin: 0 0 8px; }
+.pb-home .qt-empty p { max-width: 32ch; font-size: 13px; line-height: 1.6; margin: 0 auto; }
+.pb-practice-choice small { display: flex; align-items: center; gap: 4px; }
+.pb-star-button { width: 44px; height: 44px; border: 1px solid #d4ccbe; border-radius: 50%; background: #fffcf6; display: grid; place-items: center; color: #796546; flex-shrink: 0; transition: background-color 180ms, color 180ms, transform 180ms; }
+.pb-star-button[aria-pressed="true"] { background: #f6e4bd; color: #84531c; border-color: #d8ba80; }
+.pb-star-button[aria-pressed="true"] svg { fill: #e8c17c; animation: pb-star-pop 260ms ease; }
+.pb-star-button:active { transform: scale(.92); }
+.pb-practice-secondary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px; border-top: 1px dashed #d4ccbe; margin-top: 12px; padding-top: 8px; }
+.pb-practice-secondary .qt-button { font-size: 12px; padding: 9px 3px; }
+.pb-receive-actions, .pb-history-practice-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+.pb-receive-actions .qt-button[aria-pressed="true"] svg, .pb-history-practice-actions .qt-button[aria-pressed="true"] svg { fill: #e8c17c; color: #84531c; }
+.pb-share-card { text-align: center; padding: 14px 0 0; }
+.pb-share-card > .qt-eyebrow { font-size: 10px; letter-spacing: .11em; }
+.pb-share-card h2 { font: 600 27px/1.2 var(--qt-display); letter-spacing: -.035em; margin: 8px 0 18px; }
+.pb-practice-qr { display: block; width: min(100%, 320px); height: auto; margin: 0 auto; border: 1px solid #ded6c8; border-radius: 4px; box-shadow: 0 6px 20px #43392b0c; }
+.pb-qr-placeholder { height: 280px; display: grid; place-items: center; color: var(--qt-muted); }
+.pb-share-card > p:not(.qt-eyebrow) { font-size: 13px; line-height: 1.6; max-width: 35ch; margin: 16px auto; }
+.pb-share-card > .qt-field-grid { margin-top: 20px; }
+.pb-share-details { border-top: 1px dashed #cfc4b2; margin-top: 20px; text-align: left; }
+.pb-share-details textarea { font: 11px/1.5 ui-monospace, monospace; min-height: 64px; resize: vertical; }
+.pb-import > p { font-size: 14px; line-height: 1.6; }
+.pb-import textarea { min-height: 118px; font-size: 13px; overflow-wrap: anywhere; }
+.pb-import > .qt-button { width: 100%; margin-top: 16px; }
+@keyframes pb-star-pop { 0% { transform: scale(.75) rotate(-12deg); } 60% { transform: scale(1.2) rotate(6deg); } 100% { transform: scale(1) rotate(0); } }
+@media (max-width: 359px) { .pb-home-create { gap: 7px; } .pb-home-create .qt-button { font-size: 12px; gap: 5px; } .pb-featured-assignment .qt-assignment-body { padding: 16px 14px 7px; } .pb-home .pb-tabs > button { padding: 9px; } }
+@media (prefers-reduced-motion: reduce) { .pb-star-button[aria-pressed="true"] svg { animation: none; } .pb-star-button { transition: none; } }
+.pb-featured-assignment .qt-card-meta { min-height: 28px; position: relative; padding-right: 44px; }
+.pb-featured-assignment .qt-card-meta .pb-star-button { position: absolute; right: -6px; top: -9px; border-color: transparent; background: transparent; }
+.pb-featured-assignment .qt-card-meta .pb-star-button[aria-pressed="true"] { background: #e9e9d6; }
+.pb-selected-start { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.pb-selected-start > .qt-button { flex: 1; min-width: 0; }
+.pb-featured-details.pb-disclosure { border: 0; background: transparent; border-radius: 0; }
+.pb-featured-details > .pb-disclosure-trigger { min-height: 44px; padding: 8px 0; font-size: 12px; color: #465c39; }
+.pb-featured-details > .qt-reveal > div { padding: 0; }
+.pb-share-details.pb-disclosure { border: 0; border-top: 1px dashed #cfc4b2; border-radius: 0; background: transparent; }
+.pb-share-details > .pb-disclosure-trigger { font-size: 12px; color: var(--qt-muted); padding: 10px 0; }
+.pb-share-details > .qt-reveal > div { padding: 0; }
+@media (max-width: 359px) { .pb-share-card .qt-field-grid { gap: 8px; } .pb-share-card .qt-field-grid .qt-button { font-size: 13px; padding: 10px 8px; gap: 6px; } .pb-share-card .qt-field-grid .qt-button svg { width: 18px; } }
+.pb-library-card { border: 1px solid #d4ccbe; border-radius: 9px; background: #fffcf6; overflow: hidden; box-shadow: 0 2px 4px #4c403108; transition: border-color 220ms, box-shadow 220ms; }
+.pb-library-card[data-selected="true"] { border-color: #c9af92; box-shadow: 0 3px 5px #4c403106, 0 10px 20px #4c40310b; }
+.pb-library-card .pb-practice-choice { border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+.pb-library-card .pb-practice-choice[aria-expanded="true"] { background: #f6eee0; }
+.pb-library-card .pb-practice-choice > svg { transition: transform 220ms ease; }
+.pb-library-card .pb-practice-choice[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.pb-library-card .pb-selected-practice { border: 0; border-radius: 0; box-shadow: none; animation: none; padding: 14px 16px 8px; margin: 0; }
+.pb-library-card > .qt-reveal > div { padding: 0; }
+.pb-library-search { margin-bottom: 12px; }
+@media (hover: hover) { .pb-library-card .pb-practice-choice:hover { transform: none; background: #f6eee0; box-shadow: none; } }
+@media (prefers-reduced-motion: reduce) { .pb-library-card, .pb-library-card .pb-practice-choice > svg { transition: none; } }
+.pb-qr-placeholder { width: min(100%, 320px); aspect-ratio: 1; height: auto; margin: 0 auto; border: 1px solid #ded6c8; border-radius: 4px; font-size: 13px; background: repeating-linear-gradient(0deg, transparent 0 19px, #d8cebd24 19px 20px), repeating-linear-gradient(90deg, #f8f4eb 0 19px, #d8cebd24 19px 20px); }
+.pb-practice-qr { animation: pb-pass-ready 180ms ease both; }
+.pb-share-card > p[role="status"] { min-height: 21px; color: #3d5c40; }
+@keyframes pb-pass-ready { from { opacity: .35; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pb-practice-qr { animation: none; } }
+.pb-time-presets { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.pb-time-presets > button { min-width: 0; padding-left: 5px; padding-right: 5px; }
+/* Whole device pixels per QR module keep dense passes crisp on low-DPI screens. */
+.pb-qr-frame { display: grid; place-items: center; width: min(100%, 400px); aspect-ratio: 1; margin: 0 auto; border: 1px solid #ded6c8; border-radius: 5px; background: #fff; box-shadow: 0 6px 20px #43392b0c; }
+.pb-practice-qr { border: 0; border-radius: 0; box-shadow: none; max-width: 100%; }
+.pb-qr-frame > p { padding: 20px; }
+@media (max-width: 359px) { .pb-qr-frame { width: calc(100% + 16px); margin-left: -8px; } }

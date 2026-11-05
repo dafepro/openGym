@@ -1,4 +1,7 @@
 const paths = {
+  bookmark: <path d="M6 3h12v18l-6-4-6 4Z"/>,
+  star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/>,
+  qr: <><path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h3v3h3v3h-6zM12 3v3M3 12h6M12 9v6h-1M18 12h3"/></>,
   clipboard: <><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 11h6M9 15h6"/></>,
   share: <><path d="M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7L11.3 5M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></>,
   shuffle: <><path d="M3 6h3c4 0 8 12 12 12h3m-4-4 4 4-4 4M3 18h3c1.5 0 3-1.7 4.5-4M14 8c1.4-1.3 2.7-2 4-2h3m-4-4 4 4-4 4"/></>,

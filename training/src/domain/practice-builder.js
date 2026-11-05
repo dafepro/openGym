@@ -1,3 +1,4 @@
+import { drillSelectionKey } from './drill-selection.js'
 import { validateAssignment, requireId } from './content.js'
 
 const FORMAT = 'quicktrack-practice'
@@ -14,6 +15,24 @@ export function drillLibrary(catalog) {
     if (seen.has(key)) return false
     seen.add(key); return true
   }).map(copy)
+}
+
+// Saved passes retain their own drill snapshots. Make those drills available for
+// new plans too, without mutating the original or collapsing two distinct drills
+// merely because separate passes both used the occurrence ID "drill-1".
+export function reusableDrills(catalog, personal = [], practices = []) {
+  const seen = new Set(), ids = new Set()
+  return [...drillLibrary(catalog), ...personal, ...practices.flatMap(practice => practice.drills)].filter(drill => {
+    const key = drillSelectionKey(drill)
+    if (seen.has(key)) return false
+    seen.add(key); return true
+  }).map((drill, index) => {
+    let id = drill.id
+    let suffix = 0
+    while (ids.has(id)) id = `library-${index}-${suffix++}`
+    ids.add(id)
+    return { ...copy(drill), id }
+  })
 }
 
 export function createPractice(title, drills, { id, revision, note } = {}) {

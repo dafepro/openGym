@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toggleDrillSelection, isDrillSelected, compactTarget, practiceSummary } from './drill-selection.js'
+import { toggleDrillSelection, isDrillSelected, compactTarget, practiceSummary, durationLabel } from './drill-selection.js'
 import { changePrescription } from './practice-builder.js'
 const drill = {
   id: 'source',
@@ -99,4 +99,13 @@ describe('soccer drill search', () => {
     expect(drillMatchesSearch(labelled, '   ')).toBe(true)
     expect(drillMatchesSearch({ ...drill, metadata: undefined }, 'receive')).toBe(true)
   })
+})
+
+
+it('formats long targets without changing their exact seconds', () => {
+  expect(durationLabel(45)).toBe('45 sec')
+  expect(durationLabel(60)).toBe('1 min')
+  expect(durationLabel(75)).toBe('1 min 15 sec')
+  expect(durationLabel(600)).toBe('10 min')
+  expect(compactTarget({ mode: 'time', sets: 1, durationSec: 600, side: 'each' })).toBe('1 × 10 min · each foot')
 })
