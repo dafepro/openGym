@@ -48,13 +48,25 @@ export async function installSyntheticRoutes(context) {
 }
 
 export const test = base.extend({
-  page: async ({ page, context }, use) => {
+  page: async ({ page, context }, use, testInfo) => {
     await installSyntheticRoutes(context)
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     await page.goto('/')
     await expect(page.getByRole('heading', { name: assignedTitle, exact: true })).toBeVisible()
     await use(page)
+    if (testInfo.status !== testInfo.expectedStatus && !page.isClosed()) {
+      const diagnostics = await page.evaluate(() => ({
+        visibility: document.visibilityState,
+        reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+        dialogs: [...document.querySelectorAll('dialog')].map(dialog => ({ text: dialog.textContent.slice(0,1200), buttons: [...dialog.querySelectorAll('button')].map(button => button.getAttribute('aria-label') || button.textContent) })),
+        videos: [...document.querySelectorAll('dialog video')].map(video => ({ muted:video.muted, defaultMuted:video.defaultMuted, volume:video.volume, paused:video.paused, position:video.currentTime, error:video.error?.code })),
+        motion: window.__playbookMotionProbe?.(),
+      })).catch(error => ({ diagnosticError: error.message }))
+      await testInfo.attach('browser-diagnostics', { body: JSON.stringify(diagnostics,null,2), contentType: 'application/json' })
+      const frames = diagnostics.motion || []
+      console.log('BROWSER_DIAGNOSTICS', JSON.stringify({ ...diagnostics, motion: { count:frames.length, navY:[...new Set(frames.map(f=>f.navY))].slice(0,20), navTransition:[...new Set(frames.map(f=>f.navTransition))], cardX:[...new Set(frames.map(f=>f.cardX))].slice(0,20), cardOpacity:[...new Set(frames.map(f=>f.cardOpacity))].slice(0,20), snapshots:Math.max(0,...frames.map(f=>f.snapshots.length)) } }))
+    }
     expect(errors, 'Uncaught browser errors').toEqual([])
   },
 })

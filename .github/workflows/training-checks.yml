@@ -69,4 +69,5 @@ jobs:
           name: playbook-browser-review
           path: training/.playwright/
           retention-days: 7
+          include-hidden-files: true
           if-no-files-found: warn
