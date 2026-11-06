@@ -126,6 +126,7 @@ test('personal drill edits and deletion preserve completed work and saved practi
   const nav = page.getByRole('navigation', { name: 'Main navigation' })
   await nav.getByRole('button', { name: 'Practice', exact: true }).click()
   await page.getByRole('button', { name: /Recent/ }).click()
+  await page.locator('.pb-practice-choice').filter({hasText:'My backyard touches'}).click()
   await page.getByRole('button', { name: 'Make it fit today', exact: true }).click()
   await page.getByRole('textbox', { name: 'Practice name', exact: true }).fill('Saved backyard practice')
   await page.getByRole('button', { name: 'Save practice', exact: true }).click()
@@ -144,7 +145,8 @@ test('personal drill edits and deletion preserve completed work and saved practi
   await expect(page.getByRole('button', { name: /My saved drills/ })).toHaveCount(0)
   await nav.getByRole('button', { name: 'Practice', exact: true }).click()
 
-  await expect(page.getByRole('button', { name: /Saved backyard practice/ })).toBeVisible()
+  await page.getByRole('group', { name: 'Your practices', exact: true }).getByRole('button', { name: /^Saved/ }).click()
+  await page.locator('.pb-practice-choice').filter({hasText:'Saved backyard practice'}).click()
   const selected = page.getByRole('region', { name: 'Selected whole practice' })
   await selected.getByRole('button', { name: 'Instructions for My backyard touches', exact: true }).first().click()
   const originalDrill = page.getByRole('dialog', { name: 'My backyard touches', exact: true })

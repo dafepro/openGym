@@ -81,6 +81,7 @@ export default function PracticeView({ assignment, drill, drillIndex = 0, drillC
       {sets[currentSetIndex]?.side && <span className="qt-current-foot">{sets[currentSetIndex].side === 'left' ? 'Left foot' : 'Right foot'}</span>}
       <Badge tone={rest ? 'rest' : working ? 'active' : 'neutral'}>{rest ? restPaused ? 'Rest paused' : 'Rest' : paused ? 'Paused' : working ? 'Practicing' : review ? 'Check time' : phase === 'complete' ? 'Complete' : 'Ready'}</Badge>
     </div>
+    {assignment?.note && <p className="pb-practice-focus" aria-label="Practice focus"><Icon name="star" size={15}/><span>{assignment.note}</span></p>}
     <CoachingBrief drill={drill} />
     {drill.media?.status !== 'approved' && <p className="qt-instructions-only">Written instructions · no demonstration video</p>}
     {showDemo && <Dialog title={drill.title} className="qt-video-dialog pb-demo-dialog" onClose={() => setDemoFor(null)}><DrillDemonstration playerRef={demoVideo} media={drill.media} title={drill.title} autoPlay sample={sample} onPlaybackError={onMediaError}/>{(freeDrill || drill.mode === 'time' || rest) && <p className="pb-demo-paused-note">Work is paused. Close this video, then tap Resume when ready.</p>}</Dialog>}

@@ -104,7 +104,7 @@ export default function DrillDemonstration({ media, title, workActive = false, a
     setStart(begin); setEnd(finish); frameLoop(begin, finish); setRepeat(true)
     if (video.current) video.current.currentTime = begin
   }
-  const loopRecent = () => { const finish = Math.min(duration, video.current?.currentTime || 5); const begin = Math.max(0, finish - 5); setStart(begin); setEnd(finish); frameLoop(begin, finish); setRepeat(true); if (video.current) video.current.currentTime = begin }
+  const loopRecent = () => { const finish = Math.min(duration, Math.max(Math.min(.5, duration), video.current?.currentTime || 5)); const begin = Math.max(0, finish - 5); setStart(begin); setEnd(finish); frameLoop(begin, finish); setRepeat(true); if (video.current) video.current.currentTime = begin }
   const gap = Math.min(.5, duration)
   const setLoopStart = value => { const next = Math.max(0, Math.min(end - gap, value)); setStart(next); if (video.current) video.current.currentTime = next }
   const setLoopEnd = value => { const next = Math.min(duration, Math.max(start + gap, value)); setEnd(next); if (video.current && video.current.currentTime >= next) video.current.currentTime = start }
@@ -125,11 +125,17 @@ export default function DrillDemonstration({ media, title, workActive = false, a
       <div className="qt-video-scrubber"><span>{formatClock(Math.floor(position))}</span><input type="range" min="0" max={duration || 1} step="0.1" value={Math.min(position, duration)} disabled={!duration} aria-label="Video position" aria-valuetext={`${formatClock(Math.floor(position))} of ${formatClock(Math.floor(duration))}`} onChange={event => seek(Number(event.target.value))} style={{ '--played': `${duration ? position / duration * 100 : 0}%` }} /><span>{formatClock(Math.floor(duration))}</span></div>
       <div className="qt-media-tools"><button type="button" onClick={jumpBack} aria-label="Jump back 5 seconds"><Icon name="replay" size={18} />5s</button><label>Speed<select value={rate} onChange={changeRate} aria-label="Playback speed">{[0.5, 0.75, 1, 1.25, 1.5].map(value => <option value={value} key={value}>{value}×</option>)}</select></label><button type="button" className="qt-repeat-toggle" aria-label="Repeat section" aria-pressed={repeat} onClick={toggleRepeat} disabled={!duration || end <= start}><Icon name="replay" size={18} /><span>Repeat</span></button><button type="button" className="qt-mute-toggle" aria-label={muted ? 'Unmute video' : 'Mute video'} aria-pressed={muted} onClick={toggleMuted}><span className={`qt-sound-icon${muted ? ' is-muted' : ''}`}><Icon name="volume" /><Icon name="muted" /></span></button><button type="button" className="qt-playback-toggle" onClick={togglePlayback} aria-label={playing ? 'Pause video' : 'Play video'}><PlayPauseIcon playing={playing} /></button></div>
       <Reveal open={repeat} className="qt-loop-reveal"><div className="qt-loop-editor">
-        <div className="qt-loop-labels"><span>A · {loopClock(start)}</span><span>B · {loopClock(end)}</span></div>
+        <div className="pb-loop-context" role="img" aria-label={`Full video ${loopClock(duration)}. Repeating ${loopClock(start)} to ${loopClock(end)}. Detail below covers ${loopClock(loopBounds[0])} to ${loopClock(loopBounds[1])}.`}>
+          <div className="pb-loop-caption"><span>Full video</span><span>{loopClock(duration)}</span></div>
+          <div className="pb-loop-overview"><span className="pb-loop-window" style={{ left: `${loopBounds[0] / (duration || 1) * 100}%`, width: `${(loopBounds[1] - loopBounds[0]) / (duration || 1) * 100}%` }}/><span className="pb-loop-selection" style={{ left: `${start / (duration || 1) * 100}%`, width: `${(end - start) / (duration || 1) * 100}%` }}/><i style={{ left: `${position / (duration || 1) * 100}%` }}/></div>
+          <svg className="pb-loop-connectors" viewBox="0 0 100 16" preserveAspectRatio="none" aria-hidden="true"><path d={`M ${loopBounds[0] / (duration || 1) * 100} 0 L 0 16 L 100 16 L ${loopBounds[1] / (duration || 1) * 100} 0`} /></svg>
+          <div className="pb-loop-caption"><span>Zoom · {loopClock(loopBounds[0])}–{loopClock(loopBounds[1])}</span><strong>{(end - start).toFixed(1)}s loop</strong></div>
+        </div>
+        <div className="qt-loop-labels"><span>Start · {loopClock(start)}</span><span>End · {loopClock(end)}</span></div>
         <div className="qt-loop-track" style={{ '--loop-start': `${(start - loopBounds[0]) / (loopBounds[1] - loopBounds[0] || 1) * 100}%`, '--loop-end': `${(end - loopBounds[0]) / (loopBounds[1] - loopBounds[0] || 1) * 100}%` }}>
-          <input type="range" aria-label="Repeat start" aria-valuetext={`A: ${loopClock(start)}`} min={loopBounds[0]} max={loopBounds[1]} step="0.1" value={start} onChange={event => setLoopStart(Number(event.target.value))} />
-          <input type="range" aria-label="Repeat end" aria-valuetext={`B: ${loopClock(end)}`} min={loopBounds[0]} max={loopBounds[1]} step="0.1" value={end} onChange={event => setLoopEnd(Number(event.target.value))} />
-        </div><div className="qt-loop-footer"><span>Drag A and B · zoomed section</span><button type="button" className="qt-loop-recent" onClick={loopRecent} disabled={!duration}><Icon name="replay" size={16} />Loop last 5s</button></div>
+          <input type="range" aria-label="Repeat start" aria-valuetext={`Start: ${loopClock(start)}`} min={loopBounds[0]} max={loopBounds[1]} step="0.1" value={start} onChange={event => setLoopStart(Number(event.target.value))} />
+          <input type="range" aria-label="Repeat end" aria-valuetext={`End: ${loopClock(end)}`} min={loopBounds[0]} max={loopBounds[1]} step="0.1" value={end} onChange={event => setLoopEnd(Number(event.target.value))} />
+        </div><div className="qt-loop-footer"><span>Drag to trim the loop</span><button type="button" className="qt-loop-recent" onClick={loopRecent} disabled={!duration}><Icon name="replay" size={16} />Loop last 5s</button></div>
       </div></Reveal>
     </>}
   </section>

@@ -29,11 +29,12 @@ screenshots. Screenshots are review artifacts, not automatically approved visual
 baselines. Review them against the approved Playbook concept before accepting a
 run as visually validated.
 
-Execution status: the final isolated browser run passed 64 active cases:
-36 user-flow journeys, 12 frame-sampled motion checks, 12 native-media/recovery
-checks and 4 layout-stress cases. Eight inapplicable stress/project combinations
-are deliberately skipped (the compact boundary is tested on both mobile engines
-and reduced motion; CSS zoom is tested only on desktop Chromium).
+The suite now includes Coach’s desk drafting, review states and revision, unified
+saving/removal, the profile header, and full-video repeat context. The six projects
+also verify repeat controls from an active workout, including 320×568. Eight
+inapplicable stress/project combinations are deliberately skipped (the compact
+boundary runs on both mobile engines and reduced motion; CSS zoom runs on desktop
+Chromium). Consult the current HTML report for exact execution counts.
 
 Frame samples verify real intermediate translation/opacity, continuous outgoing
 and incoming drill content, stable work controls, persistent navigation, inert
@@ -64,3 +65,12 @@ node scripts/playbook-visual-review.mjs
 It expects a normal local Vite server on port 4189, intercepts its API/media routes
 inside the isolated browser, and never changes the production catalog. The bundle
 is validated by the private-preview loader. Keep private screenshots outside Git.
+
+The refinement screenshot harness also captures the full-video/zoom relationship
+and a clearly labeled coach-proposal preview. Coach provider calls are mocked:
+
+```sh
+TRAINING_VISUAL_BUNDLE=/absolute/path/to/approved/bundle.json \
+TRAINING_VISUAL_OUTPUT=/absolute/path/outside/git/screenshots \
+node scripts/coach-visual-review.mjs
+```

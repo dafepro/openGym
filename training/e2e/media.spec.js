@@ -30,8 +30,16 @@ test('native video obeys repeat handles and speed, then reopens muted with fresh
   await expect.poll(async () => Number(await end.inputValue())).toBeCloseTo(1.5, 3)
   for (let step = 0; step < 15; step++) await end.press('ArrowRight')
   await expect.poll(async () => Number(await end.inputValue())).toBeCloseTo(3, 3)
-  await expect(start).toHaveAttribute('aria-valuetext', 'A: 0:01.0')
-  await expect(end).toHaveAttribute('aria-valuetext', 'B: 0:03.0')
+  const overview=demo.getByRole('img',{name:/Full video.*Repeating 0:01.0 to 0:03.0/})
+  await expect(overview).toBeVisible()
+  const ratio=await overview.locator('.pb-loop-selection').evaluate(el=>el.getBoundingClientRect().width / el.parentElement.getBoundingClientRect().width)
+  const duration=await video.evaluate(el=>el.duration)
+  expect(ratio).toBeCloseTo(2/duration,2)
+  await expect(overview).toContainText('2.0s loop')
+  const recent=demo.getByRole('button',{name:'Loop last 5s',exact:true})
+  await expect.poll(()=>recent.evaluate(element=>{const box=element.getBoundingClientRect(),dialog=element.closest('dialog').getBoundingClientRect();return box.bottom <= Math.min(innerHeight,dialog.bottom)-4 && element.contains(document.elementFromPoint(box.x+box.width/2,box.y+box.height/2))})).toBe(true)
+  await expect(start).toHaveAttribute('aria-valuetext', 'Start: 0:01.0')
+  await expect(end).toHaveAttribute('aria-valuetext', 'End: 0:03.0')
   await expect(demo.getByRole('button', { name: 'Repeat section', exact: true })).toHaveAttribute('aria-pressed', 'true')
 
   await video.evaluate(element => {
@@ -49,7 +57,7 @@ test('native video obeys repeat handles and speed, then reopens muted with fresh
   })
   try {
     await demo.getByRole('button', { name: 'Play video', exact: true }).click()
-    await expect.poll(() => page.evaluate(() => window.__videoLoopProbe.samples.some((time, index, values) => index > 0 && values[index - 1] > 2.4 && time >= 0.95 && time < 1.6)), { intervals: [50, 100, 150], message: 'Playback reaches B, then actually seeks back to A' }).toBe(true)
+    await expect.poll(() => page.evaluate(() => window.__videoLoopProbe.samples.some((time, index, values) => index > 0 && values[index - 1] > 2.4 && time >= 0.95 && time < 1.6)), { intervals: [50, 100, 150], message: 'Playback reaches End, then actually seeks back to Start' }).toBe(true)
   } finally {
     const samples = await page.evaluate(() => window.__videoLoopProbe.stop())
     await testInfo.attach('native-video-loop-times', { body: JSON.stringify(samples), contentType: 'application/json' })
@@ -105,4 +113,23 @@ test('failed help playback closes cleanly, retries, and leaves the active drill 
     await page.getByRole('button', { name: 'Next drill', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Synthetic passing count', exact: true })).toBeVisible()
   } finally { await page.unrouteAll({ behavior: 'wait' }) }
+})
+
+test('repeat controls remain reachable during active practice and closing help returns to paused work',async({page},testInfo)=>{
+  if(testInfo.project.name==='compact-mobile')await page.setViewportSize({width:320,height:568})
+  await page.getByRole('button',{name:'Start practice',exact:true}).click()
+  await page.getByRole('button',{name:'Watch demonstration',exact:true}).click()
+  const dialog=page.getByRole('dialog'),video=dialog.locator('video')
+  await expect.poll(()=>video.evaluate(el=>el.duration>0 && !el.paused)).toBe(true)
+  await dialog.getByRole('button',{name:'Repeat section',exact:true}).click()
+  await expect(dialog.getByRole('slider',{name:'Repeat start',exact:true})).toBeVisible()
+  const recent=dialog.getByRole('button',{name:'Loop last 5s',exact:true})
+  await expect.poll(()=>recent.evaluate(element=>{const box=element.getBoundingClientRect();return box.bottom<=innerHeight && element.contains(document.elementFromPoint(box.x+box.width/2,box.y+box.height/2))})).toBe(true)
+  await recent.click()
+  await expect.poll(()=>video.evaluate(el=>el.muted)).toBe(true)
+  await capture(page,testInfo,'active-repeat-controls')
+  await dialog.getByRole('button',{name:'Close dialog',exact:true}).click()
+  await expect(page.getByRole('button',{name:'Resume practice timer',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Resume practice timer',exact:true}).click()
+  await expect(page.getByRole('button',{name:'Pause practice timer',exact:true})).toBeVisible()
 })

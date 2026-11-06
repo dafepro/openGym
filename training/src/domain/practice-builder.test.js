@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { syntheticCatalog } from '../../fixtures/catalog.js'
-import { changePrescription, createPractice, decodePractice, drillLibrary, encodePractice, MAX_SHARE_LENGTH, practiceLink, readSavedPractices, savePractice } from './practice-builder.js'
+import { changePrescription, createPractice, decodePractice, drillLibrary, encodePractice, MAX_SHARE_LENGTH, practiceLink, readSavedPractices, savePractice, removeSavedPractice } from './practice-builder.js'
 import { rankTrainingDrills } from './recommendations.js'
 import { createSession } from './session.js'
 import { validateAssignment, validateCatalog } from './content.js'
@@ -129,4 +129,24 @@ it('makes received custom drills reusable without collisions or changing their s
   expect(result[0].durationSec).toBe(600)
   result[0].durationSec = 45
   expect(stored).toEqual(before)
+})
+
+
+describe('removing a saved practice',()=>{
+  it('removes only the matching saved edition and preserves session snapshots',()=>{
+    const original=practice(),session=createSession(original,{id:'history-one',now:1000})
+    const history=JSON.stringify(session),rows=new Map(),storage={getItem:key=>rows.get(key)??null,setItem:(key,value)=>rows.set(key,value)}
+    rows.set('history',history)
+    const saved=savePractice(storage,'saved',null,original)
+    const unrelatedEdition={...original,revision:'edition-2'}
+    expect(removeSavedPractice(storage,'saved',saved.source,unrelatedEdition).practices).toHaveLength(1)
+    const removed=removeSavedPractice(storage,'saved',rows.get('saved'),original)
+    expect(removed.practices).toEqual([])
+    expect(rows.get('history')).toBe(history)
+    expect(session.assignment.title).toBe(original.title)
+  })
+  it('refuses to overwrite changes made by another tab',()=>{
+    const storage={getItem:()=>JSON.stringify({version:1,practices:[]}),setItem:()=>{throw Error('must not write')}}
+    expect(()=>removeSavedPractice(storage,'saved',null,practice())).toThrow(/another tab/)
+  })
 })

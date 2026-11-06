@@ -2,7 +2,7 @@ import PracticeReview from './PracticeReview.jsx'
 import PracticeShare from './PracticeShare.jsx'
 import PracticeImport from './PracticeImport.jsx'
 import { readPracticeCode } from '../domain/practice-code.js'
-import { practiceKey, readFavorites, toggleFavorite } from '../domain/practice-favorites.js'
+import { practiceKey } from '../domain/practice-favorites.js'
 import { isDrillSelected, toggleDrillSelection, draftMatchesPractice } from '../domain/drill-selection.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
@@ -24,9 +24,10 @@ import Icon from './Icon.jsx'
 import DrillPreview from './DrillPreview.jsx'
 import { Button, EmptyState, LoadingState, Notice, isVideoReview, isSelfPacedPractice } from '../components/ui.jsx'
 import BuildPracticeView from '../views/BuildPracticeView.jsx'
-import { createPractice, reusableDrills, readSavedPractices, savePractice } from '../domain/practice-builder.js'
+import { createPractice, reusableDrills, readSavedPractices, savePractice, removeSavedPractice } from '../domain/practice-builder.js'
 import TodayView from '../views/TodayView.jsx'
 import PracticeView from '../views/PracticeView.jsx'
+import CoachView from '../views/CoachView.jsx'
 import MeView from '../views/MeView.jsx'
 import { standardDrills } from '../domain/standard-workouts.js'
 import { AssignmentDetail, SessionDetail } from '../views/HistoryDetails.jsx'
@@ -58,8 +59,6 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
   const draftCreated = useRef(false)
   const [libraryView, setLibraryView] = useState({ tab: null, selected: null, query: '' })
   const [savedLibrary, setSavedLibrary] = useState({ practices: [], source: null, error: null, ready: false })
-  const [favorites, setFavorites] = useState({ keys: [], source: null, error: null, ready: false })
-  const favoriteKey = `${databaseName}:practice-stars-v1`
   const [workspace, updateWorkspace] = useState('library')
   const setWorkspace = next => { if (route === 'build') transitionView(() => updateWorkspace(next), next === 'library' || next === 'organizer' && workspace === 'preview' ? 'back' : 'forward'); else updateWorkspace(next) }
   const [workspaceOrigin, setWorkspaceOrigin] = useState({ route: 'today', workspace: 'library' })
@@ -87,10 +86,6 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
     if (sharedToken !== null) readPracticeCode(sharedToken, catalog).then(assignment => { if (live) setShared({ token: sharedToken, assignment }) }, failure => { if (live) setShared({ token: sharedToken, error: failure.message }) })
     return () => { live = false }
   }, [sharedToken, catalog])
-  useEffect(() => {
-    try { const source = window.localStorage.getItem(favoriteKey); setFavorites({ source, keys: readFavorites(source), ready: true, error: null }) }
-    catch (failure) { setFavorites({ keys: [], source: null, ready: true, error: failure.message }) }
-  }, [favoriteKey])
   const library = useMemo(() => reusableDrills(catalog, [...standardDrills(), ...customLibrary.drills], savedLibrary.practices), [catalog, customLibrary.drills, savedLibrary.practices])
   useEffect(() => {
     try {
@@ -108,7 +103,7 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
     try { action(assignmentFromDraft()) } catch (failure) { setMessage(failure.message) }
   }
   const isSaved = assignment => savedLibrary.practices.some(item => practiceKey(item) === practiceKey(assignment))
-  const isStarred = assignment => favorites.keys.includes(practiceKey(assignment))
+  const isStarred = isSaved
   const storePractice = assignment => {
     if (!savedLibrary.ready || savedLibrary.error) throw new Error(savedLibrary.error || 'Saved practices are still loading.')
     if (isSaved(assignment)) return
@@ -123,9 +118,11 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
   }
   const starPractice = assignment => {
     try {
-      if (!favorites.ready || favorites.error) throw new Error(favorites.error || 'Stars are still loading.')
-      if (!isStarred(assignment)) storePractice(assignment)
-      setFavorites({ ...toggleFavorite(window.localStorage, favoriteKey, favorites.source, assignment), ready: true, error: null })
+      if (!savedLibrary.ready || savedLibrary.error) throw new Error(savedLibrary.error || 'Saved practices are still loading.')
+      const removing = isSaved(assignment)
+      if (removing) setSavedLibrary({ ...removeSavedPractice(window.localStorage, libraryKey, savedLibrary.source, assignment), ready: true, error: null })
+      else storePractice(assignment)
+      setLibraryView(current => removing && current.tab !== 'recent' && current.selected === practiceKey(assignment) ? { ...current, selected: null } : current)
       setMessage('')
     } catch (failure) { setMessage(failure.message) }
   }
@@ -317,21 +314,21 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
     {message && <Notice title="Training">{message}</Notice>}
     {!ready ? <LoadingState label={sample ? 'Opening local sample progress' : 'Opening local progress'} /> : <>
       {(readOnly || saveFailed) && <p className="qt-save-status">{readOnly ? 'Read-only view · no changes will be recorded' : saveFailed ? 'Not saved · export a backup or retry' : saving ? 'Saving on this device…' : sample ? 'Sample progress saved on this device' : 'Progress saved on this device'}</p>}
-      {route === 'today' && <><MyPracticesView value={libraryView} onChange={setLibraryView} saved={savedLibrary.practices} history={progress.sessions} favorites={favorites.keys} onStart={begin} onAdapt={adaptPractice} onNew={newPractice} onImport={() => setDialog({ type: 'import-practice' })} onShare={share} onStar={starPractice} onRandom={() => openWorkspace('random')} onOwnDrill={() => openOwn(false)} onOpenDrill={previewDrill} onWatchDrill={watchDrill} disabled={readOnly || starting} featured={<TodayView compact onStar={() => starPractice(currentAssignment)} starred={isStarred(currentAssignment)} assignment={currentAssignment} activeSession={active} sample={sample} disabled={readOnly || starting} onStart={readOnly ? undefined : () => begin(currentAssignment)} onResume={resumePractice} onOpenDrill={previewDrill} onWatchDrill={watchDrill}/>}/>
+      {route === 'today' && <><MyPracticesView value={libraryView} onChange={setLibraryView} saved={savedLibrary.practices} history={progress.sessions} onStart={begin} onAdapt={adaptPractice} onNew={newPractice} onImport={() => setDialog({ type: 'import-practice' })} onShare={share} onStar={starPractice} onRandom={() => openWorkspace('random')} onOwnDrill={() => openOwn(false)} onOpenDrill={previewDrill} onWatchDrill={watchDrill} disabled={readOnly || starting} featured={<TodayView compact onStar={() => starPractice(currentAssignment)} starred={isStarred(currentAssignment)} assignment={currentAssignment} activeSession={active} sample={sample} disabled={readOnly || starting} onStart={readOnly ? undefined : () => begin(currentAssignment)} onResume={resumePractice} onOpenDrill={previewDrill} onWatchDrill={watchDrill}/>}/>
         {savedLibrary.error && <Notice title="Saved practices unavailable" tone="error">{savedLibrary.error}</Notice>}
-        {favorites.error && <Notice title="Stars unavailable" tone="error">{favorites.error}</Notice>}
         {sample && <details className="qt-state-gallery"><summary>Sample interface states</summary><p className="qt-fine-print">Visual examples only. These controls do not change your practice.</p><div className="qt-state-gallery-buttons">{['loading', 'empty', 'offline', 'save error'].map(state => <button type="button" key={state} aria-pressed={gallery === state} onClick={() => setGallery(state)}>{state}</button>)}</div><div className="qt-state-gallery-content">{gallery === 'loading' ? <LoadingState /> : gallery === 'empty' ? <EmptyState title="No assignment yet">Trainer content will appear when published.</EmptyState> : <Notice title={gallery === 'offline' ? 'Offline example' : 'Save error example'} tone={gallery === 'offline' ? 'warning' : 'error'}>{gallery === 'offline' ? 'The instructions may be available while the video still needs a connection.' : 'Work remains in memory until it can be saved or exported.'}</Notice>}</div></details>}
       </>}
       {route === 'build' && <div className={`qt-view pb-workspace pb-workspace--${workspace}`}>
         <div className="pb-workspace-back"><Button variant="text" icon="back" onClick={backWorkspace}>{workspace === 'preview' ? 'Back to organizer' : workspace === 'organizer' ? 'My practices' : 'Back'}</Button>{workspace === 'preview' && <span>Preview only · nothing is being recorded</span>}</div>
         {savedLibrary.error && <Notice title="Saved practices unavailable" tone="error">{savedLibrary.error}</Notice>}
-        {workspace === 'library' && <MyPracticesView value={libraryView} onChange={setLibraryView} favorites={favorites.keys} onImport={() => setDialog({ type: 'import-practice' })} onShare={share} onStar={starPractice} saved={savedLibrary.practices} history={progress.sessions} onStart={begin} onAdapt={adaptPractice} onNew={newPractice} onRandom={() => openWorkspace('random')} onOwnDrill={() => openOwn(false)} onOpenDrill={previewDrill} onWatchDrill={watchDrill} disabled={readOnly || starting}/>}
+        {workspace === 'library' && <MyPracticesView value={libraryView} onChange={setLibraryView} onImport={() => setDialog({ type: 'import-practice' })} onShare={share} onStar={starPractice} saved={savedLibrary.practices} history={progress.sessions} onStart={begin} onAdapt={adaptPractice} onNew={newPractice} onRandom={() => openWorkspace('random')} onOwnDrill={() => openOwn(false)} onOpenDrill={previewDrill} onWatchDrill={watchDrill} disabled={readOnly || starting}/>}
         {workspace === 'organizer' && <section className="pb-organizer"><header className="pb-view-heading"><div><p className="qt-eyebrow">Organizer</p><h1>Arrange a practice</h1></div><span>{draft.drills.length} drills</span></header><PracticeReview draft={draft} onChange={changeDraft} disabled={readOnly} saved={draftSaved} onNew={() => setDialog({ type: 'new-practice' })} onAdd={() => setDialog({ type: 'pick-drills' })} onSwap={drill => setDialog({ type: 'pick-drills', swapId: drill.id })} onPreview={previewDrill} onWatchDrill={watchDrill}/><div className="pb-editor-actions"><Button icon="arrow" disabled={!draft.drills.length || readOnly} onClick={previewPractice}>Preview as player</Button><div className="qt-field-grid"><Button variant="secondary" disabled={!draft.drills.length || readOnly || draftSaved} onClick={() => useDraft(persistPractice)} icon={draftSaved ? 'check' : undefined}>{draftSaved ? 'Saved' : 'Save practice'}</Button><Button variant="secondary" disabled={!draft.drills.length || readOnly || starting} onClick={() => useDraft(begin)}>Start practice</Button></div><Button variant="text" icon="share" disabled={!draft.drills.length || readOnly} onClick={() => useDraft(share)}>Share practice</Button></div></section>}
         {workspace === 'preview' && previewAssignment && <><TodayView assignment={previewAssignment} preview kind="personal" onOpenDrill={previewDrill} onWatchDrill={watchDrill}/><div className="pb-editor-actions"><Button icon="share" onClick={() => share(previewAssignment, true)}>Create practice link</Button><p className="qt-fine-print">Anyone with the link can open this practice. Your recorded work stays on this device.</p></div></>}
         {workspace === 'random' && <><header className="pb-view-heading"><div><p className="qt-eyebrow">Practice your way</p><h1>Surprise me</h1></div><Icon name="shuffle" size={26}/></header><RandomPracticeView library={library} history={progress.sessions} onStart={begin} onOpenDrill={previewDrill} onWatchDrill={watchDrill} disabled={readOnly || starting}/></>}
         {workspace === 'own' && <><header className="pb-view-heading"><div><p className="qt-eyebrow">Practice your way</p><h1>My own drill</h1></div><Icon name="pencil" size={26}/></header><OwnDrillView value={ownDraft} onChange={setOwnDraft} savedDrills={customLibrary.drills} editingId={ownEditingId} onEditSaved={editOwn} onCancelEdit={cancelOwnEdit} onDelete={() => { setOwnDeleteError(''); setDialog({ type: 'delete-own' }) }} onSubmit={saveOwn} onStartSaved={startOwn} onAddSaved={addOwnToPractice} adding={ownAdding} disabled={readOnly || saving || starting || ownDeletePending || !customLibrary.ready} storageError={customLibrary.error}/></>}
       </div>}
       {route === 'shared' && (shared?.loading || !shared || shared.token !== sharedToken ? <LoadingState label="Opening practice pass"/> : shared.assignment ? <><Button variant="text" icon="back" onClick={() => navigate('today')}>My practices</Button><TodayView assignment={shared.assignment} kind="shared" activeSession={active} disabled={readOnly || starting} onStart={readOnly ? undefined : () => { if (keepPractice(shared.assignment)) void begin(shared.assignment) }} onResume={resumePractice} onBuild={copyShared} onSave={() => keepPractice(shared.assignment)} saved={isSaved(shared.assignment)} onStar={() => starPractice(shared.assignment)} starred={isStarred(shared.assignment)} onOpenDrill={previewDrill} onWatchDrill={watchDrill} /></> : <Notice title="Practice link unavailable" tone="error" action="My practices" onAction={() => navigate('today')}>{shared.error || 'Ask for the complete practice link.'}</Notice>)}
+      {route === 'coach' && <CoachView/>}
       {(route === 'me' || route === 'history') && <MeView databaseName={databaseName} assignments={catalog.assignments} sessions={[...(active ? [active] : []), ...progress.sessions.slice().reverse()]} onOpenSession={session => setDialog({ type: 'session', session })} onResume={resumePractice} onExport={download} onRestore={readOnly ? undefined : () => importInput.current?.click()} />}
       {route === 'practice' && <PracticeView assignment={shown?.assignment} drill={drill} drillIndex={visualActive ? Math.max(0, visualActive.assignment.drills.findIndex(item => item.id === drill?.id)) : 0} drillCount={visualActive?.assignment.drills.length} completedDrillIds={completedDrillIds} nextDrill={visualView?.nextDrill}
         finalRow={visualView ? visualView.progress.total - visualView.progress.done === 1 : undefined}
@@ -352,7 +349,7 @@ function TrainingExperienceView({ route, catalog, sample = false, localPreview =
       {dialog.type === 'import-practice' && <PracticeImport catalog={catalog} onOpen={code => { setDialog(null); window.location.hash = `#/shared/${code}` }}/>}
       {dialog.type === 'load-practice' && <p>Replace your current unsaved draft with a copy of “{dialog.assignment.title}”? Your saved practices and history stay available.</p>}
       {dialog.type === 'assignment' && <AssignmentDetail assignment={dialog.assignment} current={isCurrent(dialog.assignment)} />}
-      {dialog.type === 'session' && <><div className="pb-history-practice-actions"><Button icon="forward" disabled={readOnly || starting} onClick={() => begin(dialog.session.assignment)}>Practice again</Button><Button variant="secondary" icon="star" aria-pressed={isStarred(dialog.session.assignment)} disabled={readOnly} onClick={() => starPractice(dialog.session.assignment)}>{isStarred(dialog.session.assignment) ? 'Starred' : 'Star practice'}</Button><Button variant="text" icon="share" onClick={() => share(dialog.session.assignment)}>Share practice</Button></div><SessionDetail session={dialog.session} onDelete={readOnly ? undefined : requestDelete} /></>}
+      {dialog.type === 'session' && <><div className="pb-history-practice-actions"><Button icon="forward" disabled={readOnly || starting} onClick={() => begin(dialog.session.assignment)}>Practice again</Button><Button variant="secondary" icon="star" aria-pressed={isStarred(dialog.session.assignment)} disabled={readOnly} onClick={() => starPractice(dialog.session.assignment)}>{isStarred(dialog.session.assignment) ? 'Remove from My practices' : 'Save practice'}</Button><Button variant="text" icon="share" onClick={() => share(dialog.session.assignment)}>Share practice</Button></div><SessionDetail session={dialog.session} onDelete={readOnly ? undefined : requestDelete} /></>}
 
       {dialog.type === 'drill' && <DrillPreview key={dialog.drill.id} drill={dialog.drill} sample={sample} onPlaybackError={onMediaError} />}
       {dialog.type === 'finish' && <div className="qt-exit-summary"><p>{dialog.session?.assignment.title}</p><strong>{view?.progress.done || 0} <span>/ {view?.progress.total || 0} {reviewOnly ? 'videos reviewed' : selfPaced ? 'drills practiced' : 'sets recorded'}</span></strong><p>{reviewOnly ? 'Only video review is saved; no athletic work.' : view?.prescriptionMet ? 'All planned work is complete.' : 'Saving keeps your work as a partial session.'}</p>{view?.phase === 'working' && (drill?.mode === 'time' || drill?.mode === 'practice' && !view?.practicePaused) || view?.phase === 'rest' && !active?.timer?.paused ? <p className="qt-exit-timer"><Icon name="clock" size={14}/>Timer is still running.</p> : null}</div>}
