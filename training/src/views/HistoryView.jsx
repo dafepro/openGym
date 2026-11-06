@@ -21,7 +21,7 @@ export default function HistoryView({ assignments = [], sessions = [], onOpenSes
           {!review && (time.measuredRows > 0 || time.unmeasuredRows > 0) && <span className="qt-history-duration">{time.measuredRows ? `${formatClock(Math.floor(time.seconds))} timed practice${time.unmeasuredRows ? ' · some work untimed' : ''}` : 'Practice time not tracked'}</span>}
         </span><Icon name="arrow" size={18} />
       </button>
-    }) : <EmptyState title={selectedDay ? 'No saved sessions on this day' : 'Your first session starts here'} icon="history">{selectedDay ? 'Choose another day or show all history.' : 'Finish a practice or video review to build your history.'}</EmptyState>}</div>}
+    }) : <EmptyState title={selectedDay ? 'No sessions on this day' : 'Your first session starts here'} icon="history">{selectedDay ? 'Choose another day or show all history.' : 'Finish a practice to build your history.'}</EmptyState>}</div>}
     {!embedded && <HistoryStorage onExport={onExport} onRestore={onRestore} />}
   </section>
 }

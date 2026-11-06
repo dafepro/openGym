@@ -104,3 +104,12 @@ export function savePractice(storage, key, expected, assignment) {
   storage.setItem(key, source)
   return { practices: next, source }
 }
+
+// A star is membership in My practices. Removing a saved snapshot never removes history.
+export function removeSavedPractice(storage, key, expected, assignment) {
+  if (storage.getItem(key) !== expected) throw new Error('Your saved practices changed in another tab. Reload before removing.')
+  const practices = readSavedPractices(expected).filter(item => !(item.id === assignment.id && item.revision === assignment.revision))
+  const source = JSON.stringify({ version: 1, practices })
+  storage.setItem(key, source)
+  return { practices, source }
+}

@@ -48,7 +48,7 @@ describe('Playbook whole-practice entry', () => {
     expect(history).toEqual(snapshot)
   })
   it('starts saved sessions as a whole before exposing drill inspection', () => {
-    const html = renderToStaticMarkup(<MyPracticesView saved={[assignment]} onStart={noop} onAdapt={noop} onNew={noop} onRandom={noop} onOwnDrill={noop}/>)
+    const html = renderToStaticMarkup(<MyPracticesView value={{tab:"saved", selected:"assigned:v1", query:""}} saved={[assignment]} onStart={noop} onAdapt={noop} onNew={noop} onRandom={noop} onOwnDrill={noop}/>)
     expect(html.indexOf('Start this practice')).toBeLessThan(html.indexOf('Drills in this practice'))
     expect(html).toContain('Make it fit today')
     expect(html).not.toContain('Add Close touches')

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { transitionView } from './motion.js'
 
-export const ROUTES = Object.freeze({ today: '#/today', me: '#/me', history: '#/me', practice: '#/practice', build: '#/build' })
+export const ROUTES = Object.freeze({ today: '#/today', coach: '#/coach', me: '#/me', history: '#/me', practice: '#/practice', build: '#/build' })
 
 export function routeFromHash(hash = '') {
   if (hash === '#/history') return 'me'
@@ -14,7 +14,7 @@ const subscribe = notify => {
   return () => window.removeEventListener('hashchange', notify)
 }
 const routeSubscribe = notify => {
-  const order = { today: 0, me: 2, history: 2, build: 1, shared: 2, practice: 3 }
+  const order = { today: 0, coach: 2, me: 2, history: 2, build: 1, shared: 2, practice: 3 }
   let previous = routeFromHash(window.location.hash)
   const change = () => { const next = routeFromHash(window.location.hash); const direction = order[next] < order[previous] ? 'back' : 'forward'; previous = next; transitionView(notify, direction) }
   window.addEventListener('hashchange', change)

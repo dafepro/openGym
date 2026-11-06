@@ -1,0 +1,15 @@
+{
+  "name": "quicktrack-coach",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-13",
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "APP_ORIGIN": "https://train.quicktrack.cc",
+    "COACH_GITHUB_REPOSITORY": "dafepro/openGym",
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "COACH_REQUESTS", "class_name": "CoachRequests" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CoachRequests"] }],
+}

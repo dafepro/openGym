@@ -9,6 +9,7 @@ async function routeRequest(request, env, now) {
   const url = new URL(request.url)
   const path = url.pathname
   try {
+    if (path === '/api/coach/config' && request.method === 'GET') return json({ configured: false, channels: { email: false, sms: false } })
     if (path === '/api/health' && request.method === 'GET') return json({ app: 'quicktrack-training', ok: true })
     const protectedPath = path.startsWith('/api/auth/') || path === '/api/catalog' || path.startsWith('/api/catalogs/') || path.startsWith('/media/')
     if (protectedPath) {

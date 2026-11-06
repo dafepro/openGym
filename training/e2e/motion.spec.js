@@ -27,7 +27,7 @@ async function observeMotion(page) {
       frames.push({
         navSame: nav === originalNav && nav.isConnected, navY: translation(navStyle), navHeight: nav.getBoundingClientRect().height,
         navVisibility: navStyle.visibility, navState: nav.dataset.visible, navInert: nav.inert,
-        navTransition: navStyle.transitionDuration, dockSame: dock === originalDock && !!dock?.isConnected,
+        navTransition: navStyle.transitionDuration, navOpacity:Number(navStyle.opacity), dockSame: dock === originalDock && !!dock?.isConnected,
         dockOpacity: dock ? Number(getComputedStyle(dock).opacity) : null,
         cardOpacity: cardStyle ? Number(cardStyle.opacity) : null, cardX: cardStyle ? parseFloat(cardStyle.translate) || 0 : null,
         cardAnimation: cardStyle?.animationName || null, direction: document.documentElement.dataset.motion,
@@ -54,7 +54,7 @@ async function expectMotionCleaned(page) {
   await expect(page.locator('.qt-content-enter, .qt-dock-enter')).toHaveCount(0)
 }
 
-test('navigation slides out and back in while its persistent node remains safe', async ({ page }, testInfo) => {
+test('header fades and collapses for active work, then restores profile access', async ({ page }, testInfo) => {
   const reduced = await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
   const nav = page.locator('[aria-label="Main navigation"]')
   await expect(nav).toHaveCSS('visibility', 'visible')
@@ -65,27 +65,27 @@ test('navigation slides out and back in while its persistent node remains safe',
   await expectMotionCleaned(page)
   const exit = await finishObservation(page, testInfo, 'navigation-exit-frames')
   expect(exit.filter(frame => frame.navState === 'false').every(frame => frame.navInert), 'Departing navigation stops accepting actions immediately').toBe(true)
-  expect(exit.at(-1).navY).toBeGreaterThanOrEqual(exit.at(-1).navHeight)
+  expect(exit.at(-1).navHeight).toBe(0)
   if (reduced) {
-    expect(exit.every(frame => frame.navTransition === '0s' && !frame.snapshots.length)).toBe(true)
+    expect(exit.every(frame => frame.navTransition.split(',').every(value=>value.trim()==='0s') && !frame.snapshots.length)).toBe(true)
   } else {
     // The destination includes the clearance below the bar, not just its height.
     // Fast easing can traverse the height before the first sampled WebKit frame.
-    expect(exit.some(frame => frame.navY > 0.1 && frame.navY < exit.at(-1).navY - 0.1 && frame.navVisibility === 'visible'), 'Exit has real intermediate translated frames before hiding').toBe(true)
+    expect(exit.some(frame => frame.navOpacity > 0 && frame.navOpacity < 1), 'Header fades before hiding').toBe(true)
   }
 
   await observeMotion(page)
   await page.getByRole('button', { name: 'Back to practice, keeping your progress', exact: true }).click()
   await expect(page.getByRole('heading', { name: assignedTitle, exact: true })).toBeVisible()
   await expect(nav).toHaveCSS('visibility', 'visible')
-  await expect.poll(() => nav.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42)).toBe(0)
+  await expect(nav).toHaveCSS('opacity','1')
   await expectMotionCleaned(page)
   const entry = await finishObservation(page, testInfo, 'navigation-entry-frames')
   expect(entry.at(-1)).toMatchObject({ navState: 'true', navInert: false, navY: 0 })
   if (reduced) {
-    expect(entry.every(frame => frame.navTransition === '0s' && !frame.snapshots.length)).toBe(true)
+    expect(entry.every(frame => frame.navTransition.split(',').every(value=>value.trim()==='0s') && !frame.snapshots.length)).toBe(true)
   } else {
-    expect(entry.some(frame => frame.navState === 'true' && frame.navY > 0.1 && frame.navY < entry[0].navY - 0.1 && frame.navVisibility === 'visible'), 'Entry traverses real intermediate frames').toBe(true)
+    expect(entry.some(frame => frame.navState === 'true' && frame.navOpacity > 0 && frame.navOpacity < 1), 'Header fades in through intermediate frames').toBe(true)
   }
   await nav.getByRole('button', { name: 'Me', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Me', exact: true })).toBeVisible()
@@ -121,4 +121,52 @@ test('forward and backward drill transitions overlap continuously and clean up w
   }
   await page.getByRole('button', { name: 'Start drill', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Practice controls' })).toHaveAttribute('data-phase', 'working')
+})
+
+test('profile and practice keep the same fully visible header throughout navigation',async({page},testInfo)=>{
+  await observeMotion(page)
+  await page.getByRole('button',{name:'Me',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'Me',exact:true})).toBeVisible()
+  await expectMotionCleaned(page)
+  await page.getByRole('button',{name:'Practice',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'My practices',exact:true})).toBeVisible()
+  await expectMotionCleaned(page)
+  const frames=await finishObservation(page,testInfo,'persistent-profile-header')
+  expect(frames.every(frame=>frame.navVisibility==='visible' && frame.navOpacity===1 && frame.navHeight>0 && !frame.navInert)).toBe(true)
+})
+
+test('repeat controls expand and collapse without remounting or blinking the video',async({page},testInfo)=>{
+  const reduced=await page.evaluate(()=>matchMedia('(prefers-reduced-motion: reduce)').matches)
+  await page.getByText('See the 2 drills',{exact:true}).click()
+  await page.getByRole('button',{name:`Watch ${firstTitle}`,exact:true}).click()
+  const dialog=page.getByRole('dialog'),video=dialog.locator('video')
+  await expect.poll(()=>video.evaluate(el=>el.readyState>=2 && !el.paused)).toBe(true)
+  await dialog.getByRole('button',{name:'Pause video',exact:true}).click()
+  const settle=()=>page.evaluate(()=>Promise.all(document.getAnimations().filter(animation=>animation.effect?.getTiming().iterations!==Infinity).map(animation=>animation.finished.catch(()=>{}))))
+  await settle()
+  await page.evaluate(()=>{
+    const original=document.querySelector('dialog video'),frames=[]
+    let active=true,frame
+    const sample=()=>{
+      const video=document.querySelector('dialog video'),reveal=document.querySelector('dialog .qt-loop-reveal')
+      const style=getComputedStyle(video),rect=video.getBoundingClientRect()
+      frames.push({same:video===original && video.isConnected,width:rect.width,height:rect.height,opacity:Number(style.opacity),visibility:style.visibility,open:reveal.dataset.open,detailHeight:reveal.getBoundingClientRect().height,inert:reveal.inert})
+      if(active)frame=requestAnimationFrame(sample)
+    }
+    sample();window.__repeatMotion=()=>{active=false;cancelAnimationFrame(frame);sample();return frames}
+  })
+  await dialog.getByRole('button',{name:'Repeat section',exact:true}).click()
+  await settle()
+  await expect(dialog.getByRole('slider',{name:'Repeat start',exact:true})).toBeVisible()
+  await dialog.getByRole('button',{name:'Repeat section',exact:true}).click()
+  await settle()
+  const frames=await page.evaluate(()=>window.__repeatMotion())
+  await testInfo.attach('repeat-open-close-frames',{body:JSON.stringify(frames),contentType:'application/json'})
+  expect(frames.every(frame=>frame.same && frame.width>40 && frame.height>40 && frame.opacity===1 && frame.visibility==='visible')).toBe(true)
+  expect(frames.at(-1)).toMatchObject({open:'false',detailHeight:0,inert:true})
+  if(!reduced){
+    const max=Math.max(...frames.map(frame=>frame.detailHeight))
+    expect(frames.some(frame=>frame.open==='true' && frame.detailHeight>1 && frame.detailHeight<max-1)).toBe(true)
+    expect(frames.some(frame=>frame.open==='false' && frame.detailHeight>1 && frame.detailHeight<max-1)).toBe(true)
+  }
 })

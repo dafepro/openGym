@@ -26,14 +26,14 @@ function PracticeCard({ practice, chosen, starred, onSelect, onStart, onAdapt, o
   }, [chosen])
   return <article className="pb-library-card" data-selected={chosen}>
     <button type="button" className="pb-practice-choice" aria-expanded={chosen} aria-controls={panelId} onClick={onSelect}>
-      <span><strong>{practice.title}</strong><small>{countLabel(practice.drills.length, 'drill')}{starred && <><span aria-hidden="true"> · </span><Icon name="star" size={12}/> Starred</>}</small></span>
+      <span><strong>{practice.title}</strong><small>{countLabel(practice.drills.length, 'drill')}{starred && <><span aria-hidden="true"> · </span><Icon name="star" size={12}/> Saved</>}</small></span>
       <Icon name="down" size={18}/>
     </button>
     <Reveal id={panelId} open={chosen}>
       {(chosen || retained) && <section className="pb-practice-sheet pb-selected-practice" aria-label="Selected whole practice">
         <div className="pb-selected-start">
           <Button icon="forward" disabled={disabled} onClick={() => onStart(practice)}>Start this practice</Button>
-          {onStar && <button type="button" className="pb-star-button" aria-label={starred ? 'Unstar practice' : 'Star practice'} aria-pressed={starred} disabled={disabled} onClick={() => onStar(practice)}><Icon name="star" size={21}/></button>}
+          {onStar && <button type="button" className="pb-star-button" aria-label={starred ? 'Remove from My practices' : 'Save practice'} aria-pressed={starred} disabled={disabled} onClick={() => onStar(practice)}><Icon name="star" size={21}/></button>}
         </div>
         <PracticeSequence drills={practice.drills} onOpenDrill={onOpenDrill} onWatchDrill={onWatchDrill}/>
         <div className="pb-practice-secondary">
@@ -45,20 +45,26 @@ function PracticeCard({ practice, chosen, starred, onSelect, onStart, onAdapt, o
   </article>
 }
 
-export default function MyPracticesView({ value, onChange, saved = [], history = [], favorites = [], featured, onStart, onAdapt, onNew, onImport, onShare, onStar, onRandom, onOwnDrill, onOpenDrill, onWatchDrill, disabled = false }) {
-  const tabs = useRef(null)
-  const search = useRef(null)
+export default function MyPracticesView({ value, onChange, saved = [], history = [], featured, onStart, onAdapt, onNew, onImport, onShare, onStar, onRandom, onOwnDrill, onOpenDrill, onWatchDrill, disabled = false }) {
+  const search = useRef(null), tabs = useRef(null)
+  const savedKeys = useMemo(() => new Set(saved.map(practiceKey)), [saved])
+  const toggleSaved = practice => {
+    const focused = document.activeElement
+    onStar?.(practice)
+    requestAnimationFrame(() => {
+      if (focused && !focused.isConnected) tabs.current?.querySelector('[aria-pressed="true"]')?.focus({ preventScroll: true })
+    })
+  }
   const [localView, setLocalView] = useState({ tab: null, selected: null, query: '' })
   const { tab: chosenTab, selected, query } = value || localView
   const update = fields => (onChange || setLocalView)(current => ({ ...current, ...fields }))
   const setSelected = selected => update({ selected })
   const setQuery = query => update({ query, selected: null })
   const recent = useMemo(() => recentPractices(history), [history])
-  const tab = chosenTab || (saved.length || !recent.length ? 'saved' : 'recent')
-  const starred = saved.filter(item => favorites.includes(practiceKey(item)))
-  const collection = tab === 'saved' ? saved : tab === 'starred' ? starred : recent
+  const tab = chosenTab === 'recent' ? 'recent' : 'saved'
+  const collection = tab === 'saved' ? saved : recent
   const list = collection.filter(item => !query.trim() || `${item.title} ${item.drills.map(drill => drill.title).join(' ')}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
-  const chosen = selected === '' ? null : list.find(item => practiceKey(item) === selected) || list[0]
+  const chosen = selected === '' ? null : list.find(item => practiceKey(item) === selected) || null
   const changeTab = tab => update({ tab, selected: null, query: '' })
   return <div className="qt-view pb-library pb-home">
     <header className="pb-view-heading pb-home-heading"><div><h1>My practices</h1></div><span className="pb-home-mark" aria-hidden="true"><Icon name="ball" size={28}/></span></header>
@@ -69,11 +75,11 @@ export default function MyPracticesView({ value, onChange, saved = [], history =
     </section>
     <section className="pb-home-collection" aria-label="Your practice collection">
       <div className="pb-section-heading"><h2>Your playbook</h2><Icon name="bookmark" size={18}/></div>
-      <div ref={tabs} className="pb-tabs" role="group" aria-label="Your practices">{[['saved', 'Saved', saved.length], ['starred', 'Starred', starred.length], ['recent', 'Recent', recent.length]].map(([key, label, count]) => <button key={key} type="button" aria-pressed={tab === key} onClick={() => changeTab(key)}>{key === 'starred' && <Icon name="star" size={14}/>} {label}{count > 0 && <span>{count}</span>}</button>)}</div>
+      <div ref={tabs} className="pb-tabs" role="group" aria-label="Your practices">{[['saved', 'Saved', saved.length], ['recent', 'Recent', recent.length]].map(([key, label, count]) => <button key={key} type="button" aria-pressed={tab === key} onClick={() => changeTab(key)}>{label}{count > 0 && <span>{count}</span>}</button>)}</div>
       {collection.length > 4 && <label className="qt-practice-search pb-library-search"><Icon name="search" size={18}/><input ref={search} type="search" aria-label="Find a practice" placeholder="Find a practice or drill…" value={query} onChange={event => { setQuery(event.target.value) }}/></label>}
-      {list.length ? <div className="pb-practice-choices" aria-label={`${tab === 'saved' ? 'Saved' : tab === 'starred' ? 'Starred' : 'Recent'} practices`}>
-        {list.map(practice => <PracticeCard key={practiceKey(practice)} practice={practice} chosen={practice === chosen} starred={favorites.includes(practiceKey(practice))} onSelect={() => setSelected(practice === chosen ? '' : practiceKey(practice))} onStart={onStart} onAdapt={onAdapt} onShare={onShare} onStar={onStar ? practice => { onStar(practice); if (tab === 'starred') requestAnimationFrame(() => tabs.current?.querySelector('[aria-pressed="true"]')?.focus({ preventScroll: true })) } : undefined} onOpenDrill={onOpenDrill} onWatchDrill={onWatchDrill} disabled={disabled}/>)}
-      </div> : <EmptyState title={query ? 'No matching practice' : tab === 'starred' ? 'Your go-to practices' : tab === 'saved' ? 'Make yourself at home' : 'A practice worth repeating'} icon={tab === 'starred' ? 'star' : 'clipboard'} action={query ? 'Clear search' : undefined} onAction={() => { setQuery(''); search.current?.focus() }}>{query ? 'Try a practice name or a drill inside it.' : tab === 'starred' ? 'Star a practice to keep your favorites together.' : tab === 'saved' ? 'Add a coach’s practice or save one you make. It’ll be here next time.' : 'Your past sessions appear here, ready to go again.'}</EmptyState>}
+      {list.length ? <div className="pb-practice-choices" aria-label={`${tab === 'saved' ? 'Saved' : 'Recent'} practices`}>
+        {list.map(practice => <PracticeCard key={practiceKey(practice)} practice={practice} chosen={practice === chosen} starred={savedKeys.has(practiceKey(practice))} onSelect={() => setSelected(practice === chosen ? '' : practiceKey(practice))} onStart={onStart} onAdapt={onAdapt} onShare={onShare} onStar={onStar ? toggleSaved : undefined} onOpenDrill={onOpenDrill} onWatchDrill={onWatchDrill} disabled={disabled}/>)}
+      </div> : <EmptyState title={query ? 'No matching practice' : tab === 'saved' ? 'Make yourself at home' : 'A practice worth repeating'} icon="clipboard" action={query ? 'Clear search' : undefined} onAction={() => { setQuery(''); search.current?.focus() }}>{query ? 'Try a practice name or a drill inside it.' : tab === 'saved' ? 'Add a coach’s practice or save one you make. It’ll be here next time.' : 'Your past sessions appear here, ready to go again.'}</EmptyState>}
     </section>
   </div>
 }

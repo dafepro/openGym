@@ -45,7 +45,7 @@ describe('Me presentation', () => {
   it('makes Me the navigation destination', () => {
     const html = renderToStaticMarkup(<TrainingShell page="me" builder />)
     expect(html).toContain('aria-current="page"')
-    expect(html).toContain('<span>Me</span>')
+    expect(html).toContain('aria-label="Me"')
     expect(html).not.toContain('<span>History</span>')
   })
 })

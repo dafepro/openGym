@@ -84,3 +84,11 @@ CI logs or retained application artifacts. Import/build checks are focused
 guards, not a complete private-data scanner. Review staged files and release
 inventories before publication. Real training content belongs behind private
 runtime endpoints.
+
+### Coach requests
+
+The optional [Coach’s desk service](coach/README.md) turns a bounded soccer brief
+into a researched GitHub practice proposal, then notifies selected recipients
+after reviewed publication. It is a separate authenticated service with server
+secrets. Deploying the player alone leaves coach submission disabled until setup
+is complete. Player practice remains available without coach sign-in.
