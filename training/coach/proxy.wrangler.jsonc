@@ -1,0 +1,8 @@
+{
+  "name": "quicktrack-coach",
+  "main": "proxy.js",
+  "compatibility_date": "2026-10-13",
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": { "COACH_ORIGIN": "https://coach-origin.quicktrack.cc" },
+}

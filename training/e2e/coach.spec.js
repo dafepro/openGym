@@ -300,3 +300,44 @@ test('published coach review opens the final practice with its reviewed title', 
     page.getByRole('button', { name: 'Start practice', exact: true }),
   ).toBeVisible()
 })
+
+test('coach Google gate preserves draft and paused service clearly disables paid submission', async ({
+  page,
+}, testInfo) => {
+  await page.route('**/api/coach/config', (route) =>
+    route.fulfill({
+      json: {
+        configured: true,
+        auth: 'google',
+        paused: true,
+        channels: { email: false, sms: false },
+      },
+    }),
+  )
+  await page.route('**/api/coach/requests', (route) =>
+    route.fulfill({ status: 401, json: { error: 'Sign in.' } }),
+  )
+  await page.getByRole('link', { name: 'Coach’s desk', exact: true }).click()
+  const signIn = page.getByRole('link', { name: 'Continue with Google' })
+  await expect(signIn).toHaveAttribute('href', '/api/coach/login')
+  await expect(
+    page.getByText('Coach requests are paused', { exact: true }),
+  ).toBeVisible()
+  await page
+    .getByRole('textbox', {
+      name: 'What should the player work on?',
+      exact: true,
+    })
+    .fill(brief)
+  await expect(
+    page.getByRole('button', { name: 'Request a practice', exact: true }),
+  ).toBeDisabled()
+  await page.reload()
+  await expect(
+    page.getByRole('textbox', {
+      name: 'What should the player work on?',
+      exact: true,
+    }),
+  ).toHaveValue(brief)
+  await capture(page, testInfo, 'coach-google-gate')
+})

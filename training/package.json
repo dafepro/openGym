@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:worker": "vitest run --config worker/vitest.config.js",
     "test:content": "node --test scripts/prepare-catalog.test.mjs",
-    "test:all": "npm test && npm run test:worker && npm run test:content && npm run test:private-preview && npm run test:release && npm run test:coach",
+    "test:all": "npm test && npm run test:worker && npm run test:content && npm run test:private-preview && npm run test:release && npm run test:coach && npm run test:coach:node",
     "prepare:catalog": "node scripts/prepare-catalog.mjs",
     "test:watch": "vitest",
     "check:boundaries": "node scripts/check-boundaries.mjs",
@@ -19,6 +19,8 @@
     "test:private-preview": "node --test scripts/private-preview.test.mjs",
     "test:release": "python3 -m unittest discover -s scripts -p test_release.py && node --test scripts/source-notice.test.mjs",
     "test:e2e": "playwright test",
+    "test:coach:node": "node --test coach/node/*.test.mjs",
+    "start:coach": "node coach/node/server.mjs",
     "test:coach": "vitest run --config coach/vitest.config.js"
   },
   "dependencies": {

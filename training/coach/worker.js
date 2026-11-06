@@ -54,6 +54,8 @@ export default {
           configured: configured(env),
           channels: notificationChannels(env),
           build: env.APP_SOURCE_SHA || 'local',
+          auth: 'google',
+          paused: !!env.COACH_PAUSED?.(),
         })
       if (!configured(env))
         return json({ error: 'Coach requests are not configured yet.' }, 503)
@@ -69,7 +71,7 @@ export default {
           !(await verifyReadySignature(request, text, env))
         )
           return json({ error: 'unauthorized' }, 401)
-        return env.COACH_REQUESTS.get(
+        return await env.COACH_REQUESTS.get(
           env.COACH_REQUESTS.idFromName(ready[1]),
         ).fetch(
           new Request(`https://internal/ready/${ready[2]}`, {
@@ -94,7 +96,7 @@ export default {
       const owner = await digest(identity)
       const stub = env.COACH_REQUESTS.get(env.COACH_REQUESTS.idFromName(owner))
       if (url.pathname === `${PREFIX}/requests` && request.method === 'GET')
-        return stub.fetch('https://internal/requests')
+        return await stub.fetch('https://internal/requests')
       if (url.pathname === `${PREFIX}/requests` && request.method === 'POST') {
         let input
         try {
@@ -113,7 +115,7 @@ export default {
             },
             400,
           )
-        return stub.fetch(
+        return await stub.fetch(
           new Request('https://internal/requests', {
             method: 'POST',
             body: JSON.stringify({ ...input, owner }),
@@ -121,7 +123,8 @@ export default {
         )
       }
       return json({ error: 'not_found' }, 404)
-    } catch {
+    } catch (error) {
+      if (error.status === 429) return json({ error: error.message }, 429)
       return json(
         { error: 'The coaching service is temporarily unavailable.' },
         503,
@@ -430,7 +433,11 @@ export class CoachRequests {
       // Persist intent first. Neither a crash nor an ambiguous provider response
       // causes an automatic SMS resend. Accepted is not a delivery receipt.
       delivery.push({ channel: recipient.channel, status: 'sending' })
-      await this.ctx.storage.put(key, { ...job, status: 'notifying', delivery })
+      await this.ctx.storage.put(key, {
+        ...job,
+        status: 'notifying',
+        delivery,
+      })
       try {
         delivery[index] = {
           channel: recipient.channel,
@@ -442,9 +449,16 @@ export class CoachRequests {
           )),
         }
       } catch {
-        delivery[index] = { channel: recipient.channel, status: 'needs_review' }
+        delivery[index] = {
+          channel: recipient.channel,
+          status: 'needs_review',
+        }
       }
-      await this.ctx.storage.put(key, { ...job, status: 'notifying', delivery })
+      await this.ctx.storage.put(key, {
+        ...job,
+        status: 'notifying',
+        delivery,
+      })
     }
     await this.ctx.storage.put(key, {
       ...job,

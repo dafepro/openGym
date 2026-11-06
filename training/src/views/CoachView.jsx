@@ -322,9 +322,18 @@ export default function CoachView() {
           server’s API key and coach access are configured.
         </Notice>
       )}
+      {config?.paused && (
+        <Notice title="Coach requests are paused">
+          You can keep drafting and review past requests. New requests will be
+          available when the assistant resumes.
+        </Notice>
+      )}
       {signIn && (
         <a className="pb-coach-signin" href="/api/coach/login">
-          Sign in as coach <Icon name="arrow" size={16} />
+          {config?.auth === 'google'
+            ? 'Continue with Google'
+            : 'Sign in as coach'}{' '}
+          <Icon name="arrow" size={16} />
         </a>
       )}
       <form onSubmit={submit} className="pb-coach-form">
@@ -396,7 +405,7 @@ export default function CoachView() {
         <Button
           type="submit"
           icon="arrow"
-          disabled={sending || !config?.configured || signIn}
+          disabled={sending || !config?.configured || config?.paused || signIn}
         >
           {sending ? 'Sending request…' : 'Request a practice'}
         </Button>

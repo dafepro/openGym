@@ -2,7 +2,7 @@
 
 A coach writes a soccer brief at `/#/coach`, optionally adds notification recipients,
 and receives a researched practice proposal in a GitHub issue. The player interface
-remains public. Coach requests require a verified Cloudflare Access identity.
+remains public. Coach requests use Google login through Cloudflare Access plus a server-side email allowlist.
 
 This is implemented but **not activated or deployed**. The OpenAI key still needs
 configuration. No live model, issue, email or SMS calls have been made during local
@@ -16,8 +16,9 @@ not the quality of real generated coaching or deliverability of real messages.
    international country code. A draft survives navigation/reload in this browser
    tab’s session storage; Clear draft removes it.
 2. The server validates origin, signed Access JWT, limits, and provider availability.
-   A private Durable Object queue per coach persists the request before returning.
-3. An alarm runs a tool-free relevance/injection check, bounded web research using
+   A private SQLite-backed queue per coach persists the request before returning.
+   A single Node scheduler processes jobs across coaches on the shared droplet.
+3. The persisted scheduler runs a tool-free relevance/injection check, bounded web research using
    OpenAI Responses, and a separate structured-output pass. The model receives no
    recipient list, secrets, GitHub tools, code execution or publication capability.
    Accidental contact details in the brief are redacted before model calls.
@@ -46,7 +47,7 @@ text, committed files, or a chat message. Select an OpenAI model supporting Resp
 web search and strict JSON schema; set `OPENAI_MODEL` explicitly. No default silently
 chooses a paid model.
 
-Required Worker settings:
+Required Node server settings (provider keys stay on the host):
 
 | Name | Type | Purpose |
 | --- | --- | --- |
@@ -58,7 +59,10 @@ Required Worker settings:
 | `COACH_ACCESS_AUD` | variable | Access application audience |
 | `COACH_READY_SECRET` | secret | Independently generated random secret, at least 32 characters |
 | `APP_ORIGIN` | variable | Fixed to `https://train.quicktrack.cc` |
-| `COACH_REQUESTS` | binding | SQLite Durable Object, class `CoachRequests` |
+| `COACH_ALLOWED_EMAILS` | variable | Comma-separated approved Google emails, generated from deploy's canonical access.json |
+| `COACH_ORIGIN_HOST` | variable | Fixed to `coach-origin.quicktrack.cc` |
+| `APP_SOURCE_SHA` | variable | Exact 40-character source revision |
+| `COACH_DATABASE` | variable | Defaults to `/data/coach.sqlite` |
 
 Optional email: `RESEND_API_KEY` secret and `COACH_EMAIL_FROM` verified sender variable.
 Optional text: `TWILIO_AUTH_TOKEN` secret, `TWILIO_ACCOUNT_SID` and `TWILIO_FROM`
@@ -77,17 +81,28 @@ issuer, audience, expiry and subject; an email header alone grants no access.
 
 ## Deployment
 
-The `dafepro/deploy` repository has a separate, disabled-by-default
-`quicktrack-coach.yml` manual workflow. It accepts an exact source commit from the
-trusted training release branch. Building, unit checks, and a real local workerd
-queue/alarm test run without deployment credentials. The deploy job verifies the
-artifact digest, stages the Worker, configures secrets through standard input, then
-attaches only `train.quicktrack.cc/api/coach/*`.
+The `dafepro/deploy` repository now targets an isolated Node container on the
+existing ZoomiGo droplet, with a dedicated Cloudflare Tunnel and a thin same-origin
+proxy. The manual `quicktrack-coach.yml` workflow is disabled unless
+`QUICKTRACK_COACH_VM_ENABLED=true`. Source comes from an exact trusted training
+release SHA, and a credential-free build tests the workflow and real Linux image.
 
-See the deploy app README for the exact GitHub secret/variable names. Activate only
-after Access policies, keys, model choice and optional delivery providers are ready.
-Deploying the player UI alone leaves the coach form in the honest “setup pending”
-state. The existing `/api/coach/config` placeholder returns `configured:false`.
+The image archive/proxy have a digest manifest. The installer checks host headroom,
+uses separate app paths/network/Compose project, drains the old service, creates an
+encrypted backup, and rolls back service settings if local health fails. First
+install remains paused until Google allow/deny and provider limits are qualified.
+The edge Worker has no OpenAI, GitHub or notification credentials.
+
+See `deploy/apps/quicktrack-coach/README.md` and `deploy/docs/shared-hosts.md` in the
+deployment repository for activation, state ownership, Google OAuth setup, secrets,
+backups and recovery. No droplet/resource migration is part of the port. Old Worker
+queue support remains as a tested alternate adapter; the deployment uses Node.
+
+Local runtime: `npm run test:coach:node`, `npm run start:coach` with server variables
+configured. Build with `docker build -f coach/node/Dockerfile .` from `training/`.
+Node's pinned built-in SQLite implementation avoids an extra database service and
+native npm dependency. The SQLite API in Node 22 still reports experimental status;
+the container version is pinned and runtime-tested before promotion.
 
 ## Marking a reviewed practice ready
 
@@ -109,6 +124,15 @@ the same practice is idempotent; a different practice for that request is reject
 Do not run it before reviewing and publishing the practice.
 
 ## Operational boundaries
+
+- Node global caps: 10 new requests/day, 100/rolling 30 days, five pending
+  generations, one active generation, 500 retained jobs. Notification reservations
+  cap email at 20/day and SMS at 10/day across coaches. They persist over restart.
+- The HTTP server bounds connections, active requests, headers, bodies and request
+  time; 300 API requests/minute is a local service-wide throttle.
+- `/data/PAUSED` blocks new mutations and subsequent provider stages. An in-flight
+  provider request may finish and incur charges. Use a dedicated OpenAI project with
+  an enforced provider spend limit as well as these application quotas.
 
 - Per-coach quota: 10 new requests per 24 hours, 100 retained requests maximum.
 - Every request uses a browser-generated idempotency key. The queue preserves a
@@ -133,8 +157,11 @@ interrupted side effects, live-publication checks, notification deduplication an
 expiry. `e2e/coach.spec.js` checks the form, draft recovery, proposal states and saving
 controls with mocked APIs across all six browser/layout projects.
 
-The deploy repository’s `tests/coach-runtime.mjs <bundled-worker.js>` exercises the
-actual workerd + SQLite Durable Object + alarm with every external request mocked.
+The Node tests exercise real SQLite persistence, restart recovery, global quotas,
+notification reservations, signed identities, HTTP/proxy routing and a single-runtime
+lease. The deployment builds and runs those tests in the exact Linux container.
+Legacy `tests/coach-runtime.mjs <bundled-worker.js>` still checks the alternate Worker
+adapter. Every external provider is mocked in these tests.
 Before first activation, run one owner-only real request and review its sources,
 proposal quality, issue format and one opted-in notification per enabled channel.
 

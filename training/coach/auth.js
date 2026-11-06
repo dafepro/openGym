@@ -74,6 +74,15 @@ export async function coachIdentity(
       ))
     )
       return null
+    // The VM also enforces its own allowlist, independent of edge policy edits.
+    if (
+      env.COACH_ALLOWED_EMAILS &&
+      !env.COACH_ALLOWED_EMAILS.split(',')
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean)
+        .includes(String(payload.email || '').toLowerCase())
+    )
+      return null
     return `${payload.iss}|${payload.sub}`
   } catch {
     return null
