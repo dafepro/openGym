@@ -126,6 +126,14 @@ test('repeat controls remain reachable during active practice and closing help r
   const recent=dialog.getByRole('button',{name:'Loop last 5s',exact:true})
   await expect.poll(()=>recent.evaluate(element=>{const box=element.getBoundingClientRect();return box.bottom<=innerHeight && element.contains(document.elementFromPoint(box.x+box.width/2,box.y+box.height/2))})).toBe(true)
   await recent.click()
+  // The pause note follows the whole expanded player, even when the sheet
+  // needs to scroll. It must never cover a live replay control.
+  await expect.poll(() => dialog.evaluate(element => {
+    const player = element.querySelector('.qt-demonstration').getBoundingClientRect()
+    const note = element.querySelector('.pb-demo-paused-note').getBoundingClientRect()
+    // Short landscape intentionally uses an accessible, visually hidden note.
+    return note.height <= 1 || note.top >= player.bottom - 1
+  })).toBe(true)
   await expect.poll(()=>video.evaluate(el=>el.muted)).toBe(true)
   await capture(page,testInfo,'active-repeat-controls')
   await dialog.getByRole('button',{name:'Close dialog',exact:true}).click()

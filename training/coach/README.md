@@ -4,10 +4,12 @@ A coach writes a soccer brief at `/#/coach`, optionally adds notification recipi
 and receives a researched practice proposal in a GitHub issue. The player interface
 remains public. Coach requests use Google login through Cloudflare Access plus a server-side email allowlist.
 
-This is implemented but **not activated or deployed**. The OpenAI key still needs
-configuration. No live model, issue, email or SMS calls have been made during local
-validation. Tests use synthetic provider responses. They establish software behavior,
-not the quality of real generated coaching or deliverability of real messages.
+The backend is **not activated** until its protected deployment and live Google
+login checks complete. The OpenAI key is configured in the protected deployment
+environment. A bounded, three-call provider qualification passed with `gpt-6-luna`;
+it produced a valid two-drill proposal with researched source links. That check did
+not create a GitHub issue or send email/SMS. Automated tests use synthetic provider
+responses and do not establish notification deliverability.
 
 ## Request and publication flow
 
