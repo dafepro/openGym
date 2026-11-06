@@ -1,4 +1,11 @@
-import { test, expect, capture, noHorizontalOverflow } from './fixtures.js'
+import {
+  test,
+  expect,
+  capture,
+  noHorizontalOverflow,
+  catalog,
+} from './fixtures.js'
+import { createPracticeCode } from '../src/domain/practice-code.js'
 const brief =
   'Twenty minutes of close control, one ball and four cones. Both feet. Keep touches quick and close.'
 const plan = {
@@ -249,4 +256,47 @@ test('a rejected request can be revised without silently reusing notification re
       exact: true,
     }),
   ).toHaveCount(0)
+})
+
+test('published coach review opens the final practice with its reviewed title', async ({
+  page,
+}) => {
+  const published = {
+    ...catalog.assignments[0],
+    title: 'Reviewed close control practice',
+  }
+  const pass = await createPracticeCode(published, 'http://127.0.0.1:4188')
+  const job = {
+    id: 'published-example',
+    brief,
+    createdAt: Date.now(),
+    status: 'notified',
+    plan,
+    publishedTitle: published.title,
+    practiceUrl: pass.link,
+    recipientCount: 1,
+    notifications: [{ channel: 'email', status: 'accepted' }],
+  }
+  await page.route('**/api/coach/config', (route) =>
+    route.fulfill({
+      json: { configured: true, channels: { email: true, sms: false } },
+    }),
+  )
+  await page.route('**/api/coach/requests', (route) =>
+    route.fulfill({ json: { requests: [job] } }),
+  )
+  await page.getByRole('link', { name: 'Coach’s desk', exact: true }).click()
+  await expect(
+    page.getByRole('heading', { name: published.title, exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByText('Notifications accepted for sending.', { exact: true }),
+  ).toBeVisible()
+  await page.getByRole('link', { name: 'Open practice', exact: true }).click()
+  await expect(
+    page.getByRole('heading', { name: published.title, exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Start practice', exact: true }),
+  ).toBeVisible()
 })

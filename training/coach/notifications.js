@@ -9,7 +9,7 @@ export function notificationChannels(env) {
   }
 }
 export const readyMessage = (job) =>
-  `Your soccer practice is ready: ${job.plan.title}. ${job.practiceUrl}`
+  `Your soccer practice is ready: ${job.publishedTitle || job.plan.title}. ${job.practiceUrl}`
 export async function sendReady(recipient, job, env, fetcher = fetch) {
   const message = readyMessage(job)
   let response

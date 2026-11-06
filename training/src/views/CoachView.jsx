@@ -83,7 +83,7 @@ function RequestCard({ job, onRevise }) {
   return (
     <article
       className="pb-coach-request"
-      aria-label={job.plan?.title || 'Practice request'}
+      aria-label={job.publishedTitle || job.plan?.title || 'Practice request'}
     >
       <div className="pb-coach-request-meta">
         <span className="qt-eyebrow">
@@ -96,7 +96,7 @@ function RequestCard({ job, onRevise }) {
           })}
         </time>
       </div>
-      <h3>{job.plan?.title || 'Your next practice'}</h3>
+      <h3>{job.publishedTitle || job.plan?.title || 'Your next practice'}</h3>
       <p>{job.plan?.goal || job.brief}</p>
       {!['failed', 'rejected', 'attention'].includes(job.status) && (
         <ol

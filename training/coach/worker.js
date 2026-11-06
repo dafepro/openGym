@@ -21,6 +21,7 @@ const publicJob = (job) => ({
   createdAt: job.createdAt,
   reason: job.reason,
   plan: job.plan,
+  publishedTitle: job.publishedTitle,
   issueUrl: job.issueUrl,
   practiceUrl: job.practiceUrl,
   recipientCount: job.recipients?.length || job.recipientCount || 0,
@@ -264,7 +265,7 @@ export class CoachRequests {
       if (!response.ok)
         return json({ error: 'The player catalog is unavailable.' }, 409)
       const catalog = await response.json()
-      await readPracticeCode(
+      const published = await readPracticeCode(
         url.hash.slice('#/shared/'.length),
         catalog,
         async (revision) => {
@@ -278,6 +279,21 @@ export class CoachRequests {
           return edition.json()
         },
       )
+      if (
+        job.recipients.some((recipient) => recipient.channel === 'sms') &&
+        readyMessage({
+          ...job,
+          practiceUrl: url.href,
+          publishedTitle: published.title,
+        }).length > 1600
+      )
+        return json(
+          {
+            error:
+              'Use a shorter catalog-based practice pass for text notifications.',
+          },
+          400,
+        )
       return this.ctx.blockConcurrencyWhile(async () => {
         const latest = await this.ctx.storage.get(`job:${id}`)
         if (!latest)
@@ -292,6 +308,7 @@ export class CoachRequests {
         await this.ctx.storage.put(`job:${id}`, {
           ...latest,
           practiceUrl: url.href,
+          publishedTitle: published.title,
           status: 'ready',
         })
         await this.ctx.storage.setAlarm(Date.now() + 1000)

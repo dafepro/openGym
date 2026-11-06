@@ -310,7 +310,7 @@ describe('durable coach workflow', () => {
     const assignment = {
       id: 'new-practice',
       revision: 'v1',
-      title: 'Close control',
+      title: 'Reviewed close control',
       note: plan.goal,
       status: 'current',
       drills: [
@@ -352,6 +352,10 @@ describe('durable coach workflow', () => {
     ).toHaveLength(1)
     const job = await storage.get(`job:${id}`)
     expect(job.status).toBe('notified')
+    expect(job.publishedTitle).toBe(assignment.title)
+    expect(
+      calls.find((call) => call.url.includes('resend.com')).body,
+    ).toContain(assignment.title)
     expect(job.recipients).toEqual([])
     expect(job.delivery[0].status).toBe('accepted')
     expect(
