@@ -1,4 +1,117 @@
 {
   "schemaVersion": 1,
-  "practices": []
+  "practices": [
+    {
+      "requestId": "d07c4a2f-dfd1-495c-ab46-46d85c3266ca",
+      "assignment": {
+        "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca",
+        "revision": "v1",
+        "title": "Soft Touch to Speed",
+        "note": "Soft touches, quick feet—speed up only while the ball stays close.",
+        "status": "archived",
+        "drills": [
+          {
+            "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca-1",
+            "title": "Toe Taps",
+            "instructions": "Setup: Place the ball on the ground in front of you in a clear space.\nAlternate light toe taps on the ball, switching feet each touch. Start slowly and build the rhythm only while you stay balanced and in control.\nFocus: Keep the taps soft and your balance steady.",
+            "mode": "time",
+            "sets": 4,
+            "durationSec": 45,
+            "restSec": 15,
+            "side": "both",
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": [
+                "futbol:ball-control",
+                "futbol:footwork",
+                "futbol:toe-taps"
+              ]
+            },
+            "media": {
+              "id": "youtube-WWKGPlgLkk0",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "WWKGPlgLkk0",
+              "portrait": false,
+              "clipStartSec": 2,
+              "clipEndSec": 56
+            }
+          },
+          {
+            "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca-2",
+            "title": "Inside–Outside Cone Touches",
+            "instructions": "Setup: Set four cones in a straight line about a yard apart, with room to turn at the end.\nUse the inside and outside of the active foot to dribble down the line and back. Keep that same foot for the whole interval; the next interval uses the other foot. Start slowly and speed up only while the ball stays close.\nFocus: Use small inside and outside touches to guide the ball around each cone.",
+            "mode": "time",
+            "sets": 3,
+            "durationSec": 40,
+            "restSec": 10,
+            "side": "each",
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": [
+                "futbol:ball-control",
+                "futbol:dribbling",
+                "futbol:inside-outside"
+              ]
+            },
+            "media": {
+              "id": "youtube-LfC-nTxvGV0",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "LfC-nTxvGV0",
+              "portrait": false
+            }
+          },
+          {
+            "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca-3",
+            "title": "Close-Control Cone Circuit",
+            "instructions": "Setup: Set four cones in a small square and a fifth in the middle. Leave enough room to turn comfortably between them.\nDribble around the middle and outside cones, using both feet. Change direction and repeat. Begin slowly, then build speed only while each touch stays within easy reach.\nFocus: Soft, close touches. Stay in control through each turn.",
+            "mode": "time",
+            "sets": 4,
+            "durationSec": 60,
+            "restSec": 30,
+            "side": "both",
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": [
+                "futbol:ball-control",
+                "futbol:dribbling",
+                "futbol:close-control"
+              ]
+            },
+            "media": {
+              "id": "youtube-f8z6YyXrv4I",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "f8z6YyXrv4I",
+              "portrait": false
+            }
+          }
+        ]
+      },
+      "sources": [
+        {
+          "videoId": "WWKGPlgLkk0",
+          "url": "https://www.youtube.com/watch?v=WWKGPlgLkk0",
+          "title": "Ball Mastery Skills For Kids | Toe Taps",
+          "author": "Ogden Soccer"
+        },
+        {
+          "videoId": "LfC-nTxvGV0",
+          "url": "https://www.youtube.com/watch?v=LfC-nTxvGV0",
+          "title": "Soccer Dribbling Drill: Inside Outside Touch",
+          "author": "DICK'S"
+        },
+        {
+          "videoId": "f8z6YyXrv4I",
+          "url": "https://www.youtube.com/watch?v=f8z6YyXrv4I",
+          "title": "Improve Your Close Control Dribbling with One Drill",
+          "author": "Anytime Soccer Training"
+        }
+      ]
+    }
+  ]
 }
