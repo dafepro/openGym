@@ -1,4 +1,83 @@
 {
   "schemaVersion": 1,
-  "practices": []
+  "practices": [
+    {
+      "requestId": "f1101010-0c65-4645-88b2-61096f66b04a",
+      "assignment": {
+        "id": "coach-f1101010-0c65-4645-88b2-61096f66b04a",
+        "revision": "v1",
+        "title": "8-Minute Close-Control Practice",
+        "note": "Keep it close, touch it quick, stay in control.",
+        "status": "archived",
+        "drills": [
+          {
+            "id": "coach-f1101010-0c65-4645-88b2-61096f66b04a-1",
+            "title": "Two-Cone Drag and Push",
+            "instructions": "Setup: Place the two cones one big step apart. Work in the space between them.\nDrag the ball back with the sole of one foot, push it across with that foot’s inside, then take over with the other foot and reverse direction. Alternate the starting foot as you work.\nFocus: Keep each touch short and the ball within one step.",
+            "mode": "time",
+            "sets": 4,
+            "durationSec": 40,
+            "restSec": 20,
+            "side": "both",
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": [
+                "futbol:ball-control",
+                "futbol:close-control",
+                "futbol:both-feet"
+              ]
+            },
+            "media": {
+              "id": "youtube-qr53U0H3VPs",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "qr53U0H3VPs",
+              "portrait": false
+            }
+          },
+          {
+            "id": "coach-f1101010-0c65-4645-88b2-61096f66b04a-2",
+            "title": "Two-Cone Turn and Return",
+            "instructions": "Setup: Place the cones about 3 yards apart, leaving a clear path between them.\nDribble from one cone to the other with short touches, turn closely around it, and return. Use the left foot to guide the turn in odd-numbered rounds and the right foot in even-numbered rounds; use both feet on the approach and return.\nFocus: Make the turn tight without letting the ball run away.",
+            "mode": "time",
+            "sets": 4,
+            "durationSec": 40,
+            "restSec": 20,
+            "side": "both",
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": [
+                "futbol:dribbling",
+                "futbol:close-control",
+                "futbol:change-of-direction"
+              ]
+            },
+            "media": {
+              "id": "youtube-ZEBF3wLvhZc",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "ZEBF3wLvhZc",
+              "portrait": false
+            }
+          }
+        ]
+      },
+      "sources": [
+        {
+          "videoId": "qr53U0H3VPs",
+          "url": "https://www.youtube.com/watch?v=qr53U0H3VPs",
+          "title": "Improve ball mastery | 5 drills for ultimate control",
+          "author": "Unisport"
+        },
+        {
+          "videoId": "ZEBF3wLvhZc",
+          "url": "https://www.youtube.com/watch?v=ZEBF3wLvhZc",
+          "title": "EASY Setup 2 Cones SOCCER DRILL - Dribbling Drill",
+          "author": "Eric Murillo"
+        }
+      ]
+    }
+  ]
 }
