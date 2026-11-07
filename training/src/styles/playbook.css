@@ -1387,7 +1387,7 @@ body {
 
 /* Tap-to-kick: a tiny, isolated toy, never a full-screen input layer. */
 .pb-ball-home { width: 46px; height: 46px; flex: 0 0 46px; }
-.pb-kick-ball { display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border: 1px solid #c6c6ae; border-radius: 50%; color: #536347; background: radial-gradient(circle at 35% 25%, #fffef6, #ece9d9 65%, #c6c6ae); box-shadow: 0 3px 5px #28352326, inset 0 0 0 3px #fffaf0; transform: rotate(-12deg); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.pb-kick-ball { display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border: 1px solid #c6c6ae; border-radius: 50%; color: #536347; background: radial-gradient(circle at 35% 25%, #fffef6, #ece9d9 65%, #c6c6ae); box-shadow: 0 4px 7px #28352330, inset -3px -4px 6px #53634720, inset 3px 3px 5px #fffefa; transform: rotate(-12deg); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .pb-kick-ball:focus-visible { outline: 3px solid var(--qt-accent, #d86732); outline-offset: 4px; }
 .pb-kick-ball.is-loose { position: fixed; left: 0; top: 0; z-index: 45; margin: 0; will-change: transform; }
 .pb-kick-ball.is-loose[data-moving="false"] { will-change: auto; }
