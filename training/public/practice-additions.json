@@ -1,4 +1,83 @@
 {
   "schemaVersion": 1,
-  "practices": []
+  "practices": [
+    {
+      "requestId": "7a499d93-fa01-4241-ab93-b6d8294d786e",
+      "assignment": {
+        "id": "coach-7a499d93-fa01-4241-ab93-b6d8294d786e",
+        "revision": "v1",
+        "title": "Publisher qualification — not assigned",
+        "note": "Keep the ball within one step with quick, accurate touches from both feet.",
+        "status": "archived",
+        "drills": [
+          {
+            "id": "coach-7a499d93-fa01-4241-ab93-b6d8294d786e-1",
+            "title": "Tight Turns Around One Cone",
+            "instructions": "Setup: Place one cone in the middle of the practice space and leave room to dribble around it.\nDribble close around the cone using inside and outside touches from both feet. Complete one 20-second round in each direction.\nFocus: Keep the ball within one step.",
+            "mode": "time",
+            "sets": 2,
+            "durationSec": 20,
+            "restSec": 20,
+            "side": "each",
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": [
+                "futbol:ball-control",
+                "futbol:dribbling",
+                "futbol:both-feet"
+              ]
+            },
+            "media": {
+              "id": "youtube-hXcgw7U6qCw",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "hXcgw7U6qCw",
+              "portrait": false
+            }
+          },
+          {
+            "id": "coach-7a499d93-fa01-4241-ab93-b6d8294d786e-2",
+            "title": "Two-Cone Inside–Outside Weave",
+            "instructions": "Setup: Place two cones about one yard apart, with a little space around them.\nWeave around both cones using inside and outside touches. Go through and back three times, using one foot on the way out and the other on the return; switch the starting foot for the next trip.\nFocus: Use quick, accurate touches without letting the ball run away.",
+            "mode": "reps",
+            "sets": 1,
+            "reps": 3,
+            "restSec": 30,
+            "side": "both",
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": [
+                "futbol:ball-control",
+                "futbol:dribbling",
+                "futbol:inside-outside-touches"
+              ]
+            },
+            "media": {
+              "id": "youtube-LfC-nTxvGV0",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "LfC-nTxvGV0",
+              "portrait": false
+            }
+          }
+        ]
+      },
+      "sources": [
+        {
+          "videoId": "hXcgw7U6qCw",
+          "url": "https://www.youtube.com/watch?v=hXcgw7U6qCw",
+          "title": "Dribbling Drill For Close Ball Control | Football/Soccer | U9, U10, U11, U12",
+          "author": "KS Performance"
+        },
+        {
+          "videoId": "LfC-nTxvGV0",
+          "url": "https://www.youtube.com/watch?v=LfC-nTxvGV0",
+          "title": "Soccer Dribbling Drill: Inside Outside Touch",
+          "author": "DICK'S"
+        }
+      ]
+    }
+  ]
 }
