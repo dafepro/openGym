@@ -12,8 +12,8 @@
         "drills": [
           {
             "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca-1",
-            "title": "Toe Taps and Sole Rolls",
-            "instructions": "Setup: Use a small clear space with the ball at your feet.\nAlternate light toe taps, then use a sole to roll the ball a short distance forward and back before switching feet. Begin slowly and gradually quicken the movements if the ball stays close.\nFocus: Touch the ball softly; keep your balance over it.",
+            "title": "Toe Taps",
+            "instructions": "Setup: Place the ball on the ground in front of you in a clear space.\nAlternate light toe taps on the ball, switching feet each touch. Start slowly and build the rhythm only while you stay balanced and in control.\nFocus: Keep the taps soft and your balance steady.",
             "mode": "time",
             "sets": 4,
             "durationSec": 45,
@@ -29,17 +29,19 @@
               ]
             },
             "media": {
-              "id": "youtube-lft7AfeFIuQ",
+              "id": "youtube-WWKGPlgLkk0",
               "status": "approved",
               "provider": "youtube",
-              "youtubeId": "lft7AfeFIuQ",
-              "portrait": false
+              "youtubeId": "WWKGPlgLkk0",
+              "portrait": false,
+              "clipStartSec": 2,
+              "clipEndSec": 56
             }
           },
           {
             "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca-2",
-            "title": "Inside-Outside Touches",
-            "instructions": "Setup: Stand with the ball in a clear space, leaving room to move it a little outward and inward.\nWith the active foot, gently nudge the ball outward with the outside of the foot, then guide it inward with the inside. Repeat with one foot for each effort, then switch to the other foot.\nFocus: Make each touch small enough to keep the ball within easy reach.",
+            "title": "Inside–Outside Cone Touches",
+            "instructions": "Setup: Set four cones in a straight line about a yard apart, with room to turn at the end.\nUse the inside and outside of the active foot to dribble down the line and back. Keep that same foot for the whole interval; the next interval uses the other foot. Start slowly and speed up only while the ball stays close.\nFocus: Use small inside and outside touches to guide the ball around each cone.",
             "mode": "time",
             "sets": 3,
             "durationSec": 40,
@@ -55,17 +57,17 @@
               ]
             },
             "media": {
-              "id": "youtube-Aq12sAr8a9I",
+              "id": "youtube-LfC-nTxvGV0",
               "status": "approved",
               "provider": "youtube",
-              "youtubeId": "Aq12sAr8a9I",
+              "youtubeId": "LfC-nTxvGV0",
               "portrait": false
             }
           },
           {
             "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca-3",
-            "title": "Close-Control Cone Dribble",
-            "instructions": "Setup: Arrange four cones in a short, easy line with room to turn and return to the start.\nDribble around the cones and back, using both feet throughout. Start slowly; make the later efforts quicker only if the ball remains close. If needed, use the other foot to guide the ball around a cone.\nFocus: Use gentle touches to steer around each cone without letting the ball run away.",
+            "title": "Close-Control Cone Circuit",
+            "instructions": "Setup: Set four cones in a small square and a fifth in the middle. Leave enough room to turn comfortably between them.\nDribble around the middle and outside cones, using both feet. Change direction and repeat. Begin slowly, then build speed only while each touch stays within easy reach.\nFocus: Soft, close touches. Stay in control through each turn.",
             "mode": "time",
             "sets": 4,
             "durationSec": 60,
@@ -81,10 +83,10 @@
               ]
             },
             "media": {
-              "id": "youtube-NMfLJynwyTk",
+              "id": "youtube-f8z6YyXrv4I",
               "status": "approved",
               "provider": "youtube",
-              "youtubeId": "NMfLJynwyTk",
+              "youtubeId": "f8z6YyXrv4I",
               "portrait": false
             }
           }
@@ -92,22 +94,22 @@
       },
       "sources": [
         {
-          "videoId": "lft7AfeFIuQ",
-          "url": "https://www.youtube.com/watch?v=lft7AfeFIuQ",
-          "title": "13 Soccer Drills to Improve Touch, Ball Control & Footwork Faster",
-          "author": "Progressive Soccer"
+          "videoId": "WWKGPlgLkk0",
+          "url": "https://www.youtube.com/watch?v=WWKGPlgLkk0",
+          "title": "Ball Mastery Skills For Kids | Toe Taps",
+          "author": "Ogden Soccer"
         },
         {
-          "videoId": "Aq12sAr8a9I",
-          "url": "https://www.youtube.com/watch?v=Aq12sAr8a9I",
-          "title": "How To Dribble - The Inside Outside Ball Control Drill | Youth Soccer Drills",
-          "author": "SportsEdTV Soccer Training"
+          "videoId": "LfC-nTxvGV0",
+          "url": "https://www.youtube.com/watch?v=LfC-nTxvGV0",
+          "title": "Soccer Dribbling Drill: Inside Outside Touch",
+          "author": "DICK'S"
         },
         {
-          "videoId": "NMfLJynwyTk",
-          "url": "https://www.youtube.com/watch?v=NMfLJynwyTk",
-          "title": "32 Close Control Dribbling Cone Drills | Improve Your Close Control Dribbling",
-          "author": "7mlc"
+          "videoId": "f8z6YyXrv4I",
+          "url": "https://www.youtube.com/watch?v=f8z6YyXrv4I",
+          "title": "Improve Your Close Control Dribbling with One Drill",
+          "author": "Anytime Soccer Training"
         }
       ]
     }

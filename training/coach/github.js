@@ -53,9 +53,155 @@ export async function github(env, path, method = 'GET', data) {
       { status: response.status },
     )
   if (response.status === 204) return null
-  return JSON.parse(
-    new TextDecoder().decode(await readLimited(response.body, 2000000)),
+  const text = new TextDecoder().decode(
+    await readLimited(response.body, 2000000),
   )
+  return text ? JSON.parse(text) : null
+}
+
+export async function inspectWorkflow(job, env, sha, workflow, checks = []) {
+  const failed = checks.filter(
+    (check) =>
+      REQUIRED_CHECKS.includes(check.name) &&
+      check.status === 'completed' &&
+      ['failure', 'timed_out', 'cancelled'].includes(check.conclusion),
+  )
+  if (env.COACH_GITHUB_ACTIONS_ENABLED !== 'true')
+    return failed.length
+      ? {
+          progress: {
+            stage: 'checks_failed',
+            message: `Checks need attention: ${failed.map((check) => check.name).join(', ')}.`,
+            url: job.prUrl,
+          },
+        }
+      : {
+          progress: {
+            stage: 'checks',
+            message: 'Waiting for checks and approval.',
+            url: job.prUrl,
+          },
+        }
+
+  const response = await github(
+    env,
+    `/actions/workflows/${workflow}/runs?head_sha=${sha}&per_page=10`,
+  )
+  const runs = response.workflow_runs || []
+  const run = runs.find(
+    (item) =>
+      item.head_sha === sha &&
+      item.path === `.github/workflows/${workflow}` &&
+      item.head_repository?.full_name === REPOSITORY &&
+      (workflow === 'training-checks.yml'
+        ? item.event === 'pull_request'
+        : item.event === 'push' && item.head_branch === RELEASE_BRANCH),
+  )
+  if (!run)
+    return {
+      progress: {
+        stage: 'waiting_build',
+        message: 'Waiting for GitHub to start the build.',
+        url: job.prUrl,
+      },
+    }
+  const progress = {
+    stage: 'checks',
+    message:
+      workflow === 'training-checks.yml'
+        ? 'Checks and approval are in progress.'
+        : 'Building the approved practice release.',
+    url: run.html_url,
+  }
+  if (run.status !== 'completed') return { progress }
+  if (run.conclusion === 'success')
+    return {
+      progress: {
+        ...progress,
+        stage: 'passed',
+        message:
+          workflow === 'training-checks.yml'
+            ? 'Checks passed. Waiting for approval of this revision.'
+            : 'Release built. Verifying deployment.',
+      },
+    }
+  if (
+    ['failure', 'timed_out', 'cancelled'].includes(run.conclusion) &&
+    run.run_attempt < 2 &&
+    !(job.ciRetriedRunIds || []).includes(run.id)
+  )
+    return {
+      retryCI: run.id,
+      progress: {
+        ...progress,
+        stage: 'retrying_ci',
+        message: 'Retrying the failed build once for this exact revision.',
+      },
+    }
+  return {
+    progress: {
+      ...progress,
+      stage: 'checks_failed',
+      message: 'The build needs attention after its retry. Open build details.',
+    },
+  }
+}
+
+export async function inspectPublication(job, env) {
+  const result = await inspectWorkflow(
+    job,
+    env,
+    job.mergeSha,
+    'training-release.yml',
+  )
+  if (result.progress?.stage === 'passed')
+    result.progress.message =
+      'Release built. Waiting for deployment and checking the live catalog.'
+  const comments = await github(
+    env,
+    `/issues/${job.prNumber}/comments?per_page=100`,
+  )
+  const marker = '<!-- quicktrack-deployment:v1 -->'
+  for (const comment of [...comments].reverse()) {
+    if (
+      comment.user?.login !==
+        `${env.COACH_GITHUB_APP_SLUG || 'quicktrack-coach-publisher'}[bot]` ||
+      !comment.body?.startsWith(marker)
+    )
+      continue
+    try {
+      const receipt = JSON.parse(
+        comment.body.match(/```json\s*([\s\S]*?)```/)?.[1] || '',
+      )
+      if (
+        receipt.schema === 1 &&
+        receipt.requestId === job.id &&
+        receipt.sourceSha === job.mergeSha &&
+        [
+          'deploying',
+          'deployed',
+          'retrying_deploy',
+          'deployment_failed',
+          'validating',
+        ].includes(receipt.stage) &&
+        typeof receipt.message === 'string' &&
+        receipt.message.length <= 300 &&
+        /^https:\/\/github\.com\/dafepro\/deploy\/actions\/runs\/\d+$/.test(
+          receipt.url,
+        )
+      )
+        return {
+          progress: {
+            stage: receipt.stage,
+            message: receipt.message,
+            url: receipt.url,
+          },
+        }
+    } catch {
+      /* Unrelated comments never direct publication. */
+    }
+  }
+  return result
 }
 async function optional(env, path) {
   try {
@@ -287,7 +433,16 @@ export function nextFeedback(reviews, comments, job) {
 }
 export async function inspectPracticePR(job, env) {
   const pr = await github(env, `/pulls/${job.prNumber}`)
-  if (pr.merged) return { status: 'publishing', mergeSha: pr.merge_commit_sha }
+  if (pr.merged)
+    return {
+      status: 'publishing',
+      mergeSha: pr.merge_commit_sha,
+      progress: {
+        stage: 'building',
+        message: 'Approved revision merged. Following the release build.',
+        url: pr.html_url,
+      },
+    }
   if (pr.state === 'closed')
     return {
       status: 'closed',
@@ -337,7 +492,16 @@ export async function inspectPracticePR(job, env) {
       await issueStillApproved(job, env),
     )
   )
-    return { status: 'submitted' }
+    return {
+      status: 'submitted',
+      ...(await inspectWorkflow(
+        job,
+        env,
+        job.headSha,
+        'training-checks.yml',
+        checks.check_runs || [],
+      )),
+    }
   const before = await repositoryPractices(env, pr.base.sha),
     after = await repositoryPractices(env, pr.head.sha)
   assertAppendOnly(before, after)

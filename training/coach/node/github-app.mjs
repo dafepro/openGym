@@ -41,6 +41,9 @@ export function installationTokenProvider(
               issues: 'write',
               checks: 'read',
               statuses: 'read',
+              ...(env.COACH_GITHUB_ACTIONS_ENABLED === 'true'
+                ? { actions: 'write' }
+                : {}),
             },
           }),
           signal: AbortSignal.timeout(15000),

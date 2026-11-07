@@ -1,5 +1,10 @@
 import { importApprovedIssue } from './approved-issues.js'
-import { writePracticePR, inspectPracticePR, github } from './github.js'
+import {
+  writePracticePR,
+  inspectPracticePR,
+  inspectPublication,
+  github,
+} from './github.js'
 import { publishedPractice } from './publication.js'
 import { json, digest, readLimited } from '../worker/http.js'
 import { coachProfile, verifyReadySignature } from './auth.js'
@@ -23,6 +28,12 @@ const publicJob = (job) => ({
   status: job.status,
   createdAt: job.createdAt,
   reason: job.reason,
+  revisionFailure: job.revisionFailure,
+  canRetryRevision:
+    job.status === 'attention' &&
+    !!job.revisionFeedback &&
+    (job.revisionRetries || 0) < 1,
+  progress: job.progress,
   plan: job.plan,
   publishedTitle: job.publishedTitle,
   issueUrl: job.issueUrl,
@@ -117,7 +128,18 @@ export default {
       if (url.pathname === `${PREFIX}/requests` && request.method === 'POST') {
         let input
         try {
-          input = validateCoachRequest(await body(request))
+          const value = await body(request)
+          if (
+            value &&
+            Object.keys(value).length === 1 &&
+            uuid(value.retryRequestId)
+          )
+            return await stub.fetch(
+              new Request(`https://internal/retry/${value.retryRequestId}`, {
+                method: 'POST',
+              }),
+            )
+          input = validateCoachRequest(value)
         } catch (error) {
           return json({ error: error.message }, 400)
         }
@@ -169,6 +191,33 @@ export class CoachRequests {
         requests: [...jobs.values()]
           .sort((a, b) => b.createdAt - a.createdAt)
           .map(publicJob),
+      })
+    }
+    if (path.startsWith('/retry/') && request.method === 'POST') {
+      const id = path.slice('/retry/'.length)
+      return this.ctx.blockConcurrencyWhile(async () => {
+        const key = `job:${id}`,
+          job = await this.ctx.storage.get(key)
+        if (!job) return json({ error: 'Request not found.' }, 404)
+        if (job.status === 'retrying_revision') return json(publicJob(job))
+        if (
+          job.status !== 'attention' ||
+          !job.revisionFeedback ||
+          (job.revisionRetries || 0) >= 1
+        )
+          return json(
+            { error: 'This revision needs review in its existing PR.' },
+            409,
+          )
+        const updated = {
+          ...job,
+          status: 'retrying_revision',
+          revisionRetries: (job.revisionRetries || 0) + 1,
+          reason: undefined,
+        }
+        await this.ctx.storage.put(key, updated)
+        await this.ctx.storage.setAlarm(Date.now() + 1000)
+        return json(publicJob(updated), 202)
       })
     }
     if (path === '/requests' && request.method === 'POST') {
@@ -388,6 +437,10 @@ export class CoachRequests {
           await this.prepare(job)
           break
         }
+        if (job.status === 'retrying_revision') {
+          await this.prepare(job, job.revisionFeedback)
+          break
+        }
         if (job.status === 'ready') {
           await this.notify(job)
           break
@@ -398,7 +451,7 @@ export class CoachRequests {
       await this.ctx.blockConcurrencyWhile(async () => {
         const jobs = await this.ctx.storage.list({ prefix: 'job:' })
         const pending = [...jobs.values()].some((job) =>
-          ['queued', 'ready'].includes(job.status),
+          ['queued', 'ready', 'retrying_revision'].includes(job.status),
         )
         const watched = [...jobs.values()].filter((job) =>
           ['creating_pr', 'submitted', 'publishing'].includes(job.status),
@@ -433,6 +486,7 @@ export class CoachRequests {
     await this.ctx.storage.put(key, {
       ...job,
       status: feedback ? 'revising' : 'processing',
+      progress: undefined,
     })
     try {
       let brief = job.brief
@@ -460,16 +514,36 @@ export class CoachRequests {
         videos: result.videos,
         status: 'creating_pr',
         reason: undefined,
+        revisionFeedback: undefined,
+        revisionFailure: undefined,
+        progress: undefined,
         nextPollAt: Date.now(),
       }
       await this.ctx.storage.put(key, job)
       await this.follow(job)
-    } catch {
+    } catch (error) {
+      const reasons = {
+        output_limit:
+          'Research reached its response limit. Your feedback and existing PR are saved. Retry this revision.',
+        incomplete_response:
+          'Research returned an unfinished response. Your feedback and existing PR are saved. Retry this revision.',
+        provider_limit:
+          'The research provider reached a usage limit. Your feedback is saved. Retry when the limit clears.',
+      }
       await this.ctx.storage.put(key, {
         ...job,
         status: feedback ? 'attention' : 'failed',
+        revisionFeedback: feedback || undefined,
+        revisionFailure: {
+          code: error.code || 'research_failed',
+          stage: error.stage || 'research',
+          at: Date.now(),
+        },
         reason:
-          'The assistant could not finish this request. Your brief is preserved; revise it to try again.',
+          reasons[error.code] ||
+          (feedback
+            ? 'The revision could not be verified. Your feedback and existing PR are saved. Retry this revision.'
+            : 'Research could not be verified. Your brief is saved; revise it to try again.'),
         nextPollAt: Date.now() + 60000,
       })
     }
@@ -483,6 +557,7 @@ export class CoachRequests {
       else if (job.status === 'publishing')
         update = (await publishedPractice(job, this.env)) || {
           status: 'publishing',
+          ...(await inspectPublication(job, this.env)),
         }
       else update = await inspectPracticePR(job, this.env)
       if (update.feedback) {
@@ -502,11 +577,26 @@ export class CoachRequests {
             ...(job.feedbackIds || []),
             ...update.feedback.consumed,
           ],
+          revisionFeedback: update.feedback.text,
+          revisionRetries: 0,
         }
         // Checkpoint the feedback before any paid work, so a poll cannot charge twice.
         await this.ctx.storage.put(key, { ...job, status: 'revising' })
         await this.prepare(job, update.feedback.text)
         return
+      }
+      if (update.retryCI) {
+        job = {
+          ...job,
+          ciRetriedRunIds: [...(job.ciRetriedRunIds || []), update.retryCI],
+        }
+        await this.ctx.storage.put(key, job)
+        await github(
+          this.env,
+          `/actions/runs/${update.retryCI}/rerun-failed-jobs`,
+          'POST',
+        )
+        delete update.retryCI
       }
       await this.ctx.storage.put(key, {
         ...job,

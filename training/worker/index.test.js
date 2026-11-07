@@ -1,8 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import worker, { handleRequest } from './index.js'
 import { COOKIE } from './auth.js'
 import { digest } from './http.js'
 import { validateCatalog } from '../src/domain/content.js'
+
+// Catalog boundary tests use their own synthetic content, independent of releases.
+vi.mock('../public/practice-additions.json', () => ({
+  default: { schemaVersion: 1, practices: [] },
+}))
 
 const ORIGIN = 'https://train.quicktrack.cc'
 const NOW = 1800000000000

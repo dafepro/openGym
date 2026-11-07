@@ -7,6 +7,8 @@ import { youtubeId } from '../domain/demonstration.js'
 import CoachRecipients, {
   emptyRecipient,
 } from '../components/CoachRecipients.jsx'
+import CoachPracticeShare from '../components/CoachPracticeShare.jsx'
+import CoachReadyAlerts from '../components/CoachReadyAlerts.jsx'
 import {
   COACH_BRIEF_LIMIT,
   validateCoachRequest,
@@ -50,6 +52,7 @@ const busy = new Set([
   'processing',
   'creating_pr',
   'revising',
+  'retrying_revision',
   'publishing',
   'ready',
   'submitted',
@@ -60,14 +63,15 @@ const statusLabel = {
   processing: 'Finding drills',
   creating_pr: 'Preparing pull request',
   revising: 'Updating practice',
+  retrying_revision: 'Retrying revision',
   submitted: 'Awaiting approval',
   publishing: 'Publishing practice',
   closed: 'Request closed',
-  notification_setup: 'Practice ready · share the link',
+  notification_setup: 'Practice ready',
   rejected: 'Needs a clearer brief',
   failed: 'Could not finish',
   attention: 'Needs attention',
-  ready: 'Practice published',
+  ready: 'Practice ready',
   notifying: 'Sending notifications',
   notified: 'Practice ready',
   notification_attention: 'Practice ready · check notifications',
@@ -101,7 +105,7 @@ async function api(path, options) {
     throw new Error(data.error || 'The coaching service is unavailable.')
   return data
 }
-function RequestCard({ job, onRevise }) {
+function RequestCard({ job, onRevise, onRetry, retrying }) {
   const step = job.practiceUrl
     ? 3
     : job.status === 'publishing'
@@ -111,6 +115,7 @@ function RequestCard({ job, onRevise }) {
         : 0
   return (
     <article
+      id={`coach-request-${job.id}`}
       className="pb-coach-request"
       aria-label={job.publishedTitle || job.plan?.title || 'Practice request'}
     >
@@ -158,6 +163,16 @@ function RequestCard({ job, onRevise }) {
       {job.reason && (
         <p className="pb-coach-reason" role="status">
           {job.reason}
+        </p>
+      )}
+      {job.progress && !job.practiceUrl && (
+        <p className="pb-coach-reason" role="status">
+          {job.progress.message}{' '}
+          {job.progress.url && (
+            <a href={job.progress.url} target="_blank" rel="noreferrer">
+              Build details
+            </a>
+          )}
         </p>
       )}
       {job.plan && (
@@ -213,6 +228,15 @@ function RequestCard({ job, onRevise }) {
         </Disclosure>
       )}
       <div className="pb-coach-request-links">
+        {job.canRetryRevision && (
+          <button
+            type="button"
+            disabled={retrying}
+            onClick={() => onRetry(job)}
+          >
+            Retry revision
+          </button>
+        )}
         {['failed', 'rejected'].includes(job.status) && (
           <button type="button" onClick={() => onRevise(job)}>
             <Icon name="pencil" size={14} />
@@ -230,6 +254,9 @@ function RequestCard({ job, onRevise }) {
           </a>
         )}
       </div>
+      {job.practiceUrl && (
+        <CoachPracticeShare url={job.practiceUrl} recipients={job.recipients} />
+      )}
       {job.submitterEmail && (
         <p className="pb-coach-submitter">Requested by {job.submitterEmail}</p>
       )}
@@ -249,23 +276,16 @@ function RequestCard({ job, onRevise }) {
           </ul>
         </Disclosure>
       )}
-      {job.recipientCount > 0 && job.practiceUrl && (
+      {job.practiceUrl && job.status === 'notification_attention' && (
         <small>
-          {['failed', 'rejected', 'attention'].includes(job.status)
-            ? 'Notifications have not been confirmed. Check the request before trying again.'
-            : job.status === 'notification_setup'
-              ? 'Delivery is not connected. Share the practice link above.'
-              : job.practiceUrl
-                ? job.notifications?.some(
-                    (item) => item.status === 'needs_review',
-                  )
-                  ? 'Some notifications need attention.'
-                  : job.status === 'notified'
-                    ? 'Notifications accepted for sending.'
-                    : 'Notifications are being prepared.'
-                : `${job.recipientCount} recipient${job.recipientCount === 1 ? '' : 's'} · link available after publication`}
+          Some notifications need attention. You can share the link above.
         </small>
       )}
+      {job.practiceUrl &&
+        job.recipientCount > 0 &&
+        job.status === 'notified' && (
+          <small>Notifications accepted for sending.</small>
+        )}
     </article>
   )
 }
@@ -286,6 +306,7 @@ export default function CoachView() {
     [signIn, setSignIn] = useState(false),
     [sending, setSending] = useState(false),
     [accepted, setAccepted] = useState(false)
+  const [retrying, setRetrying] = useState(null)
   const requestId = useRef(draft?.id || crypto.randomUUID()),
     live = useRef(true),
     initialized = useRef(false),
@@ -295,8 +316,12 @@ export default function CoachView() {
   useEffect(() => {
     live.current = true
     let timer,
-      cancelled = false
+      cancelled = false,
+      refreshing = false
     const refresh = async () => {
+      if (refreshing || cancelled) return
+      refreshing = true
+      clearTimeout(timer)
       try {
         const settings = await api('config')
         if (cancelled) return
@@ -335,13 +360,20 @@ export default function CoachView() {
           setError(failure.message)
           if (!failure.signIn) timer = setTimeout(refresh, 30000)
         }
+      } finally {
+        refreshing = false
       }
     }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refresh()
+    }
+    document.addEventListener('visibilitychange', onVisible)
     void refresh()
     return () => {
       cancelled = true
       live.current = false
       clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [accepted])
   useEffect(() => {
@@ -414,10 +446,19 @@ export default function CoachView() {
       setAccepted((value) => !value)
       requestAnimationFrame(async () => {
         const reveal = document.getElementById('coach-composer')
-        await Promise.allSettled((reveal?.getAnimations() || []).map(animation => animation.finished))
+        await Promise.allSettled(
+          (reveal?.getAnimations() || []).map(
+            (animation) => animation.finished,
+          ),
+        )
         if (!live.current) return
         heading.current?.focus({ preventScroll: true })
-        heading.current?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+        heading.current?.scrollIntoView({
+          block: 'start',
+          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 'instant'
+            : 'smooth',
+        })
       })
     } catch (failure) {
       if (live.current) {
@@ -440,6 +481,26 @@ export default function CoachView() {
     setRecipientDraft(emptyRecipient())
     setError('')
     if (composerOpen) requestAnimationFrame(() => briefField.current?.focus())
+  }
+  const retryRevision = async (job) => {
+    if (retrying) return
+    setRetrying(job.id)
+    try {
+      const updated = await api('requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ retryRequestId: job.id }),
+      })
+      if (!live.current) return
+      setJobs((current) =>
+        current.map((item) => (item.id === job.id ? updated : item)),
+      )
+      setAccepted((value) => !value)
+    } catch (failure) {
+      if (live.current) setError(failure.message)
+    } finally {
+      if (live.current) setRetrying(null)
+    }
   }
   const editBrief = (value) => {
     setBrief(value)
@@ -481,10 +542,14 @@ export default function CoachView() {
         </div>
         <Icon name="pencil" size={26} />
       </header>
-      {config?.paused && (
-        <Notice title="Coach requests are paused">
-          Your draft is saved.
+      <CoachReadyAlerts jobs={jobs} />
+      {error && !composerOpen && (
+        <Notice title="Request needs attention" tone="error">
+          {error}
         </Notice>
+      )}
+      {config?.paused && (
+        <Notice title="Coach requests are paused">Your draft is saved.</Notice>
       )}
       {jobs.length > 0 && (
         <button
@@ -592,7 +657,13 @@ export default function CoachView() {
             Your requests
           </h2>
           {jobs.map((job) => (
-            <RequestCard key={job.id} job={job} onRevise={revise} />
+            <RequestCard
+              key={job.id}
+              job={job}
+              onRevise={revise}
+              onRetry={retryRevision}
+              retrying={retrying === job.id}
+            />
           ))}
         </section>
       )}

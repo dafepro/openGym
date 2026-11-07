@@ -188,6 +188,120 @@ test('star is fully tappable, saved cards stay closed, and profile lives in the 
   await capture(page, testInfo, 'saved-and-profile')
 })
 
+test('publication enables manual texting and alerts the coach once', async ({
+  page,
+  context,
+}) => {
+  const pass = await createPracticeCode(
+    catalog.assignments[0],
+    page.url(),
+    catalog,
+  )
+  const job = {
+    id: '12345678-1234-4234-8234-123456789abc',
+    brief,
+    plan,
+    createdAt: Date.now(),
+    status: 'publishing',
+    recipientCount: 1,
+    recipients: [{ channel: 'sms', address: '+12025550146', name: 'Guardian' }],
+  }
+  await page.addInitScript(() => {
+    window.coachTest = { alerts: [], shares: [], copies: [] }
+    Object.defineProperty(window, 'Notification', {
+      configurable: true,
+      value: class {
+        static permission = sessionStorage.getItem('test-alert-permission') || 'default'
+        static async requestPermission() {
+          sessionStorage.setItem('test-alert-permission', 'granted')
+          this.permission = 'granted'
+          return this.permission
+        }
+        constructor(title, options) {
+          window.coachTest.alerts.push({ title, ...options })
+        }
+      },
+    })
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: async (draft) => {
+        window.coachTest.shares.push(draft)
+      },
+    })
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: () => true,
+    })
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (value) => {
+          window.coachTest.copies.push(value)
+        },
+      },
+    })
+  })
+  await context.route('**/api/coach/config', (route) =>
+    route.fulfill({
+      json: { configured: true, channels: { email: false, sms: false } },
+    }),
+  )
+  await context.route('**/api/coach/requests', (route) =>
+    route.fulfill({
+      json: { requests: [job], coach: { email: 'coach@example.org' } },
+    }),
+  )
+  await page.goto('/#/coach')
+  await page.reload()
+  await expect(
+    page.getByText('Publishing practice', { exact: true }),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Text practice' })).toHaveCount(
+    0,
+  )
+  await page.getByRole('button', { name: 'Browser alerts' }).click()
+  await expect(
+    page.getByRole('button', { name: 'Browser alerts' }),
+  ).toHaveAttribute('aria-pressed', 'true')
+
+  job.status = 'notification_setup'
+  job.practiceUrl = pass.link
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event('visibilitychange')),
+  )
+  const textPractice = page.getByRole('button', { name: 'Text practice' })
+  await expect(textPractice).toBeVisible({ timeout: 12000 })
+  await expect(
+    page.getByText('Practice ready. Share the link from the request card.'),
+  ).toBeVisible()
+  await expect
+    .poll(() => page.evaluate(() => window.coachTest.alerts.length))
+    .toBe(1)
+  await textPractice.click()
+  await expect
+    .poll(() => page.evaluate(() => window.coachTest.shares))
+    .toEqual([{ text: 'Your soccer practice is ready.', url: pass.link }])
+  await page.evaluate(() =>
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: undefined,
+    }),
+  )
+  await textPractice.click()
+  await expect(page.getByText('Link copied.', { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'Open Messages for Guardian' }),
+  ).toHaveAttribute('href', 'sms:+12025550146')
+  expect(await page.evaluate(() => window.coachTest.copies)).toEqual([
+    pass.link,
+  ])
+  await noHorizontalOverflow(page)
+
+  await page.reload()
+  await expect(textPractice).toBeVisible()
+  expect(await page.evaluate(() => window.coachTest.alerts)).toEqual([])
+})
+
 test('coach draft survives navigation and reload, and can be cleared', async ({
   page,
 }) => {
@@ -473,4 +587,25 @@ test('coach access check never flashes the form and returning to an existing req
   await expect(field).toHaveValue(
     'An unfinished practice brief about fast, close soccer touches.',
   )
+})
+
+test('a failed revision retries its existing request and keeps the same PR and recipients',async({page},testInfo)=>{
+ const id='12345678-1234-4234-8234-123456789abc'
+ let posts=0,job={id,brief,createdAt:Date.now(),plan,status:'attention',canRetryRevision:true,reason:'Research returned an unfinished response. Your feedback and existing PR are saved.',prUrl:'https://github.com/dafepro/openGym/pull/39',recipientCount:1,recipients:[{channel:'email',address:'parent@example.org'}]}
+ await page.route('**/api/coach/config',route=>route.fulfill({json:{configured:true,channels:{}}}))
+ await page.route('**/api/coach/requests',route=>{
+  if(route.request().method()==='POST'){
+   expect(route.request().postDataJSON()).toEqual({retryRequestId:id});posts++
+   job={...job,status:'retrying_revision',canRetryRevision:false,reason:undefined}
+   return route.fulfill({status:202,json:job})
+  }
+  return route.fulfill({json:{requests:[job],coach:{email:'coach@example.org'}}})
+ })
+ await page.getByRole('link',{name:'Coach’s desk',exact:true}).click()
+ await page.getByRole('button',{name:'Retry revision',exact:true}).click()
+ await expect(page.getByText('Retrying revision',{exact:true})).toBeVisible()
+ expect(posts).toBe(1)
+ await expect(page.getByRole('link',{name:'Open pull request'})).toHaveAttribute('href',job.prUrl)
+ await expect(page.getByRole('button',{name:'Retry revision',exact:true})).toHaveCount(0)
+ await capture(page,testInfo,'coach-retrying-preserved-revision')
 })
