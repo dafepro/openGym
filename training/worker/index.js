@@ -3,7 +3,7 @@ import { loadCatalog, loadCatalogEdition } from './catalog.js'
 import { json, privateHeaders, safeId } from './http.js'
 import { mediaResponse } from './media.js'
 
-const publicAsset = path => ['/', '/index.html', '/source.html', '/fonts/barlow-condensed-latin-600.woff2', '/fonts/OFL.txt', '/licenses/AGPL-3.0.txt'].includes(path) || /^\/assets\/[a-zA-Z0-9_-]+\.(js|css|woff2|svg|png)$/.test(path)
+const publicAsset = path => ['/', '/index.html', '/source.html', '/practice-additions.json', '/fonts/barlow-condensed-latin-600.woff2', '/fonts/OFL.txt', '/licenses/AGPL-3.0.txt'].includes(path) || /^\/assets\/[a-zA-Z0-9_-]+\.(js|css|woff2|svg|png)$/.test(path)
 
 async function routeRequest(request, env, now) {
   const url = new URL(request.url)
@@ -40,7 +40,7 @@ async function routeRequest(request, env, now) {
     headers.set('Cache-Control', 'private, no-store, max-age=0, no-transform')
     headers.set('Vary', 'Cookie')
     headers.set('X-Content-Type-Options', 'nosniff')
-    headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+    headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' https://www.youtube.com; style-src 'self'; font-src 'self'; img-src 'self' blob: https://i.ytimg.com; media-src 'self' blob:; connect-src 'self'; frame-src https://www.youtube-nocookie.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
     headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
     return new Response(request.method === 'HEAD' ? null : asset.body, { status: asset.status, headers })
   } catch {

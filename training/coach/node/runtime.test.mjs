@@ -1,3 +1,4 @@
+import { practiceGitHubFixture } from '../test-provider.js'
 import { request as httpRequest } from 'node:http'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -65,13 +66,17 @@ const plan = {
       restSec: 30,
       side: 'each',
       tags: ['futbol:dribbling'],
-      sources: [{ title: 'Guide', url: 'https://example.org/guide' }],
+      demonstrationUrl: 'https://www.youtube.com/watch?v=QKz7fDjPnvg',
+      sources: [
+        { title: 'Guide', url: 'https://www.youtube.com/watch?v=QKz7fDjPnvg' },
+      ],
     },
   ],
 }
 function providers() {
   const calls = []
   let model = 0
+  const github = practiceGitHubFixture()
   return {
     calls,
     fetch: async (url, options) => {
@@ -88,7 +93,11 @@ function providers() {
                     {
                       type: 'web_search_call',
                       action: {
-                        sources: [{ url: 'https://example.org/guide' }],
+                        sources: [
+                          {
+                            url: 'https://www.youtube.com/watch?v=QKz7fDjPnvg',
+                          },
+                        ],
                       },
                     },
                     {
@@ -102,13 +111,11 @@ function providers() {
               : message(plan),
         )
       }
-      if (url === 'https://api.github.com/repos/dafepro/openGym/issues')
-        return Response.json({ number: 123 })
-      throw new Error('Unexpected network access')
+      return github(url, options)
     },
   }
 }
-test('SQLite restart preserves queue, idempotency, and exactly one issue', async (t) => {
+test('SQLite restart preserves queue, idempotency, and exactly one PR', async (t) => {
   const f = fixture(t),
     provider = providers()
   f.env.TEST_FETCH = provider.fetch
@@ -127,8 +134,16 @@ test('SQLite restart preserves queue, idempotency, and exactly one issue', async
     (await store.storage(owner).get(`job:${id}`)).status,
     'submitted',
   )
-  assert.equal(provider.calls.length, 4)
-  assert.equal(provider.calls.filter((c) => c.url.includes('github')).length, 1)
+  assert.equal(
+    provider.calls.filter((c) => c.url.includes('api.openai.com')).length,
+    3,
+  )
+  assert.equal(
+    provider.calls.filter(
+      (c) => c.url.endsWith('/pulls') && c.options?.method === 'POST',
+    ).length,
+    1,
+  )
 })
 test('global allowance applies atomically across identities and survives restart', async (t) => {
   const f = fixture(t, { COACH_DAILY_REQUESTS: '1' })
@@ -177,7 +192,11 @@ test('interrupted side effects require review after process restart', async (t) 
   }
 })
 test('notification quota reserves before sends; exhausted jobs require attention', async (t) => {
-  const f = fixture(t, { COACH_DAILY_EMAILS: '1' }),
+  const f = fixture(t, {
+      COACH_DAILY_EMAILS: '1',
+      RESEND_API_KEY: 'test',
+      COACH_EMAIL_FROM: 'coach@example.org',
+    }),
     store = new CoachStore(f.filename, f.env, { now: () => Date.now() + 2000 })
   t.after(() => store.close())
   const job = await (await enqueue(store)).json(),
@@ -375,7 +394,7 @@ test('production refuses missing allowlist or credentials', () => {
     assert.throws(() => validateConfig({ ...base, [key]: '' }))
 })
 
-test('authenticated HTTP request goes through SQLite, research and issue creation; retries and CSRF cannot spend again', async (t) => {
+test('authenticated HTTP request goes through SQLite, research and PR creation; retries and CSRF cannot spend again', async (t) => {
   const f = fixture(t, {
     COACH_DAILY_REQUESTS: '1',
     COACH_ACCESS_ISSUER: 'https://http-test.cloudflareaccess.com',
@@ -458,9 +477,12 @@ test('authenticated HTTP request goes through SQLite, research and issue creatio
   const result = await (await call('/api/coach/requests')).json()
   assert.equal(result.requests[0].status, 'submitted')
   assert.equal(
-    result.requests[0].issueUrl,
-    'https://github.com/dafepro/openGym/issues/123',
+    result.requests[0].prUrl,
+    'https://github.com/dafepro/openGym/pull/123',
   )
-  assert.equal(provider.calls.length, 4)
+  assert.equal(
+    provider.calls.filter((c) => c.url.includes('api.openai.com')).length,
+    3,
+  )
   assert.equal((await call('/api/coach/login')).status, 303)
 })

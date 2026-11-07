@@ -4,6 +4,9 @@ import { coachingBrief } from './CoachingBrief.jsx'
 import PracticeView from '../views/PracticeView.jsx'
 
 describe('instruction-first practice', () => {
+  it('shows an explicit generated focus cue without a redundant prefix', () => {
+    expect(coachingBrief({ instructions: 'Setup: Ball and cones.\nDribble around the cones.\nFocus: Keep every touch close.' })).toMatchObject({ steps: ['Dribble around the cones.'], focus: ['Keep every touch close.'] })
+  })
   it('separates supplied cues and credit without inventing coaching or equipment', () => {
     const drill = { instructions: 'Roll the ball. Keep it close. Demonstration: Coach.' }
     expect(coachingBrief(drill)).toEqual({ steps: ['Roll the ball.'], focus: ['Keep it close.'], credit: ['Demonstration: Coach.'], setup: [], reminders: [] })

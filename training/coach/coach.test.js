@@ -1,3 +1,4 @@
+import { practiceGitHubFixture } from './test-provider.js'
 import { describe, expect, it, vi } from 'vitest'
 import worker, { CoachRequests } from './worker.js'
 import { researchPractice, validatePlan, issueBody } from './agent.js'
@@ -10,7 +11,7 @@ import { createPracticeCode } from '../src/domain/practice-code.js'
 
 const id = '12345678-1234-4234-8234-123456789abc',
   owner = 'a'.repeat(64)
-const source = 'https://example.org/soccer-coaching'
+const source = 'https://www.youtube.com/watch?v=QKz7fDjPnvg'
 const plan = {
   title: 'Close control',
   goal: 'Small and accurate touches.',
@@ -28,6 +29,7 @@ const plan = {
       restSec: 30,
       side: 'each',
       tags: ['futbol:ball-control'],
+      demonstrationUrl: source,
       sources: [{ title: 'Soccer coaching guide', url: source }],
     },
   ],
@@ -82,6 +84,7 @@ function setup(extra = {}) {
     ...extra,
   }
   let responses = 0
+  const github = practiceGitHubFixture()
   env.TEST_FETCH = vi.fn(async (url, options = {}) => {
     calls.push({ url, body: options.body })
     if (url === 'https://api.openai.com/v1/responses') {
@@ -111,7 +114,11 @@ function setup(extra = {}) {
             : message(plan),
       )
     }
-    if (url.includes('api.github.com')) return Response.json({ number: 123 })
+    if (url.includes('api.github.com') ||
+      url.startsWith('https://www.youtube.com/oembed?') ||
+      url.endsWith('/api/catalog')
+    )
+      return github(url, options)
     if (url === 'https://api.resend.com/emails')
       return Response.json({ id: 'email-123' })
     throw new Error('Unexpected network request ' + url)
@@ -153,8 +160,8 @@ describe('coach brief and recipient boundaries', () => {
         recipients: 'person@example.org',
         consent: false,
       }),
-    ).toThrow(/Confirm/)
-    expect(() => parseRecipients('5551234567')).toThrow(/country code/)
+    ).not.toThrow()
+    expect(parseRecipients('5551234567')[0].address).toBe('+15551234567')
     expect(() =>
       validateCoachRequest({ id, brief, recipients: '', system: 'override' }),
     ).toThrow()
@@ -236,7 +243,7 @@ describe('coach brief and recipient boundaries', () => {
 })
 
 describe('durable coach workflow', () => {
-  it('queues durably, reuses a repeated request ID, then creates exactly one issue', async () => {
+  it('queues durably, reuses a repeated request ID, then creates exactly one pull request', async () => {
     const { queue, storage, calls } = setup()
     expect((await enqueue(queue)).status).toBe(202)
     expect((await enqueue(queue)).status).toBe(200)
@@ -247,9 +254,11 @@ describe('durable coach workflow', () => {
     expect(job.status).toBe('submitted')
     expect(job.plan.goal).toBe(plan.goal)
     expect(
-      calls.filter((call) => call.url.includes('api.github.com')),
+      calls.filter((call) => call.url.endsWith('/pulls') && call.body),
     ).toHaveLength(1)
-    expect(calls).toHaveLength(4)
+    expect(
+      calls.filter((call) => call.url.includes('api.openai.com')),
+    ).toHaveLength(3)
   })
   it('refuses conflicting retries and enforces the daily budget before spending', async () => {
     const { queue, calls } = setup()
@@ -288,17 +297,19 @@ describe('durable coach workflow', () => {
       expect(calls).toHaveLength(0)
     }
   })
-  it('keeps private recipients out of the issue and API response', async () => {
+  it('keeps private recipients out of public GitHub while showing them in the private coach response', async () => {
     const { queue, calls } = setup()
     await enqueue(queue, {
       recipients: [{ channel: 'email', address: 'private@example.org' }],
     })
     await queue.alarm()
     expect(
-      calls.find((call) => call.url.includes('api.github.com')).body,
+      JSON.stringify(
+        calls.filter((call) => call.url.includes('api.github.com')),
+      ),
     ).not.toContain('private@example.org')
     const response = await queue.fetch(new Request('https://internal/requests'))
-    expect(await response.text()).not.toContain('private@example.org')
+    expect(await response.text()).toContain('private@example.org')
   })
   it('requires a real share code and live source identity before readiness, then sends once', async () => {
     const { queue, env, storage, calls } = setup()
@@ -356,7 +367,7 @@ describe('durable coach workflow', () => {
     expect(
       calls.find((call) => call.url.includes('resend.com')).body,
     ).toContain(assignment.title)
-    expect(job.recipients).toEqual([])
+    expect(job.recipients).toEqual([{ channel: 'email', address: 'player@example.org' }])
     expect(job.delivery[0].status).toBe('accepted')
     expect(
       (
@@ -578,7 +589,7 @@ describe('authenticated API isolation', () => {
       get: (owner) => ({
         fetch: async (request, options) => {
           const req = new Request(request, options)
-          if (req.method === 'POST') writes.push(await req.json())
+          if (req.method === 'POST' && new URL(req.url).pathname !== '/profile') writes.push(await req.json())
           return Response.json({ requests: [], owner })
         },
       }),
@@ -644,8 +655,8 @@ describe('authenticated API isolation', () => {
             env,
           )
         ).status,
-      ).toBe(400)
-      expect(writes).toHaveLength(1)
+      ).toBe(200)
+      expect(writes).toHaveLength(2)
     } finally {
       globalThis.fetch = original
     }
@@ -673,6 +684,7 @@ describe('authenticated API isolation', () => {
       ).status,
     ).toBe(400)
     expect((await storage.get(`job:${id}`)).status).toBe('submitted')
-    expect(calls).toHaveLength(4)
+    expect(calls.filter((call) => call.url.includes('api.openai.com')),
+    ).toHaveLength(3)
   })
 })

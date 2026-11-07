@@ -1,3 +1,4 @@
+import { demonstrationThumbnail, isYouTubeMedia } from '../domain/demonstration.js'
 import { useEffect, useRef } from 'react'
 import Icon from './Icon.jsx'
 import { compactTarget } from '../domain/drill-selection.js'
@@ -23,7 +24,7 @@ export function DrillThumbnail({ drill, onClick, disabled, label }) {
     return () => { observer.disconnect(); element.removeEventListener('loadeddata', showFrame) }
   }, [drill.media.path])
   return <button type="button" className={`pb-media-thumb${video ? ' has-video' : ''}`} onClick={onClick} disabled={disabled || !onClick} aria-label={label || `${video ? 'Watch' : 'Instructions for'} ${drill.title}`}>
-    {video ? <video ref={thumbnail} src={`${drill.media.path}#t=0.1`} muted playsInline preload="metadata" tabIndex="-1" aria-hidden="true" /> : <Icon name="ball" size={22} />}
+    {video && isYouTubeMedia(drill.media) ? <img src={demonstrationThumbnail(drill.media)} alt="" loading="lazy" /> : video ? <video ref={thumbnail} src={`${drill.media.path}#t=0.1`} muted playsInline preload="metadata" tabIndex="-1" aria-hidden="true" /> : <Icon name="ball" size={22} />}
     <span className="pb-media-action" aria-hidden="true"><Icon name={video ? 'play' : 'arrow'} size={16} /></span>
   </button>
 }

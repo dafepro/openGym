@@ -1,3 +1,6 @@
+import additions from '../public/practice-additions.json'
+import { extendCatalog, splitPublicEdition } from '../src/domain/public-practices.js'
+import { normalizePracticeNote } from '../src/domain/content.js'
 import { HASH, digest, readLimited, safeId } from './http.js'
 import { validateDrillMetadata } from '../src/domain/metadata.js'
 
@@ -33,6 +36,7 @@ function childCatalog(raw, revision) {
     requireValue(new Set(drills.map(drill => drill.id)).size === drills.length)
     if (assignment.assignedOn != null) requireValue(/^\d{4}-\d{2}-\d{2}$/.test(assignment.assignedOn) && new Date(assignment.assignedOn + 'T00:00:00Z').toISOString().slice(0, 10) === assignment.assignedOn)
     return { id: assignment.id, revision: assignment.revision, title: assignment.title, status: assignment.status,
+      ...(normalizePracticeNote(assignment.note) ? { note: normalizePracticeNote(assignment.note) } : {}),
       ...(assignment.assignedOn ? { assignedOn: assignment.assignedOn } : {}), drills }
   })
   requireValue(new Set(assignments.map(assignment => assignment.id + ':' + assignment.revision)).size === assignments.length)
@@ -63,13 +67,20 @@ export async function loadCatalog(env) {
   }
   const approved = new Set(catalog.assignments.flatMap(assignment => assignment.drills.filter(drill => drill.media.status === 'approved').map(drill => drill.media.id)))
   for (const id of approved) requireValue(registry.has(id))
-  return { catalog, media: new Map([...registry].filter(([id]) => approved.has(id))) }
+  return { catalog: await extendCatalog(catalog, additions), media: new Map([...registry].filter(([id]) => approved.has(id))) }
 }
 
 // Published edition objects are retained under immutable revision keys. Only the
 // child projection is exposed; historical approval never grants current media access.
 export async function loadCatalogEdition(env, revision) {
   if (!safeId(revision)) throw new Error('Invalid catalog edition')
+  const composite = splitPublicEdition(revision)
+  if (composite) {
+    const base = await loadCatalogEdition(env, composite.baseRevision)
+    const catalog = await extendCatalog(base, additions, composite.count)
+    requireValue(catalog.revision === revision)
+    return catalog
+  }
   const stored = await env.TRAINING_CONTENT.get(`catalogs/${revision}.json`)
   if (!stored?.body || !Number.isInteger(stored.size) || stored.size < 1 || stored.size > MAX_CATALOG) throw new Error('Catalog unavailable')
   const bytes = await readLimited(stored.body, MAX_CATALOG)

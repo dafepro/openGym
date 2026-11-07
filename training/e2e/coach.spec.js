@@ -25,39 +25,28 @@ const plan = {
       restSec: 30,
       side: 'each',
       tags: ['futbol:ball-control'],
+      demonstrationUrl: 'https://www.youtube.com/watch?v=QKz7fDjPnvg',
       sources: [
         { title: 'Example coaching guide', url: 'https://example.org/soccer' },
       ],
     },
   ],
 }
-test('coach setup is honest while drafting remains available', async ({
+test('coach setup hides the form until the protected service is ready', async ({
   page,
 }, testInfo) => {
   await page.route('**/api/coach/config', (route) =>
     route.fulfill({
-      json: { configured: false, channels: { email: false, sms: false } },
+      json: { configured: false, channels: {} },
     }),
   )
   await page.getByRole('link', { name: 'Coach’s desk', exact: true }).click()
   await expect(
     page.getByRole('heading', {
-      name: 'Give practice a purpose.',
-      exact: true,
+      name: 'Assistant setup is pending',
     }),
   ).toBeVisible()
-  const field = page.getByRole('textbox', {
-    name: 'What should the player work on?',
-    exact: true,
-  })
-  await field.fill(brief)
-  await expect(
-    page.getByRole('button', { name: 'Request a practice', exact: true }),
-  ).toBeDisabled()
-  await expect(
-    page.getByText('Assistant setup is pending', { exact: true }),
-  ).toBeVisible()
-  await expect(field).toHaveAttribute('maxlength', '1000')
+  await expect(page.getByRole('textbox')).toHaveCount(0)
   await noHorizontalOverflow(page)
   await capture(page, testInfo, 'coach-pending-setup')
 })
@@ -80,12 +69,16 @@ test('coach submits recipients and follows research into a reviewable proposal',
           brief: sent.brief,
           createdAt: Date.now(),
           recipientCount: 2,
+          recipients: sent.recipients,
+          submitterEmail: 'coach@example.org',
           status: 'queued',
         },
       ]
       return route.fulfill({ status: 202, json: requests[0] })
     }
-    return route.fulfill({ json: { requests } })
+    return route.fulfill({
+      json: { requests, coach: { email: 'coach@example.org' } },
+    })
   })
   await page.getByRole('link', { name: 'Coach’s desk', exact: true }).click()
   await page
@@ -95,37 +88,43 @@ test('coach submits recipients and follows research into a reviewable proposal',
     })
     .fill(brief)
   await page
-    .getByText('Notify players when it’s ready', { exact: true })
-    .click()
+    .getByRole('textbox', { name: 'Email address', exact: true })
+    .fill('parent@example.org')
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await page.getByRole('button', { name: 'Text', exact: true }).click()
+  // An unadded final contact is included on submit, so it cannot be silently lost.
   await page
-    .getByRole('textbox', { name: 'Emails or phone numbers', exact: true })
-    .fill('parent@example.org\n+1 555 123 4567')
+    .getByRole('textbox', { name: 'Phone number', exact: true })
+    .fill('5551234567')
+  await expect(
+    page.getByRole('button', { name: 'Text', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true')
+  await page.waitForTimeout(220) // Capture the settled segmented-control transition.
+  await capture(page, testInfo, 'coach-recipient-form')
   await page
-    .getByRole('checkbox', {
-      name: 'These players or guardians expect this practice notification.',
-      exact: true,
-    })
-    .check()
-  await page
-    .getByRole('button', { name: 'Request a practice', exact: true })
+    .getByRole('button', { name: 'Create practice', exact: true })
     .click()
   await expect(
     page.getByRole('heading', { name: 'Your requests', exact: true }),
   ).toBeFocused()
   await expect(page.getByText('Queued', { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('textbox', {
+      name: 'What should the player work on?',
+      exact: true,
+    }),
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'New practice', exact: true }),
+  ).toBeVisible()
   expect(sent.brief).toBe(brief)
-  expect(Object.keys(sent).sort()).toEqual([
-    'brief',
-    'consent',
-    'id',
-    'recipients',
-  ])
+  expect(Object.keys(sent).sort()).toEqual(['brief', 'id', 'recipients'])
   requests = [
     {
       ...requests[0],
       status: 'submitted',
       plan,
-      issueUrl: 'https://github.com/dafepro/openGym/issues/123',
+      prUrl: 'https://github.com/dafepro/openGym/pull/123',
     },
   ]
   await expect(
@@ -133,14 +132,10 @@ test('coach submits recipients and follows research into a reviewable proposal',
   ).toBeVisible({ timeout: 10000 })
   await expect(page.getByText(plan.goal, { exact: true })).toBeVisible()
   await expect(
-    page.getByRole('link', { name: 'Review proposal', exact: false }),
-  ).toHaveAttribute('href', requests[0].issueUrl)
-  await expect(
-    page.getByText('2 recipients · notified after publication', {
-      exact: true,
-    }),
-  ).toBeVisible()
-  await page.getByText('1 proposed drill', { exact: true }).click()
+    page.getByRole('link', { name: 'Open pull request', exact: false }),
+  ).toHaveAttribute('href', requests[0].prUrl)
+  await expect(page.getByText('2 recipients · private', { exact: true })).toBeVisible()
+  await page.getByText('1 drill', { exact: true }).click()
   await expect(
     page.getByRole('link', { name: 'Example coaching guide', exact: false }),
   ).toBeVisible()
@@ -198,7 +193,12 @@ test('coach draft survives navigation and reload, and can be cleared', async ({
 }) => {
   await page.route('**/api/coach/config', (route) =>
     route.fulfill({
-      json: { configured: false, channels: { email: false, sms: false } },
+      json: { configured: true, channels: { email: false, sms: false } },
+    }),
+  )
+  await page.route('**/api/coach/requests', (route) =>
+    route.fulfill({
+      json: { requests: [], coach: { email: 'coach@example.org' } },
     }),
   )
   await page.getByRole('link', { name: 'Coach’s desk', exact: true }).click()
@@ -244,15 +244,12 @@ test('a rejected request can be revised without silently reusing notification re
   })
   await expect(field).toBeFocused()
   await expect(field).toHaveValue(brief)
-  await page
-    .getByText('Notify players when it’s ready', { exact: true })
-    .click()
   await expect(
-    page.getByRole('textbox', { name: 'Emails or phone numbers', exact: true }),
+    page.getByRole('textbox', { name: 'Email address', exact: true }),
   ).toHaveValue('')
-  await expect(page.getByRole('checkbox')).not.toBeChecked()
+  await expect(page.getByRole('checkbox')).toHaveCount(0)
   await expect(
-    page.getByText('2 recipients · notified after publication', {
+    page.getByText('2 recipients · link available after publication', {
       exact: true,
     }),
   ).toHaveCount(0)
@@ -320,24 +317,160 @@ test('coach Google gate preserves draft and paused service clearly disables paid
   await page.getByRole('link', { name: 'Coach’s desk', exact: true }).click()
   const signIn = page.getByRole('link', { name: 'Continue with Google' })
   await expect(signIn).toHaveAttribute('href', '/api/coach/login')
+  await expect(page.getByRole('textbox')).toHaveCount(0)
   await expect(
-    page.getByText('Coach requests are paused', { exact: true }),
-  ).toBeVisible()
+    page.getByRole('button', { name: 'Create practice', exact: true }),
+  ).toHaveCount(0)
+  await page.reload()
+  await expect(signIn).toBeVisible()
+  await expect(page.getByRole('textbox')).toHaveCount(0)
+  await capture(page, testInfo, 'coach-google-gate')
+})
+
+test('recipient entry handles batch paste, duplicates, mistakes and switching channels without losing a typed contact', async ({
+  page,
+}, testInfo) => {
+  let sent
+  await page.route('**/api/coach/config', (route) =>
+    route.fulfill({
+      json: { configured: true, channels: { email: false, sms: false } },
+    }),
+  )
+  await page.route('**/api/coach/requests', (route) => {
+    if (route.request().method() === 'POST') {
+      sent = route.request().postDataJSON()
+      return route.fulfill({
+        status: 202,
+        json: {
+          ...sent,
+          status: 'queued',
+          createdAt: Date.now(),
+          recipientCount: sent.recipients.length,
+        },
+      })
+    }
+    return route.fulfill({
+      json: { requests: [], coach: { email: 'coach@example.org' } },
+    })
+  })
+  await page.getByRole('link', { name: 'Coach’s desk', exact: true }).click()
   await page
     .getByRole('textbox', {
       name: 'What should the player work on?',
       exact: true,
     })
     .fill(brief)
+  const address = page.getByRole('textbox', {
+    name: 'Email address',
+    exact: true,
+  })
+  await address.fill('bad address')
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('Enter an email address')
+  await address.fill('parent@example.org')
+  await page.getByRole('button', { name: 'Text', exact: true }).click()
   await expect(
-    page.getByRole('button', { name: 'Request a practice', exact: true }),
-  ).toBeDisabled()
-  await page.reload()
-  await expect(
-    page.getByRole('textbox', {
-      name: 'What should the player work on?',
+    page.getByRole('button', {
+      name: 'Remove parent@example.org',
       exact: true,
     }),
-  ).toHaveValue(brief)
-  await capture(page, testInfo, 'coach-google-gate')
+  ).toBeVisible()
+  const phone = page.getByRole('textbox', { name: 'Phone number', exact: true })
+  await phone.fill('2025550146')
+  await page.getByRole('button', { name: 'Email', exact: true }).click()
+  await expect(
+    page.getByRole('button', { name: 'Remove +12025550146', exact: true }),
+  ).toBeVisible()
+  await address.evaluate((element) => {
+    const data = new DataTransfer()
+    data.setData(
+      'text/plain',
+      'parent@example.org; second@example.org\n+44 20 7946 0958',
+    )
+    element.dispatchEvent(
+      new ClipboardEvent('paste', {
+        clipboardData: data,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+  })
+  await expect(page.locator('.pb-recipient-list li')).toHaveCount(4)
+  await page.getByRole('button', { name: 'Add me', exact: true }).click()
+  await page.getByRole('button', { name: 'Add me', exact: true }).click()
+  await expect(page.locator('.pb-recipient-list li')).toHaveCount(5)
+  await page
+    .getByRole('button', { name: 'Remove second@example.org', exact: true })
+    .click()
+  await expect(page.locator('.pb-recipient-list li')).toHaveCount(4)
+  await expect(
+    page.getByText(/Email delivery isn’t connected yet/),
+  ).toBeVisible()
+  await noHorizontalOverflow(page)
+  await capture(page, testInfo, 'coach-contacts-private')
+  await page
+    .getByRole('button', { name: 'Create practice', exact: true })
+    .click()
+  await expect.poll(() => sent?.recipients.length).toBe(4)
+  expect(sent).not.toHaveProperty('consent')
+})
+
+test('coach access check never flashes the form and returning to an existing request keeps it central', async ({
+  page,
+}) => {
+  let release
+  const gate = new Promise((resolve) => {
+    release = resolve
+  })
+  await page.route('**/api/coach/config', (route) =>
+    route.fulfill({ json: { configured: true, channels: {} } }),
+  )
+  await page.route('**/api/coach/requests', async (route) => {
+    await gate
+    return route.fulfill({
+      json: {
+        requests: [
+          {
+            id: 'existing',
+            brief,
+            plan,
+            status: 'submitted',
+            createdAt: Date.now(),
+            recipientCount: 0,
+            prUrl: 'https://github.com/dafepro/openGym/pull/123',
+          },
+        ],
+        coach: { email: 'coach@example.org' },
+      },
+    })
+  })
+  await page.getByRole('link', { name: 'Coach’s desk', exact: true }).click()
+  await expect(
+    page.getByText('Checking coach access…', { exact: true }),
+  ).toBeVisible()
+  await expect(page.getByRole('textbox')).toHaveCount(0)
+  await expect(
+    page.getByRole('link', { name: 'Continue with Google' }),
+  ).toHaveCount(0)
+  release()
+  await expect(
+    page.getByRole('heading', { name: plan.title, exact: true }),
+  ).toBeVisible()
+  await expect(page.getByRole('textbox')).toHaveCount(0)
+  await page.getByRole('button', { name: 'New practice', exact: true }).click()
+  const field = page.getByRole('textbox', {
+    name: 'What should the player work on?',
+    exact: true,
+  })
+  await expect(field).toBeFocused()
+  await field.fill(
+    'An unfinished practice brief about fast, close soccer touches.',
+  )
+  await page.getByRole('button', { name: 'Close draft', exact: true }).click()
+  await expect(page.getByRole('textbox')).toHaveCount(0)
+  await expect(page.getByText('Draft saved', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /New practice/ }).click()
+  await expect(field).toHaveValue(
+    'An unfinished practice brief about fast, close soccer touches.',
+  )
 })

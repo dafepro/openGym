@@ -1,3 +1,4 @@
+import { isYouTubeMedia } from './demonstration.js'
 import { validateDrillMetadata } from './metadata.js'
 
 // AGPL-3.0-or-later. Training content is deliberately separate from public app code.
@@ -56,12 +57,25 @@ export function validateAssignment(assignment) {
     if (drill.mode === 'practice' && (drill.sets !== 1 || drill.side !== 'both' || drill.restSec !== null || drill.reps != null || drill.durationSec != null)) throw new Error('Self-paced practice records one drill without a quantity or timer')
     if (drill.restSec !== null) quantity(drill.restSec, 'Rest duration', 3600)
     if (!plain(drill.media)) throw new Error('Media availability must be explicit')
-    fields(drill.media, ['id', 'status', 'path'], 'Media')
+    fields(drill.media, ['id', 'status', 'path', 'provider', 'youtubeId', 'portrait'], 'Media')
     requireId(drill.media.id, 'Media ID')
     if (!['approved', 'unavailable'].includes(drill.media.status)) throw new Error('Media must be approved or unavailable')
+    if (
+      drill.media.provider != null &&
+      (!isYouTubeMedia(drill.media) ||
+        drill.media.path !== undefined ||
+        (drill.media.portrait != null &&
+          typeof drill.media.portrait !== 'boolean'))
+    )
+      throw new Error('Invalid YouTube demonstration')
+    if (
+      drill.media.provider == null &&
+      (drill.media.youtubeId != null || drill.media.portrait != null)
+    )
+      throw new Error('Demonstration provider required')
     if (drill.media.path != null && !/^\/media\/[a-zA-Z0-9._/-]+$/.test(drill.media.path)) throw new Error('Media path must be an approved same-origin /media/ path')
     if (drill.media.path?.split('/').some(segment => segment === '.' || segment === '..')) throw new Error('Media path cannot traverse directories')
-    if (drill.media.status === 'approved' && drill.media.path !== `/media/${drill.media.id}`) throw new Error('Approved media path must match its manifest media ID')
+    if (drill.media.status === 'approved' && !isYouTubeMedia(drill.media) && drill.media.path !== `/media/${drill.media.id}`) throw new Error('Approved media path must match its manifest media ID')
   }
   const checked = clone(assignment)
   if (note) checked.note = note

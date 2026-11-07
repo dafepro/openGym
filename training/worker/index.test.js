@@ -250,7 +250,7 @@ describe('private catalog and media boundary', () => {
     const shell = await handleRequest(request('/'), env, NOW)
     expect(shell.status).toBe(200)
     expect(shell.headers.get('Cache-Control')).toContain('no-store')
-    expect(shell.headers.get('Content-Security-Policy')).toContain("frame-src 'none'")
+    expect(shell.headers.get('Content-Security-Policy')).toContain("frame-src https://www.youtube-nocookie.com")
     expect((await handleRequest(request('/source.html'), { ASSETS: env.ASSETS }, NOW)).status).toBe(200)
     expect((await handleRequest(request('/source.html?private=true'), env, NOW)).status).toBe(404)
     expect((await handleRequest(request('/private/catalog.json'), env, NOW)).status).toBe(404)

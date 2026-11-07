@@ -1,3 +1,4 @@
+import { demonstrationThumbnail, isYouTubeMedia } from '../domain/demonstration.js'
 import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import Icon from '../components/Icon.jsx'
@@ -73,7 +74,7 @@ export default function PracticeView({ assignment, drill, drillIndex = 0, drillC
       })}
     </ol>
     <div className="pb-drill-topline"><div className="qt-drill-heading"><p className="qt-eyebrow">{rest ? 'Up next · ' : ''}{reviewOnly ? 'Video' : 'Drill'} {String(drillIndex + 1).padStart(2, '0')}</p><h1>{drill.title}</h1></div>
-      {drill.media?.status === 'approved' && <button className="pb-demo-compact" type="button" aria-label="Watch demonstration" aria-haspopup="dialog" aria-expanded={showDemo} onClick={openDemo}><span className="qt-demo-thumb" aria-hidden="true"><video src={`${drill.media.path}#t=0.1`} muted playsInline preload="metadata" tabIndex="-1" aria-hidden="true" /><span><Icon name="play" size={16}/></span></span><span>Watch demo</span></button>}
+      {drill.media?.status === 'approved' && <button className="pb-demo-compact" type="button" aria-label="Watch demonstration" aria-haspopup="dialog" aria-expanded={showDemo} onClick={openDemo}><span className="qt-demo-thumb" aria-hidden="true">{isYouTubeMedia(drill.media) ? <img src={demonstrationThumbnail(drill.media)} alt="" /> : <video src={`${drill.media.path}#t=0.1`} muted playsInline preload="metadata" tabIndex="-1" aria-hidden="true" />}<span><Icon name="play" size={16}/></span></span><span>Watch demo</span></button>}
     </div>
     <div className="qt-work-target" aria-label="Practice targets">
       <strong>{freeDrill ? 'Self-paced' : drill.mode === 'watch' ? 'Video review' : prescriptionLabel(drill)}</strong>
