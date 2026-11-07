@@ -57,7 +57,12 @@ export function validateAssignment(assignment) {
     if (drill.mode === 'practice' && (drill.sets !== 1 || drill.side !== 'both' || drill.restSec !== null || drill.reps != null || drill.durationSec != null)) throw new Error('Self-paced practice records one drill without a quantity or timer')
     if (drill.restSec !== null) quantity(drill.restSec, 'Rest duration', 3600)
     if (!plain(drill.media)) throw new Error('Media availability must be explicit')
-    fields(drill.media, ['id', 'status', 'path', 'provider', 'youtubeId', 'portrait'], 'Media')
+    fields(drill.media, ['id', 'status', 'path', 'provider', 'youtubeId', 'portrait', 'clipStartSec', 'clipEndSec'], 'Media')
+    if (drill.media.clipStartSec != null || drill.media.clipEndSec != null) {
+      const { clipStartSec: start, clipEndSec: end } = drill.media
+      if (!isYouTubeMedia(drill.media) || !Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end > 14400 || end <= start || end - start > 120)
+        throw new Error('Video excerpts must be valid YouTube clips of at most two minutes')
+    }
     requireId(drill.media.id, 'Media ID')
     if (!['approved', 'unavailable'].includes(drill.media.status)) throw new Error('Media must be approved or unavailable')
     if (

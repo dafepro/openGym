@@ -114,7 +114,8 @@ function setup(extra = {}) {
             : message(plan),
       )
     }
-    if (url.includes('api.github.com') ||
+    if (
+      url.includes('api.github.com') ||
       url.startsWith('https://www.youtube.com/oembed?') ||
       url.endsWith('/api/catalog')
     )
@@ -367,7 +368,9 @@ describe('durable coach workflow', () => {
     expect(
       calls.find((call) => call.url.includes('resend.com')).body,
     ).toContain(assignment.title)
-    expect(job.recipients).toEqual([{ channel: 'email', address: 'player@example.org' }])
+    expect(job.recipients).toEqual([
+      { channel: 'email', address: 'player@example.org' },
+    ])
     expect(job.delivery[0].status).toBe('accepted')
     expect(
       (
@@ -589,7 +592,8 @@ describe('authenticated API isolation', () => {
       get: (owner) => ({
         fetch: async (request, options) => {
           const req = new Request(request, options)
-          if (req.method === 'POST' && new URL(req.url).pathname !== '/profile') writes.push(await req.json())
+          if (req.method === 'POST' && new URL(req.url).pathname !== '/profile')
+            writes.push(await req.json())
           return Response.json({ requests: [], owner })
         },
       }),
@@ -684,7 +688,49 @@ describe('authenticated API isolation', () => {
       ).status,
     ).toBe(400)
     expect((await storage.get(`job:${id}`)).status).toBe('submitted')
-    expect(calls.filter((call) => call.url.includes('api.openai.com')),
+    expect(
+      calls.filter((call) => call.url.includes('api.openai.com')),
     ).toHaveLength(3)
   })
+})
+
+it('preserves failed revision feedback and admits only one explicit retry on the same request', async () => {
+  const { queue, storage, env, calls } = setup()
+  const key = `job:${id}`
+  await storage.put(key, {
+    id,
+    owner,
+    brief,
+    plan,
+    headSha: 'a'.repeat(40),
+    prNumber: 39,
+    status: 'submitted',
+    recipients: [],
+    createdAt: Date.now(),
+    revisionFeedback: 'Use a short demonstration.',
+    revisionRetries: 0,
+  })
+  const original = env.TEST_FETCH
+  env.TEST_FETCH = async (url, options) =>
+    url === 'https://api.openai.com/v1/responses'
+      ? Response.json({
+          status: 'incomplete',
+          incomplete_details: { reason: 'max_output_tokens' },
+        })
+      : original(url, options)
+  await queue.prepare(await storage.get(key), 'Use a short demonstration.')
+  const failed = await storage.get(key)
+  expect(failed.status).toBe('attention')
+  expect(failed.revisionFeedback).toBe('Use a short demonstration.')
+  expect(failed.revisionFailure.code).toBe('output_limit')
+  const retry = () =>
+    queue.fetch(new Request(`https://internal/retry/${id}`, { method: 'POST' }))
+  expect((await retry()).status).toBe(202)
+  expect((await retry()).status).toBe(200)
+  expect((await storage.get(key)).revisionRetries).toBe(1)
+  await queue.prepare(await storage.get(key), failed.revisionFeedback)
+  expect((await retry()).status).toBe(409)
+  expect(
+    calls.filter((call) => call.url.includes('/pulls') && call.body),
+  ).toHaveLength(0)
 })

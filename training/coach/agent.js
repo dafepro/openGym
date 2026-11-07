@@ -27,9 +27,23 @@ export const planSchema = object({
       durationSec: { type: ['integer', 'null'], minimum: 10, maximum: 1200 },
       restSec: { type: 'integer', minimum: 0, maximum: 300 },
       side: { type: 'string', enum: ['both', 'each'] },
-      tags: { type: 'array', minItems: 1, maxItems: 12, items: { ...text(60), pattern: '^futbol:[a-z0-9]+(?:-[a-z0-9]+)*$' },
+      tags: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 12,
+        items: { ...text(60), pattern: '^futbol:[a-z0-9]+(?:-[a-z0-9]+)*$' },
       },
       demonstrationUrl: text(1500),
+      demonstrationStartSec: {
+        type: ['integer', 'null'],
+        minimum: 0,
+        maximum: 14400,
+      },
+      demonstrationEndSec: {
+        type: ['integer', 'null'],
+        minimum: 1,
+        maximum: 14400,
+      },
       sources: {
         type: 'array',
         minItems: 1,
@@ -79,11 +93,40 @@ function valid(value, schema) {
   )
 }
 export function validatePlan(plan, sources) {
-  if (!valid(plan, planSchema))
+  const researched = (url) =>
+    sources.has(url) ||
+    (youtubeId(url) &&
+      [...sources].some((source) => youtubeId(source) === youtubeId(url)))
+  const compatible =
+    plain(plan) && Array.isArray(plan.drills)
+      ? {
+          ...plan,
+          drills: plan.drills.map((drill) => ({
+            ...drill,
+            demonstrationStartSec: drill.demonstrationStartSec ?? null,
+            demonstrationEndSec: drill.demonstrationEndSec ?? null,
+          })),
+        }
+      : plan
+  if (!valid(compatible, planSchema))
     throw new Error('The proposed practice did not match the required format.')
   if (/[\u0000-\u001f\u007f]/.test(plan.goal))
     throw new Error('The practice goal must be one printable focus cue.')
   for (const drill of plan.drills) {
+    if (
+      drill.demonstrationStartSec != null ||
+      drill.demonstrationEndSec != null
+    ) {
+      if (
+        !Number.isInteger(drill.demonstrationStartSec) ||
+        !Number.isInteger(drill.demonstrationEndSec) ||
+        drill.demonstrationEndSec <= drill.demonstrationStartSec ||
+        drill.demonstrationEndSec - drill.demonstrationStartSec > 120
+      )
+        throw new Error(
+          'A demonstration excerpt needs a start and end within two minutes.',
+        )
+    }
     if (
       `Setup: ${drill.setup}\n${drill.instructions}\nFocus: ${drill.focus}`
         .length > 2000
@@ -99,7 +142,7 @@ export function validatePlan(plan, sources) {
       throw new Error('The proposed targets need review.')
     if (
       !youtubeId(drill.demonstrationUrl) ||
-      !sources.has(drill.demonstrationUrl) ||
+      !researched(drill.demonstrationUrl) ||
       !drill.sources.some((source) => source.url === drill.demonstrationUrl)
     )
       throw new Error(
@@ -111,7 +154,7 @@ export function validatePlan(plan, sources) {
         url.protocol !== 'https:' ||
         url.username ||
         url.password ||
-        !sources.has(source.url)
+        !researched(source.url)
       )
         throw new Error(
           'A proposed source was not found in the research results.',
@@ -136,29 +179,44 @@ export async function response(env, body, fetcher = fetch) {
       Authorization: `Bearer ${env.OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ model: env.OPENAI_MODEL, store: false, ...body }),
+    body: JSON.stringify({
+      model: env.OPENAI_MODEL,
+      store: false,
+      reasoning: { effort: 'low' },
+      ...body,
+    }),
     signal: AbortSignal.timeout(90000),
   })
   if (!result.ok)
-    throw new Error('The practice assistant is temporarily unavailable.')
+    throw Object.assign(
+      new Error('The practice assistant is temporarily unavailable.'),
+      { code: result.status === 429 ? 'provider_limit' : 'provider_error' },
+    )
   const data = await result.json()
   if (data.status !== 'completed' || data.error)
-    throw new Error(
-      'The practice assistant did not finish. Please retry later.',
-    )
+    throw Object.assign(new Error('The practice assistant did not finish.'), {
+      code:
+        data.incomplete_details?.reason === 'max_output_tokens'
+          ? 'output_limit'
+          : 'incomplete_response',
+      stage: body.text?.format?.name || 'research',
+    })
   return data
 }
 const format = (name, schema) => ({
   format: { type: 'json_schema', name, strict: true, schema },
 })
-export async function researchPractice(brief, env, fetcher = fetch,
+export async function researchPractice(
+  brief,
+  env,
+  fetcher = fetch,
   context = {},
 ) {
   // Contacts never reach the model. Remove accidental contact details in the brief too.
   const redact = (value) =>
     value
       .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, '[contact removed]')
-    .replace(/\+?\d[\d ().-]{7,}\d/g, '[contact removed]')
+      .replace(/\+?\d[\d ().-]{7,}\d/g, '[contact removed]')
   const input = redact(brief)
   context = JSON.parse(redact(JSON.stringify(context)))
   const screeningInput = JSON.stringify({
@@ -180,7 +238,7 @@ export async function researchPractice(brief, env, fetcher = fetch,
     {
       instructions: prompts.gate,
       input: screeningInput,
-      max_output_tokens: 350,
+      max_output_tokens: 800,
       text: format(
         'coach_gate',
         object({ accepted: { type: 'boolean' }, reason: text(200) }),
@@ -203,7 +261,7 @@ export async function researchPractice(brief, env, fetcher = fetch,
       tools: [{ type: 'web_search' }],
       include: ['web_search_call.action.sources'],
       max_tool_calls: 3,
-      max_output_tokens: 4500,
+      max_output_tokens: 9000,
     },
     fetcher,
   )
@@ -218,6 +276,8 @@ export async function researchPractice(brief, env, fetcher = fetch,
           ),
     ) || [],
   )
+  for (const drill of context.previousPractice?.drills || [])
+    for (const source of drill.sources || []) sources.add(source.url)
   if (!sources.size)
     throw new Error(
       'No verifiable coaching sources were found. Refine the request.',
@@ -232,7 +292,7 @@ export async function researchPractice(brief, env, fetcher = fetch,
         research: outputText(research),
         sources: [...sources],
       }),
-      max_output_tokens: 6000,
+      max_output_tokens: 9000,
       text: format('soccer_practice', planSchema),
     },
     fetcher,

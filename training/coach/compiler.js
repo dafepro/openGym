@@ -40,6 +40,12 @@ export function compilePractice(job) {
           portrait: new URL(drill.demonstrationUrl).pathname.startsWith(
             '/shorts/',
           ),
+          ...(drill.demonstrationStartSec != null
+            ? {
+                clipStartSec: drill.demonstrationStartSec,
+                clipEndSec: drill.demonstrationEndSec,
+              }
+            : {}),
         },
       })),
     },
@@ -95,7 +101,15 @@ export function practicePRBody(job, overlap = []) {
   const drills = job.plan.drills
     .map((drill, index) => {
       const video = job.videos[index]
-      return `### ${index + 1}. ${md(drill.title)}\n\n${drill.sets} × ${drill.mode === 'time' ? `${drill.durationSec}s` : `${drill.reps} reps`}${drill.side === 'each' ? ' each foot/side' : ''} · ${drill.restSec}s rest\n\n**Setup:** ${md(drill.setup)}\n\n${md(drill.instructions)}\n\n**Focus:** ${md(drill.focus)}\n\n[![Demonstration](https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg)](${video.url})\n\n[${md(video.title)}](${video.url}) — ${md(video.author)}\n`
+      const excerpt =
+        drill.demonstrationStartSec != null
+          ? `\n**Video excerpt:** ${drill.demonstrationStartSec}s–${drill.demonstrationEndSec}s (${drill.demonstrationEndSec - drill.demonstrationStartSec}s).\n`
+          : ''
+      const url =
+        drill.demonstrationStartSec != null
+          ? `${video.url}&t=${drill.demonstrationStartSec}s`
+          : video.url
+      return `### ${index + 1}. ${md(drill.title)}\n\n${drill.sets} × ${drill.mode === 'time' ? `${drill.durationSec}s` : `${drill.reps} reps`}${drill.side === 'each' ? ' each foot/side' : ''} · ${drill.restSec}s rest\n\n**Setup:** ${md(drill.setup)}\n\n${md(drill.instructions)}\n\n**Focus:** ${md(drill.focus)}\n${excerpt}\n[![Demonstration](https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg)](${url})\n\n[${md(video.title)}](${url}) — ${md(video.author)}\n`
     })
     .join('\n')
   const related = overlap.length

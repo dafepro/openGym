@@ -7,7 +7,7 @@ import {
   noHorizontalOverflow,
 } from './fixtures.js'
 
-async function youtubeFixture(page, failOnce = false) {
+async function youtubeFixture(page, failOnce = false, clip = {}) {
   const withVideo = structuredClone(catalog)
   withVideo.assignments[0].drills[0].media = {
     id: 'youtube-QKz7fDjPnvg',
@@ -15,6 +15,7 @@ async function youtubeFixture(page, failOnce = false) {
     youtubeId: 'QKz7fDjPnvg',
     portrait: true,
     status: 'approved',
+    ...clip,
   }
   await page.route('**/api/catalog', (route) =>
     route.fulfill({ json: withVideo }),
@@ -126,4 +127,30 @@ test('a blocked embedded video can retry without losing the active practice', as
   await expect(
     page.getByRole('heading', { name: firstTitle, exact: true }),
   ).toBeVisible()
+})
+
+test('a prescribed excerpt starts, stops and replays within its bounds', async ({
+  page,
+}, testInfo) => {
+  await youtubeFixture(page, false, { clipStartSec: 10, clipEndSec: 20 })
+  await page
+    .getByRole('button', { name: 'Start practice', exact: true })
+    .click()
+  await page
+    .getByRole('button', { name: 'Watch demonstration', exact: true })
+    .click()
+  const dialog = page.getByRole('dialog')
+  await expect.poll(() => page.evaluate(() => window.__ytPlayer?.time)).toBe(10)
+  await expect(dialog.locator('iframe')).toHaveAttribute(
+    'src',
+    /start=10&end=20/,
+  )
+  await page.evaluate(() => {
+    window.__ytPlayer.time = 20
+  })
+  await expect.poll(() => page.evaluate(() => window.__ytPlayer.state)).toBe(2)
+  await dialog.getByRole('button', { name: 'Play video', exact: true }).click()
+  await expect.poll(() => page.evaluate(() => window.__ytPlayer.time)).toBe(10)
+  await expect.poll(() => page.evaluate(() => window.__ytPlayer.state)).toBe(1)
+  await capture(page, testInfo, 'youtube-prescribed-excerpt')
 })

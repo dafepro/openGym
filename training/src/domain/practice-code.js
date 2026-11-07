@@ -29,7 +29,9 @@ async function transform(bytes, stream) {
   return result
 }
 
-const drillPayload = ({ id, media, ...drill }) => ({ ...drill, media: { id: media.id } })
+const drillPayload = ({ id, media, ...drill }) => ({ ...drill, media: { id: media.id,
+  ...(media.clipStartSec != null ? { clipStartSec: media.clipStartSec, clipEndSec: media.clipEndSec } : {}),
+} })
 const serialize = value => new TextEncoder().encode(JSON.stringify(canonical(value)))
 const targets = ['mode', 'sets', 'reps', 'durationSec', 'side', 'restSec']
 const core = drill => JSON.stringify(canonical(Object.fromEntries(Object.entries(drill).filter(([key]) => !targets.includes(key)))))
@@ -124,8 +126,15 @@ export async function readPracticeCode(input, catalog, loadArchive = archive) {
   if (!payload || Object.keys(payload).some(key => !['title', 'note', 'drills'].includes(key)) || !Array.isArray(payload.drills)) throw new Error('This practice code has unsupported content.')
   const available = new Map(catalog.assignments.flatMap(item => item.drills).filter(drill => drill.media.status === 'approved').map(drill => [drill.media.id, drill.media]))
   const assignment = validateAssignment({ ...payload, id: `shared-${match[2]}`, revision: 'qt2', status: 'current', drills: payload.drills.map((drill, index) => {
-    if (!drill || !drill.media || Object.keys(drill.media).some(key => key !== 'id')) throw new Error('This practice code has unsupported media.')
-    return { ...drill, id: `drill-${index + 1}`, media: available.get(drill.media.id) || { id: drill.media.id, status: 'unavailable' } }
+    if (!drill || !drill.media || Object.keys(drill.media).some(key => !['id', 'clipStartSec', 'clipEndSec'].includes(key))) throw new Error('This practice code has unsupported media.')
+    const selected = available.get(drill.media.id)
+    const hasClip = drill.media.clipStartSec != null || drill.media.clipEndSec != null
+    const clipId = /^youtube-([A-Za-z0-9_-]{11})$/.exec(drill.media.id || '')?.[1]
+    if (hasClip && (!clipId || !Number.isInteger(drill.media.clipStartSec) || !Number.isInteger(drill.media.clipEndSec))) throw new Error('Invalid demonstration excerpt.')
+    const { clipStartSec, clipEndSec, ...media } = selected || { id: drill.media.id, status: 'unavailable', ...(hasClip ? { provider: 'youtube', youtubeId: clipId } : {}) }
+    return { ...drill, id: `drill-${index + 1}`, media: { ...media,
+      ...(hasClip ? { clipStartSec: drill.media.clipStartSec, clipEndSec: drill.media.clipEndSec } : {}),
+    } }
   }) })
   return assignment
 }
