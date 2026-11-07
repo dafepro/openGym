@@ -243,7 +243,7 @@ describe('coach brief and recipient boundaries', () => {
 })
 
 describe('durable coach workflow', () => {
-  it('queues durably, reuses a repeated request ID, then creates exactly one pull request', async () => {
+  it('queues durably and creates one idempotent pull request despite an existing coach branch', async () => {
     const { queue, storage, calls } = setup()
     expect((await enqueue(queue)).status).toBe(202)
     expect((await enqueue(queue)).status).toBe(200)
