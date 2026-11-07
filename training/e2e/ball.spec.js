@@ -20,27 +20,32 @@ test('pulling back aims and charges the kick; tap returns the ball', async ({
   await home.click()
   await expect(ball).toHaveCount(0)
 
-  const { x, y } = await pullDown(page, home, origin.y + origin.height / 2 + 12)
+  const { x, y } = await pullDown(page, home, origin.y + origin.height / 2 + 42)
   await expect(arrow).toBeVisible()
   const guide = () =>
     arrow.evaluate((element) => {
       const style = getComputedStyle(element)
+      const width = parseFloat(style.width)
+      const rotation = new DOMMatrix(style.transform)
+      const tail = parseFloat(style.top) + parseFloat(style.height) / 2
       return {
-        width: parseFloat(style.width),
-        color: style.color,
-        direction: new DOMMatrix(style.transform).b,
+        width,
+        tail,
+        tip: tail + rotation.b * width,
+        direction: rotation.b,
+        gradientRadius: element.querySelector('radialGradient').r.baseVal.value,
       }
     })
   const light = await guide()
   expect(light.direction).toBeCloseTo(-1)
-  const [lightRed, lightGreen] = light.color.match(/\d+/g).map(Number)
-  expect(lightGreen).toBeGreaterThan(lightRed)
-  await page.mouse.move(x, y + 130, { steps: 5 })
+  expect(light.tail).toBeCloseTo(y + 41, 0)
+  expect(light.tip).toBeCloseTo(y + 25, 0)
+  await page.mouse.move(x, y + 144, { steps: 5 })
   const full = await guide()
-  const [fullRed, fullGreen] = full.color.match(/\d+/g).map(Number)
-  expect(fullRed).toBeGreaterThan(fullGreen * 2)
   expect(full.width).toBeGreaterThan(light.width + 50)
-  await page.mouse.move(x, y + 154)
+  expect(full.tip).toBeCloseTo(light.tip, 0)
+  expect(full.gradientRadius).toBe(light.gradientRadius)
+  await page.mouse.move(x, y + 165)
   expect((await guide()).width).toBe(full.width)
   await page.mouse.up()
   await expect(arrow).toBeHidden()

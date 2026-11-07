@@ -1,9 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 const GRAVITY = 1500
 const DEAD_ZONE = 6
 const HOME_ANGLE = -12
+const BALL_RADIUS = 23
+const TIP_GAP = 2
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)')
 
 function bounds() {
@@ -25,22 +27,34 @@ function bounds() {
 // Distance to the visible edge along this direction. A pull from the floor
 // or a side wall can still reach full power on a touchscreen.
 function edgeDistance(x, y, dx, dy, { left, top, width, height }) {
+  const inset = 5
   return Math.min(
-    dx > 0 ? (left + width - 12 - x) / dx : dx < 0 ? (left - x) / dx : Infinity,
-    dy > 0 ? (top + height - 12 - y) / dy : dy < 0 ? (top - y) / dy : Infinity,
+    dx > 0
+      ? (left + width - 12 + inset - x) / dx
+      : dx < 0
+        ? (left - inset - x) / dx
+        : Infinity,
+    dy > 0
+      ? (top + height - 12 + inset - y) / dy
+      : dy < 0
+        ? (top - inset - y) / dy
+        : Infinity,
   )
 }
 
 function aimFrom(drag, event) {
-  const dx = drag.x - event.clientX
-  const dy = drag.y - event.clientY
+  if (Math.hypot(drag.x - event.clientX, drag.y - event.clientY) < DEAD_ZONE)
+    return null
+  const dx = drag.centerX - event.clientX
+  const dy = drag.centerY - event.clientY
   const distance = Math.hypot(dx, dy)
-  if (distance < DEAD_ZONE) return null
+  const stretch = distance - BALL_RADIUS
+  if (stretch < DEAD_ZONE) return null
   const x = dx / distance
   const y = dy / distance
-  const room = edgeDistance(drag.x, drag.y, -x, -y, bounds())
-  const maxPull = Math.max(16, Math.min(108, room))
-  return { x, y, power: Math.min(1, distance / maxPull) }
+  const room = edgeDistance(drag.centerX, drag.centerY, -x, -y, bounds())
+  const maxPull = Math.max(DEAD_ZONE, Math.min(108, room - BALL_RADIUS))
+  return { x, y, stretch, maxPull, power: Math.min(1, stretch / maxPull) }
 }
 
 export default function KickableBall() {
@@ -48,6 +62,8 @@ export default function KickableBall() {
   const parked = useRef(null)
   const ball = useRef(null)
   const arrow = useRef(null)
+  const gradient = useRef(null)
+  const gradientId = useId()
   const drag = useRef(null)
   const dragged = useRef(false)
   const motion = useRef(null)
@@ -219,16 +235,23 @@ export default function KickableBall() {
       hideArrow()
       return
     }
-    const { x, y, power } = aim
-    const length = 26 + 84 * power
-    const room = edgeDistance(pull.centerX, pull.centerY, x, y, bounds())
-    const start = Math.min(16, room - length)
+    const { x, y, stretch, maxPull } = aim
+    const length = Math.min(stretch, maxPull) - TIP_GAP - 1
+    const height = Math.min(26, 7 + length * 0.19)
+    const tailRadius = BALL_RADIUS + TIP_GAP + length
     const guide = arrow.current
     guide.style.width = `${length}px`
-    guide.style.left = `${pull.centerX + x * start}px`
-    guide.style.top = `${pull.centerY + y * start - 9}px`
+    guide.style.height = `${height}px`
+    guide.style.left = `${pull.centerX - x * tailRadius}px`
+    guide.style.top = `${pull.centerY - y * tailRadius - height / 2}px`
     guide.style.transform = `rotate(${Math.atan2(y, x)}rad)`
-    guide.style.color = `hsl(${118 * (1 - power)} 73% ${34 + 11 * power}%)`
+    // Cancel the viewBox stretch so the color bands stay circular in screen space.
+    gradient.current.setAttribute(
+      'gradientTransform',
+      `scale(${100 / length} ${24 / height})`,
+    )
+    gradient.current.setAttribute('cx', String(tailRadius))
+    gradient.current.setAttribute('r', String(BALL_RADIUS + maxPull))
     guide.style.visibility = 'visible'
   }
 
@@ -305,11 +328,29 @@ export default function KickableBall() {
           <svg
             ref={arrow}
             className="pb-kick-aim"
-            viewBox="0 0 110 18"
+            viewBox="0 -12 100 24"
             preserveAspectRatio="none"
             aria-hidden="true"
           >
-            <path d="M0 5.5h89V0l21 9-21 9v-5.5H0Z" fill="currentColor" />
+            <defs>
+              <radialGradient
+                ref={gradient}
+                id={gradientId}
+                gradientUnits="userSpaceOnUse"
+                cy="0"
+                fr={BALL_RADIUS}
+              >
+                <stop offset="0" stopColor="#3d8d39" />
+                <stop offset="32%" stopColor="#70a232" />
+                <stop offset="55%" stopColor="#c49a28" />
+                <stop offset="78%" stopColor="#e5732b" />
+                <stop offset="100%" stopColor="#d83828" />
+              </radialGradient>
+            </defs>
+            <path
+              d="M2-10C17-11 40-5 64-3.5Q74-3 78-4Q76-7 75-9Q74-12 78-11C86-9 94-5 99-1Q101 0 99 1C94 5 86 9 78 11Q74 12 75 9Q76 7 78 4Q74 3 64 3.5C40 5 17 11 2 10Q-1 10 1 6Q5 0 1-6Q-1-10 2-10Z"
+              fill={`url(#${gradientId})`}
+            />
           </svg>,
           document.body,
         )}

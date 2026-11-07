@@ -1394,4 +1394,4 @@ body {
 .pb-kick-ball.is-loose { position: fixed; left: 0; top: 0; z-index: 45; margin: 0; will-change: transform; }
 .pb-kick-ball.is-loose[data-moving="false"] { will-change: auto; }
 .pb-kick-ball[data-returning="true"] { pointer-events: none; }
-.pb-kick-aim { position: fixed; z-index: 46; height: 18px; pointer-events: none; visibility: hidden; transform-origin: 0 50%; filter: drop-shadow(0 1px 2px #0003); }
+.pb-kick-aim { position: fixed; z-index: 44; pointer-events: none; visibility: hidden; transform-origin: 0 50%; filter: drop-shadow(0 1px 2px #0003); }
