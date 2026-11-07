@@ -1,6 +1,9 @@
+import { importApprovedIssue } from './approved-issues.js'
+import { writePracticePR, inspectPracticePR, github } from './github.js'
+import { publishedPractice } from './publication.js'
 import { json, digest, readLimited } from '../worker/http.js'
-import { coachIdentity, verifyReadySignature } from './auth.js'
-import { researchPractice, issueBody } from './agent.js'
+import { coachProfile, verifyReadySignature } from './auth.js'
+import { researchPractice } from './agent.js'
 import {
   notificationChannels,
   sendReady,
@@ -23,6 +26,9 @@ const publicJob = (job) => ({
   plan: job.plan,
   publishedTitle: job.publishedTitle,
   issueUrl: job.issueUrl,
+  prUrl: job.prUrl,
+  recipients: job.recipients || [],
+  submitterEmail: job.submitterEmail,
   practiceUrl: job.practiceUrl,
   recipientCount: job.recipients?.length || job.recipientCount || 0,
   notifications: job.delivery?.map(({ channel, status }) => ({
@@ -34,7 +40,7 @@ const configured = (env) =>
   !!(
     env.OPENAI_API_KEY &&
     env.OPENAI_MODEL &&
-    env.COACH_GITHUB_TOKEN &&
+    (env.COACH_GITHUB_TOKEN || env.COACH_GITHUB_ACCESS_TOKEN) &&
     /^dafepro\/[A-Za-z0-9_.-]+$/.test(env.COACH_GITHUB_REPOSITORY || '') &&
     env.COACH_ACCESS_ISSUER &&
     env.COACH_ACCESS_AUD &&
@@ -80,8 +86,8 @@ export default {
           }),
         )
       }
-      const identity = await coachIdentity(request, env)
-      if (!identity)
+      const profile = await coachProfile(request, env)
+      if (!profile)
         return json({ error: 'Sign in as a coach to request a practice.' }, 401)
       if (url.pathname === `${PREFIX}/login` && request.method === 'GET')
         return Response.redirect(`${env.APP_ORIGIN}/#/coach`, 303)
@@ -93,10 +99,21 @@ export default {
           request.headers.get('Sec-Fetch-Site') === 'cross-site')
       )
         return json({ error: 'Invalid request origin.' }, 403)
-      const owner = await digest(identity)
+      const owner = await digest(profile.identity)
       const stub = env.COACH_REQUESTS.get(env.COACH_REQUESTS.idFromName(owner))
-      if (url.pathname === `${PREFIX}/requests` && request.method === 'GET')
-        return await stub.fetch('https://internal/requests')
+      if (url.pathname === `${PREFIX}/requests` && request.method === 'GET') {
+        await stub.fetch(
+          new Request('https://internal/profile', {
+            method: 'POST',
+            body: JSON.stringify({ owner, email: profile.email }),
+          }),
+        )
+        const response = await stub.fetch('https://internal/requests')
+        return json({
+          ...(await response.json()),
+          coach: { email: profile.email },
+        })
+      }
       if (url.pathname === `${PREFIX}/requests` && request.method === 'POST') {
         let input
         try {
@@ -106,19 +123,14 @@ export default {
         }
         if (!uuid(input.id))
           return json({ error: 'Invalid request identifier.' }, 400)
-        const channels = notificationChannels(env)
-        if (input.recipients.some((recipient) => !channels[recipient.channel]))
-          return json(
-            {
-              error:
-                'A requested notification channel is not configured. Remove those recipients or configure the channel first.',
-            },
-            400,
-          )
         return await stub.fetch(
           new Request('https://internal/requests', {
             method: 'POST',
-            body: JSON.stringify({ ...input, owner }),
+            body: JSON.stringify({
+              ...input,
+              owner,
+              submitterEmail: profile.email,
+            }),
           }),
         )
       }
@@ -144,6 +156,13 @@ export class CoachRequests {
   }
   async fetch(request) {
     const path = new URL(request.url).pathname
+    if (path === '/profile' && request.method === 'POST') {
+      const profile = await request.json(),
+        previous = await this.ctx.storage.get('profile')
+      await this.ctx.storage.put('profile', { ...previous, ...profile })
+      if (!previous) await this.ctx.storage.setAlarm(Date.now() + 1000)
+      return json({ ok: true })
+    }
     if (path === '/requests' && request.method === 'GET') {
       const jobs = await this.ctx.storage.list({ prefix: 'job:' })
       return json({
@@ -210,6 +229,7 @@ export class CoachRequests {
         !job ||
         ![
           'submitted',
+          'publishing',
           'ready',
           'notifying',
           'notified',
@@ -324,6 +344,18 @@ export class CoachRequests {
     if (this.running) return
     this.running = true
     try {
+      const profile = await this.ctx.storage.get('profile')
+      if (profile && (profile.nextIssuePoll || 0) <= Date.now()) {
+        await this.ctx.storage.put('profile', {
+          ...profile,
+          nextIssuePoll: Date.now() + 60000,
+        })
+        try {
+          await importApprovedIssue(this, profile)
+        } catch {
+          /* Bounded next poll; no model retry. */
+        }
+      }
       const jobs = await this.ctx.storage.list({ prefix: 'job:' })
       for (const [key, job] of [...jobs].sort(
         (a, b) => a[1].createdAt - b[1].createdAt,
@@ -333,15 +365,24 @@ export class CoachRequests {
           continue
         }
         if (
-          ['processing', 'creating_issue', 'notifying'].includes(job.status)
+          ['processing', 'revising', 'notifying', 'creating_issue'].includes(
+            job.status,
+          )
         ) {
           await this.ctx.storage.put(key, {
             ...job,
             status: 'attention',
             reason:
-              'The previous operation was interrupted. Check the issue or delivery provider before submitting again.',
+              'The previous operation was interrupted. Check the pull request or delivery provider before submitting again.',
           })
           continue
+        }
+        if (
+          ['creating_pr', 'submitted', 'publishing'].includes(job.status) &&
+          (job.nextPollAt || 0) <= Date.now()
+        ) {
+          await this.follow(job)
+          break
         }
         if (job.status === 'queued') {
           await this.prepare(job)
@@ -359,68 +400,143 @@ export class CoachRequests {
         const pending = [...jobs.values()].some((job) =>
           ['queued', 'ready'].includes(job.status),
         )
+        const watched = [...jobs.values()].filter((job) =>
+          ['creating_pr', 'submitted', 'publishing'].includes(job.status),
+        )
+        const profile = await this.ctx.storage.get('profile')
+        if (profile) await this.ctx.storage.setAlarm(Date.now() + 60000)
         if (jobs.size)
           await this.ctx.storage.setAlarm(
-            Date.now() + (pending ? 1000 : 86400000),
+            Date.now() +
+              (pending
+                ? 1000
+                : watched.length
+                  ? Math.max(
+                      1000,
+                      Math.min(
+                        60000,
+                        ...watched.map(
+                          (job) => (job.nextPollAt || 0) - Date.now(),
+                        ),
+                      ),
+                    )
+                  : profile
+                    ? 60000
+                    : 86400000),
           )
       })
     }
   }
-  async prepare(job) {
+  async prepare(job, feedback) {
     const key = `job:${job.id}`,
       fetcher = this.env.TEST_FETCH || fetch
-    await this.ctx.storage.put(key, { ...job, status: 'processing' })
+    await this.ctx.storage.put(key, {
+      ...job,
+      status: feedback ? 'revising' : 'processing',
+    })
     try {
-      const result = await researchPractice(job.brief, this.env, fetcher)
+      let brief = job.brief
+      for (const recipient of job.recipients || []) {
+        if (recipient.name?.length > 1) {
+          brief = brief.split(recipient.name).join('[player]')
+          if (feedback)
+            feedback = feedback.split(recipient.name).join('[player]')
+        }
+      }
+      const context = feedback ? { previousPractice: job.plan, feedback } : {}
+      const result = await researchPractice(brief, this.env, fetcher, context)
       if (result.rejected) {
         await this.ctx.storage.put(key, {
           ...job,
-          status: 'rejected',
+          status: feedback ? 'attention' : 'rejected',
           reason: result.reason,
-          recipients: [],
+          nextPollAt: Date.now() + 60000,
         })
         return
       }
-      job = { ...job, plan: result.plan, status: 'creating_issue' }
-      await this.ctx.storage.put(key, job)
-      const response = await fetcher(
-        `https://api.github.com/repos/${this.env.COACH_GITHUB_REPOSITORY}/issues`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${this.env.COACH_GITHUB_TOKEN}`,
-            Accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-            'User-Agent': 'QuickTrack-Coach',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: `Practice proposal: ${result.plan.title}`.replaceAll(
-              '@',
-              '＠',
-            ),
-            body: issueBody(`${job.owner}.${job.id}`, result.plan),
-          }),
-          signal: AbortSignal.timeout(20000),
-        },
-      )
-      if (!response.ok) throw new Error('Issue creation did not finish.')
-      const issue = await response.json()
-      if (!Number.isSafeInteger(issue.number) || issue.number < 1)
-        throw new Error('Invalid issue response')
-      await this.ctx.storage.put(key, {
+      job = {
         ...job,
-        status: 'submitted',
-        issueUrl: `https://github.com/${this.env.COACH_GITHUB_REPOSITORY}/issues/${issue.number}`,
-      })
+        plan: result.plan,
+        videos: result.videos,
+        status: 'creating_pr',
+        reason: undefined,
+        nextPollAt: Date.now(),
+      }
+      await this.ctx.storage.put(key, job)
+      await this.follow(job)
     } catch {
       await this.ctx.storage.put(key, {
         ...job,
-        status: job.status === 'creating_issue' ? 'attention' : 'failed',
+        status: feedback ? 'attention' : 'failed',
         reason:
-          job.status === 'creating_issue'
-            ? 'Check GitHub before retrying: issue creation could not be confirmed.'
-            : 'The assistant could not finish this request. Your brief is preserved; try again later.',
+          'The assistant could not finish this request. Your brief is preserved; revise it to try again.',
+        nextPollAt: Date.now() + 60000,
+      })
+    }
+  }
+  async follow(job) {
+    const key = `job:${job.id}`
+    try {
+      let update
+      if (job.status === 'creating_pr')
+        update = await writePracticePR(job, this.env)
+      else if (job.status === 'publishing')
+        update = (await publishedPractice(job, this.env)) || {
+          status: 'publishing',
+        }
+      else update = await inspectPracticePR(job, this.env)
+      if (update.feedback) {
+        if ((job.revisions || 0) >= 3) {
+          await this.ctx.storage.put(key, {
+            ...job,
+            status: 'attention',
+            reason:
+              'Three revisions are complete. Review this PR manually or start a new brief.',
+          })
+          return
+        }
+        job = {
+          ...job,
+          revisions: (job.revisions || 0) + 1,
+          feedbackIds: [
+            ...(job.feedbackIds || []),
+            ...update.feedback.consumed,
+          ],
+        }
+        // Checkpoint the feedback before any paid work, so a poll cannot charge twice.
+        await this.ctx.storage.put(key, { ...job, status: 'revising' })
+        await this.prepare(job, update.feedback.text)
+        return
+      }
+      await this.ctx.storage.put(key, {
+        ...job,
+        ...update,
+        reason: update.reason,
+        pollFailures: 0,
+        nextPollAt: Date.now() + 60000,
+      })
+      if (update.status === 'ready' && job.sourceIssueNumber) {
+        // Closing is idempotent and happens only after HTTPS publication qualification.
+        try {
+          await github(this.env, `/issues/${job.sourceIssueNumber}`, 'PATCH', {
+            state: 'closed',
+            state_reason: 'completed',
+          })
+        } catch {
+          /* The ready practice link remains available even if GitHub is temporarily down. */
+        }
+      }
+    } catch {
+      const failures = (job.pollFailures || 0) + 1
+      await this.ctx.storage.put(key, {
+        ...job,
+        pollFailures: failures,
+        status: failures >= 10 ? 'attention' : job.status,
+        reason:
+          failures >= 10
+            ? 'Publishing needs attention. Check the linked PR and deployment; research has not been repeated.'
+            : 'Waiting for GitHub or publication. Your practice is preserved.',
+        nextPollAt: Date.now() + Math.min(900000, 60000 * failures),
       })
     }
   }
@@ -438,6 +554,13 @@ export class CoachRequests {
         status: 'notifying',
         delivery,
       })
+      if (!notificationChannels(this.env)[recipient.channel]) {
+        delivery[index] = {
+          channel: recipient.channel,
+          status: 'not_configured',
+        }
+        continue
+      }
       try {
         delivery[index] = {
           channel: recipient.channel,
@@ -462,11 +585,13 @@ export class CoachRequests {
     }
     await this.ctx.storage.put(key, {
       ...job,
-      status: delivery.some((item) => item.status === 'needs_review')
-        ? 'notification_attention'
-        : 'notified',
+      status: delivery.some((item) => item.status === 'not_configured')
+        ? 'notification_setup'
+        : delivery.some((item) => item.status === 'needs_review')
+          ? 'notification_attention'
+          : 'notified',
       delivery,
-      recipients: [],
+      recipients: job.recipients,
     })
   }
 }

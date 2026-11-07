@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import Icon from '../components/Icon.jsx'
+import KickableBall from '../components/KickableBall.jsx'
 import PracticeSequence from '../components/PracticeSequence.jsx'
 import Reveal from '../components/Reveal.jsx'
 import { practiceKey } from '../domain/practice-favorites.js'
@@ -67,7 +68,7 @@ export default function MyPracticesView({ value, onChange, saved = [], history =
   const chosen = selected === '' ? null : list.find(item => practiceKey(item) === selected) || null
   const changeTab = tab => update({ tab, selected: null, query: '' })
   return <div className="qt-view pb-library pb-home">
-    <header className="pb-view-heading pb-home-heading"><div><h1>My practices</h1></div><span className="pb-home-mark" aria-hidden="true"><Icon name="ball" size={28}/></span></header>
+    <header className="pb-view-heading pb-home-heading"><div><h1>My practices</h1></div><KickableBall/></header>
     {featured}
     <section className="pb-home-tools" aria-label="Make practice yours">
       <div className="pb-home-create"><Button variant="secondary" icon="plus" onClick={onNew} disabled={disabled}>New practice</Button>{onImport && <Button variant="secondary" icon="qr" onClick={onImport} disabled={disabled}>Add a practice</Button>}</div>
@@ -79,7 +80,7 @@ export default function MyPracticesView({ value, onChange, saved = [], history =
       {collection.length > 4 && <label className="qt-practice-search pb-library-search"><Icon name="search" size={18}/><input ref={search} type="search" aria-label="Find a practice" placeholder="Find a practice or drill…" value={query} onChange={event => { setQuery(event.target.value) }}/></label>}
       {list.length ? <div className="pb-practice-choices" aria-label={`${tab === 'saved' ? 'Saved' : 'Recent'} practices`}>
         {list.map(practice => <PracticeCard key={practiceKey(practice)} practice={practice} chosen={practice === chosen} starred={savedKeys.has(practiceKey(practice))} onSelect={() => setSelected(practice === chosen ? '' : practiceKey(practice))} onStart={onStart} onAdapt={onAdapt} onShare={onShare} onStar={onStar ? toggleSaved : undefined} onOpenDrill={onOpenDrill} onWatchDrill={onWatchDrill} disabled={disabled}/>)}
-      </div> : <EmptyState title={query ? 'No matching practice' : tab === 'saved' ? 'Make yourself at home' : 'A practice worth repeating'} icon="clipboard" action={query ? 'Clear search' : undefined} onAction={() => { setQuery(''); search.current?.focus() }}>{query ? 'Try a practice name or a drill inside it.' : tab === 'saved' ? 'Add a coach’s practice or save one you make. It’ll be here next time.' : 'Your past sessions appear here, ready to go again.'}</EmptyState>}
+      </div> : <EmptyState title={query ? 'No matching practice' : tab === 'saved' ? 'No saved practices' : 'No recent practices'} icon="clipboard" action={query ? 'Clear search' : undefined} onAction={() => { setQuery(''); search.current?.focus() }}>{query ? 'Try a practice name or a drill inside it.' : tab === 'saved' ? 'Star a practice to keep it here.' : 'Completed practices appear here.'}</EmptyState>}
     </section>
   </div>
 }

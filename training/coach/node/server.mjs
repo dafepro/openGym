@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import worker from '../worker.js'
 import { json } from '../../worker/http.js'
+import { installationTokenProvider } from './github-app.mjs'
 import { CoachStore } from './storage.mjs'
 
 export function validateConfig(env) {
@@ -18,7 +19,12 @@ export function validateConfig(env) {
     !env.COACH_ALLOWED_EMAILS?.trim() ||
     !env.OPENAI_MODEL ||
     !env.OPENAI_API_KEY ||
-    !env.COACH_GITHUB_TOKEN ||
+    !(
+      env.COACH_GITHUB_TOKEN ||
+      (env.COACH_GITHUB_APP_PRIVATE_KEY_B64 &&
+        env.COACH_GITHUB_APP_ID &&
+        env.COACH_GITHUB_INSTALLATION_ID)
+    ) ||
     (env.COACH_READY_SECRET || '').length < 32 ||
     env.COACH_ORIGIN_HOST !== 'coach-origin.quicktrack.cc'
   )
@@ -31,6 +37,11 @@ export function createCoachServer(
   env,
   { filename, now = Date.now, paused = () => false } = {},
 ) {
+  if (env.COACH_GITHUB_APP_PRIVATE_KEY_B64)
+    env.COACH_GITHUB_ACCESS_TOKEN = installationTokenProvider(
+      env,
+      env.TEST_FETCH || fetch,
+    )
   const store = new CoachStore(filename, env, { now })
   env.COACH_REQUESTS = store
   env.COACH_PAUSED = paused

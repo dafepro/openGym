@@ -6,7 +6,7 @@ const decode = (text) =>
   )
 const claims = (text) => JSON.parse(new TextDecoder().decode(decode(text)))
 // Verify the signed assertion, not the easily forged authenticated-email header.
-export async function coachIdentity(
+export async function coachProfile(
   request,
   env,
   fetcher = fetch,
@@ -83,10 +83,21 @@ export async function coachIdentity(
         .includes(String(payload.email || '').toLowerCase())
     )
       return null
-    return `${payload.iss}|${payload.sub}`
+    return {
+      identity: `${payload.iss}|${payload.sub}`,
+      email: String(payload.email || '').toLowerCase(),
+    }
   } catch {
     return null
   }
+}
+export async function coachIdentity(
+  request,
+  env,
+  fetcher = fetch,
+  now = Date.now(),
+) {
+  return (await coachProfile(request, env, fetcher, now))?.identity || null
 }
 export async function verifyReadySignature(
   request,

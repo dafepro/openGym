@@ -1,3 +1,5 @@
+import YouTubeVideo from './YouTubeVideo.jsx'
+import { isYouTubeMedia } from '../domain/demonstration.js'
 import { useEffect, useRef, useState } from 'react'
 import Icon from './Icon.jsx'
 import PlayPauseIcon from './PlayPauseIcon.jsx'
@@ -15,6 +17,7 @@ export default function DrillDemonstration({ media, title, workActive = false, a
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(true)
   const [error, setError] = useState(false)
+  const [videoAttempt, setVideoAttempt] = useState(0)
   const [loading, setLoading] = useState(false)
   const [rate, setRate] = useState(1)
   const [repeat, setRepeat] = useState(false)
@@ -26,15 +29,16 @@ export default function DrillDemonstration({ media, title, workActive = false, a
   const [position, setPosition] = useState(0)
   const [captions, setCaptions] = useState(!!media?.captions)
   const [fullscreen, setFullscreen] = useState(false)
-  const src = media?.url || media?.path
+  const youtube = isYouTubeMedia(media)
+  const src = youtube ? media.youtubeId : media?.url || media?.path
   const approvedPath = typeof media?.id === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(media.id) && src === `/media/${media.id}`
-  const available = approvedPath && media?.status === 'approved'
+  const available = (approvedPath || youtube) && media?.status === 'approved'
   useEffect(() => {
     setError(false); setLoading(false); setPlaying(false); setPosition(0); setCaptions(!!media?.captions)
     requestedMute.current = true; setMuted(true)
     if (video.current) { video.current.defaultMuted = true; video.current.muted = true }
     setRepeat(false); setRate(1); setDuration(0); setStart(0); setEnd(10)
-    setPortrait(!!video.current && video.current.videoHeight > video.current.videoWidth)
+    setPortrait(youtube ? !!media.portrait : !!video.current && video.current.videoHeight > video.current.videoWidth)
     if (video.current) video.current.playbackRate = 1
   }, [src, title, available])
   useEffect(() => { if (workActive && !autoPlay) video.current?.pause() }, [workActive, autoPlay])
@@ -109,13 +113,14 @@ export default function DrillDemonstration({ media, title, workActive = false, a
   const setLoopStart = value => { const next = Math.max(0, Math.min(end - gap, value)); setStart(next); if (video.current) video.current.currentTime = next }
   const setLoopEnd = value => { const next = Math.min(duration, Math.max(start + gap, value)); setEnd(next); if (video.current && video.current.currentTime >= next) video.current.currentTime = start }
   const ended = () => { setPlaying(false); if (repeat && video.current) { video.current.currentTime = start; video.current.play()?.catch(() => setPlaying(false)) } }
-  const retry = () => { setError(false); setLoading(true); video.current?.load() }
+  const retry = () => { setError(false); setLoading(true); if (youtube) { requestedMute.current = true; setMuted(true); setRepeat(false); setRate(1); setDuration(0); setStart(0); setEnd(10); setPosition(0); setVideoAttempt(value => value + 1) } else video.current?.load() }
   return <section ref={playerFrame} className={`qt-demonstration${repeat ? ' is-repeating' : ''}`} aria-label={`Demonstration: ${title}`}>
     {sample && available && <p className="qt-playback-sample">Playback test clip · not a drill demonstration</p>}
     <div className="qt-media-frame" data-portrait={portrait ? 'true' : undefined} data-landscape={duration > 0 && !portrait ? 'true' : undefined}>
-      {available && <video ref={video} key={src} src={src} poster={media?.poster} playsInline muted={muted} onVolumeChange={syncMuted} onRateChange={syncMuted} onSeeked={syncMuted} autoPlay={autoPlay} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={ended} onError={failed} onLoadedMetadata={loaded} onCanPlay={() => setLoading(false)} onWaiting={() => setLoading(true)} onPlaying={() => setLoading(false)} onTimeUpdate={repeatTime} onClick={togglePlayback} aria-label={`${title} demonstration`}>
+      {available && !youtube && <video ref={video} key={src} src={src} poster={media?.poster} playsInline muted={muted} onVolumeChange={syncMuted} onRateChange={syncMuted} onSeeked={syncMuted} autoPlay={autoPlay} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={ended} onError={failed} onLoadedMetadata={loaded} onCanPlay={() => setLoading(false)} onWaiting={() => setLoading(true)} onPlaying={() => setLoading(false)} onTimeUpdate={repeatTime} onClick={togglePlayback} aria-label={`${title} demonstration`}>
         {media?.captions && <track kind="captions" src={media.captions} srcLang={media.captionLanguage || 'en'} label="Captions" default />}
       </video>}
+      {available && youtube && <YouTubeVideo key={`${src}:${videoAttempt}`} videoId={media.youtubeId} portrait={media.portrait} mediaRef={video} title={title} autoPlay={autoPlay} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={ended} onError={failed} onLoadedMetadata={loaded} onCanPlay={() => setLoading(false)} onWaiting={() => setLoading(true)} onPlaying={() => setLoading(false)} onTimeUpdate={repeatTime} />}
       {available && !error && <div className="qt-video-overlay-tools">{media?.captions && <button type="button" aria-label={captions ? 'Hide captions' : 'Show captions'} aria-pressed={captions} onClick={toggleCaptions}>CC</button>}<button type="button" aria-label={fullscreen ? 'Exit fullscreen' : 'View video fullscreen'} onClick={toggleFullscreen}><Icon name="expand" size={18} /></button></div>}
       {(!available || error) && <div className="qt-media-unavailable"><div className="qt-pitch" aria-hidden="true"><i /><span /></div><span className="qt-media-symbol"><Icon name={error ? 'warning' : 'video'} size={28} /></span><strong>{error ? 'Video could not play' : sample ? 'Sample demonstration' : 'Demonstration unavailable'}</strong><p>{error ? 'Your practice progress is still here.' : sample ? 'Approved trainer footage will appear here.' : media?.status === 'revoked' ? 'This demonstration is no longer available.' : 'Read the instructions below while the video is unavailable.'}</p>{error && <button className="qt-media-retry" type="button" onClick={retry}>Retry video</button>}</div>}
       {loading && !error && <span className="qt-media-loading" role="status">Loading video…</span>}

@@ -2,23 +2,45 @@ import { useEffect, useRef, useState } from 'react'
 import { Button, Notice } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import Disclosure from '../components/Disclosure.jsx'
+import Reveal from '../components/Reveal.jsx'
+import { youtubeId } from '../domain/demonstration.js'
+import CoachRecipients, {
+  emptyRecipient,
+} from '../components/CoachRecipients.jsx'
 import {
   COACH_BRIEF_LIMIT,
   validateCoachRequest,
+  parseRecipients,
+  collectRecipients,
+  displayContact,
 } from '../domain/coach-request.js'
 
 const draftKey = 'quicktrack.coach-draft.v1'
 function readDraft() {
   try {
     const value = JSON.parse(sessionStorage.getItem(draftKey))
-    return value &&
-      typeof value.brief === 'string' &&
-      value.brief.length <= COACH_BRIEF_LIMIT &&
-      typeof value.recipients === 'string' &&
-      value.recipients.length <= 3000 &&
-      /^[a-f0-9-]{36}$/.test(value.id)
-      ? value
-      : null
+    if (
+      !value ||
+      typeof value.brief !== 'string' ||
+      value.brief.length > COACH_BRIEF_LIMIT ||
+      !/^[a-f0-9-]{36}$/.test(value.id)
+    )
+      return null
+    const contact = value.recipientDraft
+    const recipientDraft =
+      contact &&
+      ['email', 'sms'].includes(contact.channel) &&
+      typeof contact.name === 'string' &&
+      contact.name.length <= 60 &&
+      typeof contact.address === 'string' &&
+      contact.address.length <= 254
+        ? contact
+        : emptyRecipient()
+    return {
+      ...value,
+      recipients: parseRecipients(value.recipients),
+      recipientDraft,
+    }
   } catch {
     return null
   }
@@ -26,15 +48,22 @@ function readDraft() {
 const busy = new Set([
   'queued',
   'processing',
-  'creating_issue',
+  'creating_pr',
+  'revising',
+  'publishing',
   'ready',
+  'submitted',
   'notifying',
 ])
 const statusLabel = {
   queued: 'Queued',
   processing: 'Finding drills',
-  creating_issue: 'Preparing proposal',
-  submitted: 'Ready for coach review',
+  creating_pr: 'Preparing pull request',
+  revising: 'Updating practice',
+  submitted: 'Awaiting approval',
+  publishing: 'Publishing practice',
+  closed: 'Request closed',
+  notification_setup: 'Practice ready · share the link',
   rejected: 'Needs a clearer brief',
   failed: 'Could not finish',
   attention: 'Needs attention',
@@ -75,11 +104,11 @@ async function api(path, options) {
 function RequestCard({ job, onRevise }) {
   const step = job.practiceUrl
     ? 3
-    : job.status === 'submitted'
+    : job.status === 'publishing'
       ? 2
-      : job.status === 'queued'
-        ? 0
-        : 1
+      : ['submitted', 'creating_pr', 'revising'].includes(job.status)
+        ? 1
+        : 0
   return (
     <article
       className="pb-coach-request"
@@ -97,28 +126,33 @@ function RequestCard({ job, onRevise }) {
         </time>
       </div>
       <h3>{job.publishedTitle || job.plan?.title || 'Your next practice'}</h3>
-      <p>{job.plan?.goal || job.brief}</p>
-      {!['failed', 'rejected', 'attention'].includes(job.status) && (
+      {job.plan ? (
+        <div className="pb-coach-goal">
+          <span>Focus</span>
+          <p>{job.plan.goal}</p>
+        </div>
+      ) : (
+        <p>{job.brief}</p>
+      )}
+      {!['failed', 'rejected', 'attention', 'closed'].includes(job.status) && (
         <ol
           className="pb-coach-progress"
           aria-label="Practice request progress"
         >
-          {['Brief', 'Research', 'Coach review', 'Ready'].map(
-            (label, index) => (
-              <li
-                key={label}
-                data-state={
-                  index < step ? 'done' : index === step ? 'current' : 'waiting'
-                }
-                aria-current={index === step ? 'step' : undefined}
-              >
-                <span>
-                  {index < step ? <Icon name="check" size={12} /> : index + 1}
-                </span>
-                {label}
-              </li>
-            ),
-          )}
+          {['Research', 'PR', 'Publish', 'Ready'].map((label, index) => (
+            <li
+              key={label}
+              data-state={
+                index < step ? 'done' : index === step ? 'current' : 'waiting'
+              }
+              aria-current={index === step ? 'step' : undefined}
+            >
+              <span>
+                {index < step ? <Icon name="check" size={12} /> : index + 1}
+              </span>
+              {label}
+            </li>
+          ))}
         </ol>
       )}
       {job.reason && (
@@ -128,11 +162,29 @@ function RequestCard({ job, onRevise }) {
       )}
       {job.plan && (
         <Disclosure
-          summary={`${job.plan.drills.length} proposed ${job.plan.drills.length === 1 ? 'drill' : 'drills'}`}
+          summary={`${job.plan.drills.length} ${job.plan.drills.length === 1 ? 'drill' : 'drills'}`}
         >
           <ol className="pb-coach-drills">
             {job.plan.drills.map((drill, index) => (
               <li key={index}>
+                {youtubeId(drill.demonstrationUrl) && (
+                  <a
+                    className="pb-coach-video-preview"
+                    href={drill.demonstrationUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Watch demonstration: ${drill.title}`}
+                  >
+                    <img
+                      src={`https://i.ytimg.com/vi/${youtubeId(drill.demonstrationUrl)}/mqdefault.jpg`}
+                      alt=""
+                      loading="lazy"
+                    />
+                    <span>
+                      <Icon name="play" size={16} />
+                    </span>
+                  </a>
+                )}
                 <strong>{drill.title}</strong>
                 <span>
                   {drill.sets} ×{' '}
@@ -167,9 +219,9 @@ function RequestCard({ job, onRevise }) {
             Revise brief
           </button>
         )}
-        {job.issueUrl && (
-          <a href={job.issueUrl} target="_blank" rel="noreferrer">
-            Review proposal <Icon name="arrow" size={14} />
+        {(job.prUrl || job.issueUrl) && (
+          <a href={job.prUrl || job.issueUrl} target="_blank" rel="noreferrer">
+            Open pull request <Icon name="arrow" size={14} />
           </a>
         )}
         {job.practiceUrl && (
@@ -178,19 +230,40 @@ function RequestCard({ job, onRevise }) {
           </a>
         )}
       </div>
-      {job.recipientCount > 0 && (
+      {job.submitterEmail && (
+        <p className="pb-coach-submitter">Requested by {job.submitterEmail}</p>
+      )}
+      {job.recipients?.length > 0 && (
+        <Disclosure
+          summary={`${job.recipients.length} ${job.recipients.length === 1 ? 'recipient' : 'recipients'} · private`}
+        >
+          <ul className="pb-coach-private-contacts">
+            {job.recipients.map((item) => (
+              <li key={item.address}>
+                <strong>
+                  {item.name || (item.channel === 'email' ? 'Email' : 'Text')}
+                </strong>
+                <span>{displayContact(item)}</span>
+              </li>
+            ))}
+          </ul>
+        </Disclosure>
+      )}
+      {job.recipientCount > 0 && job.practiceUrl && (
         <small>
           {['failed', 'rejected', 'attention'].includes(job.status)
             ? 'Notifications have not been confirmed. Check the request before trying again.'
-            : job.practiceUrl
-              ? job.notifications?.some(
-                  (item) => item.status === 'needs_review',
-                )
-                ? 'Some notifications need attention.'
-                : job.status === 'notified'
-                  ? 'Notifications accepted for sending.'
-                  : 'Notifications are being prepared.'
-              : `${job.recipientCount} recipient${job.recipientCount === 1 ? '' : 's'} · notified after publication`}
+            : job.status === 'notification_setup'
+              ? 'Delivery is not connected. Share the practice link above.'
+              : job.practiceUrl
+                ? job.notifications?.some(
+                    (item) => item.status === 'needs_review',
+                  )
+                  ? 'Some notifications need attention.'
+                  : job.status === 'notified'
+                    ? 'Notifications accepted for sending.'
+                    : 'Notifications are being prepared.'
+                : `${job.recipientCount} recipient${job.recipientCount === 1 ? '' : 's'} · link available after publication`}
         </small>
       )}
     </article>
@@ -201,14 +274,22 @@ export default function CoachView() {
   const [config, setConfig] = useState(null),
     [jobs, setJobs] = useState([]),
     [brief, setBrief] = useState(draft?.brief || ''),
-    [recipients, setRecipients] = useState(draft?.recipients || ''),
-    [consent, setConsent] = useState(draft?.consent === true),
+    [recipients, setRecipients] = useState(draft?.recipients || []),
+    [recipientDraft, setRecipientDraft] = useState(
+      draft?.recipientDraft || emptyRecipient(),
+    ),
+    [authenticated, setAuthenticated] = useState(false),
+    [checkingAccess, setCheckingAccess] = useState(true),
+    [composerOpen, setComposerOpen] = useState(true),
+    [coach, setCoach] = useState(null),
     [error, setError] = useState(''),
     [signIn, setSignIn] = useState(false),
     [sending, setSending] = useState(false),
     [accepted, setAccepted] = useState(false)
   const requestId = useRef(draft?.id || crypto.randomUUID()),
     live = useRef(true),
+    initialized = useRef(false),
+    focusComposer = useRef(false),
     heading = useRef(null),
     briefField = useRef(null)
   useEffect(() => {
@@ -220,10 +301,25 @@ export default function CoachView() {
         const settings = await api('config')
         if (cancelled) return
         setConfig(settings)
+        if (!settings.configured) setCheckingAccess(false)
         if (settings.configured) {
           const data = await api('requests')
           if (cancelled) return
           setJobs(data.requests)
+          if (!initialized.current) {
+            initialized.current = true
+            setComposerOpen(
+              !data.requests.length ||
+                !!(
+                  draft?.brief ||
+                  draft?.recipients?.length ||
+                  draft?.recipientDraft?.address
+                ),
+            )
+          }
+          setCheckingAccess(false)
+          setCoach(data.coach || null)
+          setAuthenticated(true)
           setSignIn(false)
           setError('')
           timer = setTimeout(
@@ -233,6 +329,8 @@ export default function CoachView() {
         }
       } catch (failure) {
         if (!cancelled) {
+          setCheckingAccess(false)
+          if (failure.signIn) setAuthenticated(false)
           setSignIn(!!failure.signIn)
           setError(failure.message)
           if (!failure.signIn) timer = setTimeout(refresh, 30000)
@@ -248,22 +346,54 @@ export default function CoachView() {
   }, [accepted])
   useEffect(() => {
     try {
-      if (brief || recipients)
+      if (
+        brief ||
+        recipients.length ||
+        recipientDraft.address ||
+        recipientDraft.name
+      )
         sessionStorage.setItem(
           draftKey,
-          JSON.stringify({ id: requestId.current, brief, recipients, consent }),
+          JSON.stringify({
+            id: requestId.current,
+            brief,
+            recipients,
+            recipientDraft,
+          }),
         )
       else sessionStorage.removeItem(draftKey)
     } catch {
       /* Drafting still works when browser storage is unavailable. */
     }
-  }, [brief, recipients, consent])
+  }, [brief, recipients, recipientDraft])
+  useEffect(() => {
+    if (!composerOpen || !focusComposer.current) return
+    let cancelled = false
+    const frame = requestAnimationFrame(async () => {
+      const reveal = briefField.current?.closest('.qt-reveal')
+      await Promise.allSettled(
+        (reveal?.getAnimations() || []).map((animation) => animation.finished),
+      )
+      if (!cancelled && live.current) {
+        briefField.current?.focus()
+        focusComposer.current = false
+      }
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frame)
+    }
+  }, [composerOpen, brief])
   const submit = async (event) => {
     event.preventDefault()
     if (sending) return
     setError('')
     try {
-      const payload = { id: requestId.current, brief, recipients, consent }
+      const payload = {
+        id: requestId.current,
+        brief,
+        recipients: collectRecipients(recipients, recipientDraft),
+      }
       validateCoachRequest(payload)
       setSending(true)
       const job = await api('requests', {
@@ -277,158 +407,182 @@ export default function CoachView() {
         ...current.filter((item) => item.id !== job.id),
       ])
       setBrief('')
-      setRecipients('')
-      setConsent(false)
+      setRecipients([])
+      setRecipientDraft(emptyRecipient())
       requestId.current = crypto.randomUUID()
+      setComposerOpen(false)
       setAccepted((value) => !value)
-      requestAnimationFrame(() => heading.current?.focus())
+      requestAnimationFrame(async () => {
+        const reveal = document.getElementById('coach-composer')
+        await Promise.allSettled((reveal?.getAnimations() || []).map(animation => animation.finished))
+        if (!live.current) return
+        heading.current?.focus({ preventScroll: true })
+        heading.current?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+      })
     } catch (failure) {
       if (live.current) {
         setError(failure.message)
-        if (failure.signIn) setSignIn(true)
+        if (failure.signIn) {
+          setSignIn(true)
+          setAuthenticated(false)
+        }
       }
     } finally {
       if (live.current) setSending(false)
     }
   }
   const revise = (job) => {
+    focusComposer.current = true
+    setComposerOpen(true)
     requestId.current = crypto.randomUUID()
     setBrief(job.brief)
-    setRecipients('')
-    setConsent(false)
+    setRecipients([])
+    setRecipientDraft(emptyRecipient())
     setError('')
-    requestAnimationFrame(() => briefField.current?.focus())
+    if (composerOpen) requestAnimationFrame(() => briefField.current?.focus())
   }
   const editBrief = (value) => {
     setBrief(value)
     requestId.current = crypto.randomUUID()
   }
+  if (!authenticated)
+    return (
+      <div className="qt-view pb-coach pb-coach-gate">
+        <p className="qt-eyebrow">QuickTrack coaching</p>
+        <h1>Coach’s desk</h1>
+        <div className="pb-coach-gate-card">
+          <Icon name="pencil" size={26} />
+          <h2>
+            {config && !config.configured
+              ? 'Assistant setup is pending'
+              : 'Sign in to coach'}
+          </h2>
+          {checkingAccess && !error ? (
+            <p role="status">Checking coach access…</p>
+          ) : config?.configured || signIn ? (
+            <a className="pb-coach-signin" href="/api/coach/login">
+              Continue with Google <Icon name="arrow" size={16} />
+            </a>
+          ) : (
+            <p>The coaching service isn’t available yet.</p>
+          )}
+          {error && !signIn && <p role="alert">{error}</p>}
+          <a className="pb-coach-back" href="#/">
+            Back to practice
+          </a>
+        </div>
+      </div>
+    )
   return (
     <div className="qt-view pb-coach">
       <header className="pb-view-heading">
         <div>
-          <p className="qt-eyebrow">Coach’s desk</p>
-          <h1>Give practice a purpose.</h1>
+          <h1>Coach’s desk</h1>
         </div>
         <Icon name="pencil" size={26} />
       </header>
-      <p className="pb-coach-intro">
-        Tell us what the player needs. Get a researched practice to review and
-        assign.
-      </p>
-      {config && !config.configured && (
-        <Notice title="Assistant setup is pending">
-          You can draft a request here. Sending will be available once the
-          server’s API key and coach access are configured.
-        </Notice>
-      )}
       {config?.paused && (
         <Notice title="Coach requests are paused">
-          You can keep drafting and review past requests. New requests will be
-          available when the assistant resumes.
+          Your draft is saved.
         </Notice>
       )}
-      {signIn && (
-        <a className="pb-coach-signin" href="/api/coach/login">
-          {config?.auth === 'google'
-            ? 'Continue with Google'
-            : 'Sign in as coach'}{' '}
-          <Icon name="arrow" size={16} />
-        </a>
-      )}
-      <form onSubmit={submit} className="pb-coach-form">
-        <label className="qt-field">
-          <span>What should the player work on?</span>
-          <textarea
-            ref={briefField}
-            required
-            minLength={20}
-            maxLength={COACH_BRIEF_LIMIT}
-            rows={6}
-            value={brief}
-            disabled={sending}
-            onChange={(event) => editBrief(event.target.value)}
-            placeholder="20 minutes of close control for a 12-year-old. Small outdoor space, one ball and four cones. Both feet. Focus on quick, accurate touches, keeping the ball close."
-          />
-        </label>
-        <div className="pb-coach-hints">
-          <span>Goal · time · equipment · player level</span>
-          <span aria-live="off">
-            {brief.length} / {COACH_BRIEF_LIMIT}
-          </span>
-        </div>
-        <Disclosure summary="Notify players when it’s ready">
-          <label className="qt-field">
-            <span>Emails or phone numbers</span>
-            <textarea
-              rows={3}
-              value={recipients}
-              maxLength={3000}
-              disabled={sending}
-              onChange={(event) => {
-                setRecipients(event.target.value)
-                requestId.current = crypto.randomUUID()
-              }}
-              placeholder={'parent@example.com\n+1 555 123 4567'}
-            />
-          </label>
-          <p className="qt-fine-print">
-            One per line, or separated by commas. Include a country code for
-            phone numbers. Add yourself if you’d like a copy.
-          </p>
-          {config && (
-            <p className="qt-fine-print">
-              Email {config.channels.email ? 'available' : 'setup pending'} ·
-              Text {config.channels.sms ? 'available' : 'setup pending'}
-            </p>
-          )}
-          <label className="pb-coach-consent">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(event) => setConsent(event.target.checked)}
-              disabled={sending}
-            />
-            <span>
-              These players or guardians expect this practice notification.
-            </span>
-          </label>
-        </Disclosure>
-        {error && (
-          <Notice
-            title={signIn ? 'Coach sign-in needed' : 'Request needs attention'}
-            tone="error"
-          >
-            {error}
-          </Notice>
-        )}
-        <Button
-          type="submit"
-          icon="arrow"
-          disabled={sending || !config?.configured || config?.paused || signIn}
+      {jobs.length > 0 && (
+        <button
+          className="pb-coach-compose-toggle"
+          type="button"
+          aria-expanded={composerOpen}
+          aria-controls="coach-composer"
+          onClick={() => {
+            focusComposer.current = !composerOpen
+            setComposerOpen((value) => !value)
+          }}
         >
-          {sending ? 'Sending request…' : 'Request a practice'}
-        </Button>
-        <p className="qt-fine-print">
-          You review the proposal before it becomes an assigned practice.
-        </p>
-        {(brief || recipients) && (
-          <button
-            type="button"
-            className="pb-coach-clear"
-            disabled={sending}
-            onClick={() => {
-              setBrief('')
-              setRecipients('')
-              setConsent(false)
-              setError('')
+          <Icon name="plus" size={18} />
+          <span>{composerOpen ? 'Close draft' : 'New practice'}</span>
+          {!composerOpen && brief && <small>Draft saved</small>}
+        </button>
+      )}
+      <Reveal
+        open={composerOpen}
+        id="coach-composer"
+        className="pb-coach-composer"
+      >
+        <form onSubmit={submit} className="pb-coach-form">
+          <label className="qt-field">
+            <span>What should the player work on?</span>
+            <textarea
+              ref={briefField}
+              required
+              minLength={20}
+              maxLength={COACH_BRIEF_LIMIT}
+              rows={4}
+              value={brief}
+              disabled={sending}
+              onChange={(event) => editBrief(event.target.value)}
+              placeholder="15 minutes of close control. One ball, two cones, both feet. Quick, accurate touches."
+            />
+          </label>
+          <div className="pb-coach-hints">
+            <span>Goal · time · equipment · player level</span>
+            <span aria-live="off">
+              {brief.length} / {COACH_BRIEF_LIMIT}
+            </span>
+          </div>
+          <CoachRecipients
+            recipients={recipients}
+            onChange={(value) => {
+              setRecipients(value)
               requestId.current = crypto.randomUUID()
             }}
+            draft={recipientDraft}
+            onDraft={(value) => {
+              setRecipientDraft(value)
+              requestId.current = crypto.randomUUID()
+            }}
+            channels={config?.channels}
+            email={coach?.email}
+            disabled={sending}
+          />
+          {error && (
+            <Notice
+              title={
+                signIn ? 'Coach sign-in needed' : 'Request needs attention'
+              }
+              tone="error"
+            >
+              {error}
+            </Notice>
+          )}
+          <Button
+            type="submit"
+            icon="arrow"
+            disabled={
+              sending || !config?.configured || config?.paused || signIn
+            }
           >
-            Clear draft
-          </button>
-        )}
-      </form>
+            {sending ? 'Creating practice…' : 'Create practice'}
+          </Button>
+          {(brief ||
+            recipients.length ||
+            recipientDraft.address ||
+            recipientDraft.name) && (
+            <button
+              type="button"
+              className="pb-coach-clear"
+              disabled={sending}
+              onClick={() => {
+                setBrief('')
+                setRecipients([])
+                setRecipientDraft(emptyRecipient())
+                setError('')
+                requestId.current = crypto.randomUUID()
+              }}
+            >
+              Clear draft
+            </button>
+          )}
+        </form>
+      </Reveal>
       {jobs.length > 0 && (
         <section
           className="pb-coach-requests"

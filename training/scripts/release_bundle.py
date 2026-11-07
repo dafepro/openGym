@@ -48,7 +48,7 @@ def assert_runtime_configuration(path):
 
 
 def allowed_path(name):
-    return name in REQUIRED or bool(re.fullmatch(r'assets/assets/[a-zA-Z0-9_-]+\.(js|css|woff2|svg|png)', name))
+    return name in REQUIRED or name == 'assets/practice-additions.json' or bool(re.fullmatch(r'assets/assets/[a-zA-Z0-9_-]+\.(js|css|woff2|svg|png)', name))
 
 
 def audit_files(files, sha):

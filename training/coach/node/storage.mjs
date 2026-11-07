@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite'
+import { notificationChannels } from '../notifications.js'
 import { CoachRequests } from '../worker.js'
 
 export class QuotaError extends Error {
@@ -68,7 +69,14 @@ export class CoachStore {
         rows.filter((r) => r.createdAt > now - 30 * 86400000).length >=
           this.limit('COACH_MONTHLY_REQUESTS', 100) ||
         rows.filter((r) =>
-          ['queued', 'processing', 'creating_issue'].includes(r.status),
+          [
+            'queued',
+            'processing',
+            'creating_pr',
+            'submitted',
+            'revising',
+            'publishing',
+          ].includes(r.status),
         ).length >= this.limit('COACH_MAX_PENDING', 5)
       )
         throw new QuotaError('The coaching allowance is full. Try again later.')
@@ -85,9 +93,11 @@ export class CoachStore {
           )
           .get(this.now() - 86400000)
         const email = value.recipients.filter(
-          (r) => r.channel === 'email',
+          (r) => r.channel === 'email' && notificationChannels(this.env).email,
         ).length
-        const sms = value.recipients.filter((r) => r.channel === 'sms').length
+        const sms = value.recipients.filter(
+          (r) => r.channel === 'sms' && notificationChannels(this.env).sms,
+        ).length
         if (
           used.email + email > this.limit('COACH_DAILY_EMAILS', 20) ||
           used.sms + sms > this.limit('COACH_DAILY_SMS', 10)

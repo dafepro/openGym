@@ -1,45 +1,22 @@
 # Coach’s desk
 
-A coach writes a soccer brief at `/#/coach`, optionally adds notification recipients,
-and receives a researched practice proposal in a GitHub issue. The player interface
-remains public. Coach requests use Google login through Cloudflare Access plus a server-side email allowlist.
+The Google-gated desk at `/#/coach` creates researched soccer practices directly as
+reviewable GitHub PRs. The player interface stays public. The configured model is
+**gpt-6-luna**, as requested.
 
-The backend is **not activated** until its protected deployment and live Google
-login checks complete. The OpenAI key is configured in the protected deployment
-environment. A bounded, three-call provider qualification passed with `gpt-6-luna`;
-it produced a valid two-drill proposal with researched source links. That check did
-not create a GitHub issue or send email/SMS. Automated tests use synthetic provider
-responses and do not establish notification deliverability.
+See [PRACTICE_PUBLISHING.md](PRACTICE_PUBLISHING.md) for the complete approval,
+feedback, video verification, immutable catalog, deployment and recovery contract.
+Prompts are stored in [prompts.js](prompts.js); they are not repeated in PR bodies.
 
-## Request and publication flow
+Contacts are optional. US/Canada phone numbers normalize automatically; other
+countries use `+` and a country code. Pasted batches are validated atomically and
+contacts deduplicate. The final typed contact is included even without tapping Add.
+No consent checkbox is required. Submitter and recipient identity remain private
+because the source repository is public. Requests have a 30-day retention period.
 
-1. The form accepts 20–1,000 characters, up to 20 email/phone recipients, and explicit
-   confirmation that recipients expect the notification. Phone numbers need an
-   international country code. A draft survives navigation/reload in this browser
-   tab’s session storage; Clear draft removes it.
-2. The server validates origin, signed Access JWT, limits, and provider availability.
-   A private SQLite-backed queue per coach persists the request before returning.
-   A single Node scheduler processes jobs across coaches on the shared droplet.
-3. The persisted scheduler runs a tool-free relevance/injection check, bounded web research using
-   OpenAI Responses, and a separate structured-output pass. The model receives no
-   recipient list, secrets, GitHub tools, code execution or publication capability.
-   Accidental contact details in the brief are redacted before model calls.
-4. Every drill must have setup, instructions, a focus cue, sets, reps or time, rest,
-   side, `futbol:` tags, and a URL actually present in the research results. A fixed
-   issue formatter writes `quicktrack-coach-practice-v1` JSON to `dafepro/openGym`.
-5. A human reviews the issue, verifies demonstrations and suitability, reuses or
-   creates catalog drills, and publishes through the existing training release
-   process. The overall `goal` maps to the assignment’s `note`, displayed during
-   practice. Research candidates are not automatically approved videos.
-6. After publication, an authenticated ready callback supplies the actual practice
-   link and live source SHA. The service resolves the shared practice against the
-   live catalog and archived editions before notifying recipients. Opening that link
-   lets the player save or start the practice in their own stateless instance.
-
-An issue proposal does **not** publish a practice. Automatic issue-to-catalog
-implementation, authorized-player accounts, push notifications, and provider delivery
-receipts are future work. For now, the existing reviewed catalog/release process is
-the publication step, and Resend/Twilio acceptance is reported as “accepted for sending.”
+The browser form is withheld until an authenticated request succeeds. Visiting a
+hash route cannot bypass server authorization: the URL fragment itself is never
+sent to Cloudflare, so both the UI gate and protected API are required.
 
 ## Server configuration
 
@@ -51,24 +28,28 @@ chooses a paid model.
 
 Required Node server settings (provider keys stay on the host):
 
-| Name | Type | Purpose |
-| --- | --- | --- |
-| `OPENAI_API_KEY` | secret | OpenAI project credential |
-| `OPENAI_MODEL` | variable | Explicit compatible model identifier |
-| `COACH_GITHUB_TOKEN` | secret | Fine-grained token owned by **dafepro**, limited to Issues read/write on `dafepro/openGym` |
-| `COACH_GITHUB_REPOSITORY` | variable | Fixed to `dafepro/openGym` |
-| `COACH_ACCESS_ISSUER` | variable | `https://<team>.cloudflareaccess.com` |
-| `COACH_ACCESS_AUD` | variable | Access application audience |
-| `COACH_READY_SECRET` | secret | Independently generated random secret, at least 32 characters |
-| `APP_ORIGIN` | variable | Fixed to `https://train.quicktrack.cc` |
-| `COACH_ALLOWED_EMAILS` | variable | Comma-separated approved Google emails, generated from deploy's canonical access.json |
-| `COACH_ORIGIN_HOST` | variable | Fixed to `coach-origin.quicktrack.cc` |
-| `APP_SOURCE_SHA` | variable | Exact 40-character source revision |
-| `COACH_DATABASE` | variable | Defaults to `/data/coach.sqlite` |
+| Name                               | Type          | Purpose                                                                               |
+| ---------------------------------- | ------------- | ------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                   | secret        | OpenAI project credential                                                             |
+| `OPENAI_MODEL`                     | variable      | Explicit compatible model identifier                                                  |
+| `COACH_GITHUB_APP_ID`              | variable      | Dedicated QuickTrack publisher App ID                                                 |
+| `COACH_GITHUB_INSTALLATION_ID`     | variable      | Installation restricted to `dafepro/openGym`                                          |
+| `COACH_GITHUB_APP_SLUG`            | variable      | Publisher bot identity                                                                |
+| `COACH_GITHUB_APP_PRIVATE_KEY_B64` | secret        | Base64 RSA key, protected server file only                                            |
+| `COACH_GITHUB_TOKEN`               | legacy secret | Old issue-only token; insufficient for PR publishing                                  |
+| `COACH_GITHUB_REPOSITORY`          | variable      | Fixed to `dafepro/openGym`                                                            |
+| `COACH_ACCESS_ISSUER`              | variable      | `https://<team>.cloudflareaccess.com`                                                 |
+| `COACH_ACCESS_AUD`                 | variable      | Access application audience                                                           |
+| `COACH_READY_SECRET`               | secret        | Independently generated random secret, at least 32 characters                         |
+| `APP_ORIGIN`                       | variable      | Fixed to `https://train.quicktrack.cc`                                                |
+| `COACH_ALLOWED_EMAILS`             | variable      | Comma-separated approved Google emails, generated from deploy's canonical access.json |
+| `COACH_ORIGIN_HOST`                | variable      | Fixed to `coach-origin.quicktrack.cc`                                                 |
+| `APP_SOURCE_SHA`                   | variable      | Exact 40-character source revision                                                    |
+| `COACH_DATABASE`                   | variable      | Defaults to `/data/coach.sqlite`                                                      |
 
 Optional email: `RESEND_API_KEY` secret and `COACH_EMAIL_FROM` verified sender variable.
 Optional text: `TWILIO_AUTH_TOKEN` secret, `TWILIO_ACCOUNT_SID` and `TWILIO_FROM`
-variables. The form reports unavailable channels and the server rejects their use.
+variables. The form reports unavailable channels honestly; contacts can still be saved for manual sharing.
 No recipient messages are sent when only a proposal exists. For SMS, use a compact
 catalog-based practice pass; oversized messages are rejected before publication
 readiness or provider submission. [Twilio message limits](https://www.twilio.com/docs/messaging/api/message-resource).
@@ -112,7 +93,10 @@ The issue JSON contains `request: "<coach-owner-hash>.<request-uuid>"`. After th
 practice is deployed, create a temporary publication JSON file containing only:
 
 ```json
-{"practiceUrl":"https://train.quicktrack.cc/#/shared/<actual-practice-code>","sourceSha":"<40-character-live-source-commit>"}
+{
+  "practiceUrl": "https://train.quicktrack.cc/#/shared/<actual-practice-code>",
+  "sourceSha": "<40-character-live-source-commit>"
+}
 ```
 
 With `COACH_READY_SECRET` configured in the calling process’s environment, run:
