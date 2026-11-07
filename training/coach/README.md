@@ -48,11 +48,15 @@ Required Node server settings (provider keys stay on the host):
 | `COACH_DATABASE`                   | variable      | Defaults to `/data/coach.sqlite`                                                      |
 
 Optional email: `RESEND_API_KEY` secret and `COACH_EMAIL_FROM` verified sender variable.
-Optional text: `TWILIO_AUTH_TOKEN` secret, `TWILIO_ACCOUNT_SID` and `TWILIO_FROM`
-variables. The form reports unavailable channels honestly; contacts can still be saved for manual sharing.
-No recipient messages are sent when only a proposal exists. For SMS, use a compact
-catalog-based practice pass; oversized messages are rejected before publication
-readiness or provider submission. [Twilio message limits](https://www.twilio.com/docs/messaging/api/message-resource).
+Optional text: `TWILIO_API_KEY_SECRET` secret with `TWILIO_API_KEY_SID`,
+`TWILIO_ACCOUNT_SID`, `TWILIO_MESSAGING_SERVICE_SID`, and `TWILIO_FROM` variables.
+Use a dedicated sender and restrict the key to listing and creating Messages.
+The public `/#/texts` page shows the sender and opt-in instructions. The adapter
+checks for a received START from the recipient and withholds delivery after STOP,
+without exposing the inbound message history to the coach browser. Keep inbound
+message logs and enable Advanced Opt-Out on the sender's Messaging Service.
+Only published practices trigger texts. Unavailable channels and missing consent
+leave the practice link available for manual sharing.
 
 Configure Cloudflare Access to protect **only** the coach API paths, not the player
 website. Use an explicit coach email allowlist initially. Protect `/api/coach/requests`

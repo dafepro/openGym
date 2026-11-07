@@ -7,7 +7,8 @@ import { researchPractice } from './agent.js'
 import {
   notificationChannels,
   sendReady,
-  readyMessage,
+  smsReadyMessage,
+  textSender,
 } from './notifications.js'
 import { validateCoachRequest } from '../src/domain/coach-request.js'
 import { readPracticeCode } from '../src/domain/practice-code.js'
@@ -59,6 +60,7 @@ export default {
         return json({
           configured: configured(env),
           channels: notificationChannels(env),
+          smsSender: textSender(env),
           build: env.APP_SOURCE_SHA || 'local',
           auth: 'google',
           paused: !!env.COACH_PAUSED?.(),
@@ -261,7 +263,7 @@ export class CoachRequests {
         )
       if (
         job.recipients.some((recipient) => recipient.channel === 'sms') &&
-        readyMessage({ ...job, practiceUrl: url.href }).length > 1600
+        smsReadyMessage({ ...job, practiceUrl: url.href }).length > 1600
       )
         return json(
           {
@@ -302,21 +304,6 @@ export class CoachRequests {
           return edition.json()
         },
       )
-      if (
-        job.recipients.some((recipient) => recipient.channel === 'sms') &&
-        readyMessage({
-          ...job,
-          practiceUrl: url.href,
-          publishedTitle: published.title,
-        }).length > 1600
-      )
-        return json(
-          {
-            error:
-              'Use a shorter catalog-based practice pass for text notifications.',
-          },
-          400,
-        )
       return this.ctx.blockConcurrencyWhile(async () => {
         const latest = await this.ctx.storage.get(`job:${id}`)
         if (!latest)
@@ -587,7 +574,7 @@ export class CoachRequests {
       ...job,
       status: delivery.some((item) => item.status === 'not_configured')
         ? 'notification_setup'
-        : delivery.some((item) => item.status === 'needs_review')
+        : delivery.some((item) => item.status !== 'accepted')
           ? 'notification_attention'
           : 'notified',
       delivery,
