@@ -455,7 +455,7 @@ export default function CoachView() {
           <h2>
             {config && !config.configured
               ? 'Assistant setup is pending'
-              : 'A little direction. A better practice.'}
+              : 'Sign in to coach'}
           </h2>
           {checkingAccess && !error ? (
             <p role="status">Checking coach access…</p>
@@ -477,15 +477,13 @@ export default function CoachView() {
     <div className="qt-view pb-coach">
       <header className="pb-view-heading">
         <div>
-          <p className="qt-eyebrow">Purposeful soccer training</p>
           <h1>Coach’s desk</h1>
         </div>
         <Icon name="pencil" size={26} />
       </header>
       {config?.paused && (
         <Notice title="Coach requests are paused">
-          You can keep drafting and review past requests. New requests will be
-          available when the assistant resumes.
+          Your draft is saved.
         </Notice>
       )}
       {jobs.length > 0 && (
@@ -521,7 +519,7 @@ export default function CoachView() {
               value={brief}
               disabled={sending}
               onChange={(event) => editBrief(event.target.value)}
-              placeholder="20 minutes of close control for a 12-year-old. Small outdoor space, one ball and four cones. Both feet. Focus on quick, accurate touches, keeping the ball close."
+              placeholder="15 minutes of close control. One ball, two cones, both feet. Quick, accurate touches."
             />
           </label>
           <div className="pb-coach-hints">

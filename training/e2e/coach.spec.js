@@ -404,7 +404,7 @@ test('recipient entry handles batch paste, duplicates, mistakes and switching ch
     .click()
   await expect(page.locator('.pb-recipient-list li')).toHaveCount(4)
   await expect(
-    page.getByText(/Email delivery isn’t connected yet/),
+    page.getByText(/Email isn’t connected/),
   ).toBeVisible()
   await noHorizontalOverflow(page)
   await capture(page, testInfo, 'coach-contacts-private')

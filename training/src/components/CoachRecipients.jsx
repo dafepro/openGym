@@ -122,7 +122,7 @@ export default function CoachRecipients({
       <div className="pb-recipient-editor">
         <label className="qt-field">
           <span>
-            Name <small>optional · private</small>
+            Name <small>optional</small>
           </span>
           <input
             value={draft.name}
@@ -180,15 +180,15 @@ export default function CoachRecipients({
       </div>
       <p id="recipient-help" className="qt-fine-print">
         {draft.channel === 'email'
-          ? 'Paste several contacts at once, separated by commas or new lines.'
-          : 'US/Canada numbers work as typed. For other countries, begin with +.'}
+          ? 'Paste a list with commas or new lines.'
+          : 'Outside US/Canada? Include + and country code.'}
       </p>
       {error && (
         <p id="recipient-error" className="pb-recipient-error" role="alert">
           {error}
         </p>
       )}
-      <span className="qt-sr-only" role="status">
+      <span className="qt-visually-hidden" role="status">
         {message}
       </span>
       {recipients.length > 0 && (
@@ -227,8 +227,8 @@ export default function CoachRecipients({
       )}
       <p className="pb-recipient-delivery">
         {channels[draft.channel]
-          ? 'Their practice link will be sent when it’s ready.'
-          : `${draft.channel === 'email' ? 'Email' : 'Text'} delivery isn’t connected yet. Contacts are saved; you can share the ready link.`}
+          ? 'Send the link when ready.'
+          : `${draft.channel === 'email' ? 'Email' : 'Text'} isn’t connected. Share the ready link yourself.`}
       </p>
     </section>
   )
