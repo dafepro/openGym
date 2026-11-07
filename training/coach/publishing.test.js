@@ -85,7 +85,7 @@ const pr = {
   user: { type: 'Bot', login: 'quicktrack-coach-publisher[bot]' },
   head: {
     sha: job.headSha,
-    ref: `coach/practice-${id}`,
+    ref: `coach-practice-${id}`,
     repo: { full_name: 'dafepro/openGym' },
   },
   base: { ref: RELEASE_BRANCH },

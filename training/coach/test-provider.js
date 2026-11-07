@@ -23,7 +23,10 @@ export function practiceGitHubFixture() {
     if (path.startsWith('/issues?')) return Response.json([])
     if (path.startsWith('/git/ref/heads/codex/'))
       return Response.json({ object: { sha: 'a'.repeat(40) } })
-    if (path.startsWith('/git/ref/heads/coach/'))
+    // The fork already has a flat `coach` branch; Git cannot nest refs beneath it.
+    if (path === '/git/ref/heads/coach') return Response.json({ object: { sha: 'e'.repeat(40) } })
+    if (path.startsWith('/git/ref/heads/coach/')) return new Response('', { status: 404 })
+    if (path.startsWith('/git/ref/heads/coach-practice-'))
       return head
         ? Response.json({ object: { sha: head } })
         : new Response('', { status: 404 })
@@ -45,6 +48,7 @@ export function practiceGitHubFixture() {
     }
     if (path === '/git/commits') return Response.json({ sha: 'd'.repeat(40) })
     if (path === '/git/refs' || path.startsWith('/git/refs/heads/')) {
+      if (data.ref?.startsWith('refs/heads/coach/')) return Response.json({ message: 'Reference update failed' }, { status: 422 })
       head = data.sha
       return Response.json({ object: { sha: head } })
     }

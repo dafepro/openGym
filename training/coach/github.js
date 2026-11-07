@@ -99,7 +99,7 @@ async function labels(env, number) {
   })
 }
 export async function writePracticePR(job, env) {
-  const branch = `coach/practice-${job.id}`,
+  const branch = `coach-practice-${job.id}`,
     entry = compilePractice(job)
   const base = await github(env, `/git/ref/heads/${RELEASE_BRANCH}`)
   const baseSha = base.object.sha
@@ -214,7 +214,7 @@ export function approvalDecision(
     pr.user.login !== `${slug}[bot]` ||
     pr.head?.repo?.full_name !== REPOSITORY ||
     pr.base?.ref !== RELEASE_BRANCH ||
-    pr.head?.ref !== `coach/practice-${job.id}` ||
+    pr.head?.ref !== `coach-practice-${job.id}` ||
     pr.head.sha !== job.headSha
   )
     return false
