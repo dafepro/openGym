@@ -228,7 +228,9 @@ export default function CoachRecipients({
       <p className="pb-recipient-delivery">
         {channels[draft.channel]
           ? 'Send the link when ready.'
-          : `${draft.channel === 'email' ? 'Email' : 'Text'} isn’t connected. Share the ready link yourself.`}
+          : draft.channel === 'sms'
+            ? 'Text the practice yourself once it’s ready.'
+            : 'Email isn’t connected. Share the ready link yourself.'}
       </p>
     </section>
   )

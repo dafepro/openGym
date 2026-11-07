@@ -7,6 +7,8 @@ import { youtubeId } from '../domain/demonstration.js'
 import CoachRecipients, {
   emptyRecipient,
 } from '../components/CoachRecipients.jsx'
+import CoachPracticeShare from '../components/CoachPracticeShare.jsx'
+import CoachReadyAlerts from '../components/CoachReadyAlerts.jsx'
 import {
   COACH_BRIEF_LIMIT,
   validateCoachRequest,
@@ -63,11 +65,11 @@ const statusLabel = {
   submitted: 'Awaiting approval',
   publishing: 'Publishing practice',
   closed: 'Request closed',
-  notification_setup: 'Practice ready · share the link',
+  notification_setup: 'Practice ready',
   rejected: 'Needs a clearer brief',
   failed: 'Could not finish',
   attention: 'Needs attention',
-  ready: 'Practice published',
+  ready: 'Practice ready',
   notifying: 'Sending notifications',
   notified: 'Practice ready',
   notification_attention: 'Practice ready · check notifications',
@@ -111,6 +113,7 @@ function RequestCard({ job, onRevise }) {
         : 0
   return (
     <article
+      id={`coach-request-${job.id}`}
       className="pb-coach-request"
       aria-label={job.publishedTitle || job.plan?.title || 'Practice request'}
     >
@@ -230,6 +233,7 @@ function RequestCard({ job, onRevise }) {
           </a>
         )}
       </div>
+      {job.practiceUrl && <CoachPracticeShare url={job.practiceUrl} recipients={job.recipients} />}
       {job.submitterEmail && (
         <p className="pb-coach-submitter">Requested by {job.submitterEmail}</p>
       )}
@@ -249,22 +253,11 @@ function RequestCard({ job, onRevise }) {
           </ul>
         </Disclosure>
       )}
-      {job.recipientCount > 0 && job.practiceUrl && (
-        <small>
-          {['failed', 'rejected', 'attention'].includes(job.status)
-            ? 'Notifications have not been confirmed. Check the request before trying again.'
-            : job.status === 'notification_setup'
-              ? 'Delivery is not connected. Share the practice link above.'
-              : job.practiceUrl
-                ? job.notifications?.some(
-                    (item) => item.status === 'needs_review',
-                  )
-                  ? 'Some notifications need attention.'
-                  : job.status === 'notified'
-                    ? 'Notifications accepted for sending.'
-                    : 'Notifications are being prepared.'
-                : `${job.recipientCount} recipient${job.recipientCount === 1 ? '' : 's'} · link available after publication`}
-        </small>
+      {job.practiceUrl && job.status === 'notification_attention' && (
+        <small>Some notifications need attention. You can share the link above.</small>
+      )}
+      {job.practiceUrl && job.recipientCount > 0 && job.status === 'notified' && (
+        <small>Notifications accepted for sending.</small>
       )}
     </article>
   )
@@ -295,8 +288,12 @@ export default function CoachView() {
   useEffect(() => {
     live.current = true
     let timer,
-      cancelled = false
+      cancelled = false,
+      refreshing = false
     const refresh = async () => {
+      if (refreshing || cancelled) return
+      refreshing = true
+      clearTimeout(timer)
       try {
         const settings = await api('config')
         if (cancelled) return
@@ -335,13 +332,20 @@ export default function CoachView() {
           setError(failure.message)
           if (!failure.signIn) timer = setTimeout(refresh, 30000)
         }
+      } finally {
+        refreshing = false
       }
     }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refresh()
+    }
+    document.addEventListener('visibilitychange', onVisible)
     void refresh()
     return () => {
       cancelled = true
       live.current = false
       clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [accepted])
   useEffect(() => {
@@ -481,6 +485,7 @@ export default function CoachView() {
         </div>
         <Icon name="pencil" size={26} />
       </header>
+      <CoachReadyAlerts jobs={jobs} />
       {config?.paused && (
         <Notice title="Coach requests are paused">
           Your draft is saved.
