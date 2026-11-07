@@ -1,4 +1,115 @@
 {
   "schemaVersion": 1,
-  "practices": []
+  "practices": [
+    {
+      "requestId": "d07c4a2f-dfd1-495c-ab46-46d85c3266ca",
+      "assignment": {
+        "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca",
+        "revision": "v1",
+        "title": "Soft Touch to Speed",
+        "note": "Soft touches, quick feet—speed up only while the ball stays close.",
+        "status": "archived",
+        "drills": [
+          {
+            "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca-1",
+            "title": "Toe Taps and Sole Rolls",
+            "instructions": "Setup: Use a small clear space with the ball at your feet.\nAlternate light toe taps, then use a sole to roll the ball a short distance forward and back before switching feet. Begin slowly and gradually quicken the movements if the ball stays close.\nFocus: Touch the ball softly; keep your balance over it.",
+            "mode": "time",
+            "sets": 4,
+            "durationSec": 45,
+            "restSec": 15,
+            "side": "both",
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": [
+                "futbol:ball-control",
+                "futbol:footwork",
+                "futbol:toe-taps"
+              ]
+            },
+            "media": {
+              "id": "youtube-lft7AfeFIuQ",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "lft7AfeFIuQ",
+              "portrait": false
+            }
+          },
+          {
+            "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca-2",
+            "title": "Inside-Outside Touches",
+            "instructions": "Setup: Stand with the ball in a clear space, leaving room to move it a little outward and inward.\nWith the active foot, gently nudge the ball outward with the outside of the foot, then guide it inward with the inside. Repeat with one foot for each effort, then switch to the other foot.\nFocus: Make each touch small enough to keep the ball within easy reach.",
+            "mode": "time",
+            "sets": 3,
+            "durationSec": 40,
+            "restSec": 10,
+            "side": "each",
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": [
+                "futbol:ball-control",
+                "futbol:dribbling",
+                "futbol:inside-outside"
+              ]
+            },
+            "media": {
+              "id": "youtube-Aq12sAr8a9I",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "Aq12sAr8a9I",
+              "portrait": false
+            }
+          },
+          {
+            "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca-3",
+            "title": "Close-Control Cone Dribble",
+            "instructions": "Setup: Arrange four cones in a short, easy line with room to turn and return to the start.\nDribble around the cones and back, using both feet throughout. Start slowly; make the later efforts quicker only if the ball remains close. If needed, use the other foot to guide the ball around a cone.\nFocus: Use gentle touches to steer around each cone without letting the ball run away.",
+            "mode": "time",
+            "sets": 4,
+            "durationSec": 60,
+            "restSec": 30,
+            "side": "both",
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": [
+                "futbol:ball-control",
+                "futbol:dribbling",
+                "futbol:close-control"
+              ]
+            },
+            "media": {
+              "id": "youtube-NMfLJynwyTk",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "NMfLJynwyTk",
+              "portrait": false
+            }
+          }
+        ]
+      },
+      "sources": [
+        {
+          "videoId": "lft7AfeFIuQ",
+          "url": "https://www.youtube.com/watch?v=lft7AfeFIuQ",
+          "title": "13 Soccer Drills to Improve Touch, Ball Control & Footwork Faster",
+          "author": "Progressive Soccer"
+        },
+        {
+          "videoId": "Aq12sAr8a9I",
+          "url": "https://www.youtube.com/watch?v=Aq12sAr8a9I",
+          "title": "How To Dribble - The Inside Outside Ball Control Drill | Youth Soccer Drills",
+          "author": "SportsEdTV Soccer Training"
+        },
+        {
+          "videoId": "NMfLJynwyTk",
+          "url": "https://www.youtube.com/watch?v=NMfLJynwyTk",
+          "title": "32 Close Control Dribbling Cone Drills | Improve Your Close Control Dribbling",
+          "author": "7mlc"
+        }
+      ]
+    }
+  ]
 }
