@@ -181,7 +181,7 @@ export default function CoachRecipients({
       <p id="recipient-help" className="qt-fine-print">
         {draft.channel === 'email'
           ? 'Paste a list with commas or new lines.'
-          : 'Outside US/Canada? Include + and country code.'}
+          : 'Use a US or Canadian mobile number.'}
       </p>
       {error && (
         <p id="recipient-error" className="pb-recipient-error" role="alert">
@@ -226,9 +226,11 @@ export default function CoachRecipients({
         </ul>
       )}
       <p className="pb-recipient-delivery">
-        {channels[draft.channel]
-          ? 'Send the link when ready.'
-          : `${draft.channel === 'email' ? 'Email' : 'Text'} isn’t connected. Share the ready link yourself.`}
+        {draft.channel === 'sms' && channels.sms
+          ? <>Players or guardians must <a href="#/texts" target="_blank" rel="noreferrer">opt in to texts</a> before publication.</>
+          : channels[draft.channel]
+            ? 'Send the link when ready.'
+            : `${draft.channel === 'email' ? 'Email' : 'Text'} isn’t connected. Share the ready link yourself.`}
       </p>
     </section>
   )

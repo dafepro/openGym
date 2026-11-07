@@ -256,13 +256,13 @@ function RequestCard({ job, onRevise }) {
             : job.status === 'notification_setup'
               ? 'Delivery is not connected. Share the practice link above.'
               : job.practiceUrl
-                ? job.notifications?.some(
-                    (item) => item.status === 'needs_review',
-                  )
-                  ? 'Some notifications need attention.'
-                  : job.status === 'notified'
-                    ? 'Notifications accepted for sending.'
-                    : 'Notifications are being prepared.'
+                ? job.notifications?.some((item) => item.status === 'opt_in_required')
+                  ? 'A recipient hasn’t opted in to texts. Share the practice link yourself.'
+                  : job.status === 'notification_attention'
+                    ? 'Some notifications need attention. Share the practice link yourself.'
+                    : job.status === 'notified'
+                      ? 'Notifications accepted for sending.'
+                      : 'Notifications are being prepared.'
                 : `${job.recipientCount} recipient${job.recipientCount === 1 ? '' : 's'} · link available after publication`}
         </small>
       )}
