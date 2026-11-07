@@ -32,6 +32,8 @@ function loadSDK() {
 export default function YouTubeVideo({
   videoId,
   portrait,
+  clipStartSec = 0,
+  clipEndSec,
   mediaRef,
   ...callbacks
 }) {
@@ -43,12 +45,19 @@ export default function YouTubeVideo({
       player,
       adapter,
       timer,
-      lastDuration = 0
+      lastDuration = 0,
+      clipEnded = false
+    const length = () =>
+      Math.max(
+        0,
+        Math.min(player.getDuration() || 0, clipEndSec ?? Infinity) -
+          clipStartSec,
+      )
     const mount = document.createElement('iframe')
     mount.referrerPolicy = 'strict-origin-when-cross-origin'
     mount.allow = 'autoplay; fullscreen; encrypted-media'
     mount.title = `${latest.current.title} demonstration`
-    mount.src = `https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&playsinline=1&controls=0&rel=0&origin=${encodeURIComponent(window.location.origin)}`
+    mount.src = `https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&playsinline=1&controls=0&rel=0&start=${clipStartSec}${clipEndSec != null ? `&end=${clipEndSec}` : ''}&origin=${encodeURIComponent(window.location.origin)}`
     container.current.append(mount)
     const readyTimeout = setTimeout(() => {
       if (!cancelled && !adapter) latest.current.onError?.()
@@ -65,6 +74,8 @@ export default function YouTubeVideo({
             controls: 0,
             playsinline: 1,
             rel: 0,
+            start: clipStartSec,
+            ...(clipEndSec != null ? { end: clipEndSec } : {}),
             origin: window.location.origin,
           },
           events: {
@@ -87,13 +98,20 @@ export default function YouTubeVideo({
               let mute = true
               adapter = {
                 get currentTime() {
-                  return player.getCurrentTime() || 0
+                  return Math.max(
+                    0,
+                    (player.getCurrentTime() || 0) - clipStartSec,
+                  )
                 },
                 set currentTime(value) {
-                  player.seekTo(value, true)
+                  clipEnded = false
+                  player.seekTo(
+                    clipStartSec + Math.max(0, Math.min(length(), value)),
+                    true,
+                  )
                 },
                 get duration() {
-                  return player.getDuration() || 0
+                  return length()
                 },
                 get paused() {
                   return player.getPlayerState() !== 1
@@ -117,6 +135,10 @@ export default function YouTubeVideo({
                   player.setPlaybackRate(value)
                 },
                 play() {
+                  if (clipEnded) {
+                    clipEnded = false
+                    player.seekTo(clipStartSec, true)
+                  }
                   player.playVideo()
                   return Promise.resolve()
                 },
@@ -125,21 +147,35 @@ export default function YouTubeVideo({
                 },
                 load() {
                   player.mute()
-                  player.loadVideoById(videoId)
+                  player.loadVideoById({
+                    videoId,
+                    startSeconds: clipStartSec,
+                    ...(clipEndSec != null ? { endSeconds: clipEndSec } : {}),
+                  })
                 },
               }
               mediaRef.current = adapter
               player.mute()
+              if (clipStartSec) player.seekTo(clipStartSec, true)
               latest.current.onCanPlay?.()
               if (latest.current.autoPlay) player.playVideo()
               timer = setInterval(() => {
                 if (cancelled) return
-                const duration = player.getDuration() || 0
+                const duration = length()
                 if (duration > 0 && duration !== lastDuration) {
                   lastDuration = duration
                   latest.current.onLoadedMetadata?.()
                 }
                 latest.current.onTimeUpdate?.()
+                if (
+                  clipEndSec != null &&
+                  player.getCurrentTime() >= clipEndSec &&
+                  !clipEnded
+                ) {
+                  clipEnded = true
+                  player.pauseVideo()
+                  latest.current.onEnded?.()
+                }
               }, 200)
             },
             onStateChange: (event) => {
@@ -152,7 +188,10 @@ export default function YouTubeVideo({
                 latest.current.onPause?.()
                 latest.current.onCanPlay?.()
               }
-              if (event.data === 0) latest.current.onEnded?.()
+              if (event.data === 0 && !clipEnded) {
+                clipEnded = true
+                latest.current.onEnded?.()
+              }
               if (event.data === 3) latest.current.onWaiting?.()
             },
             onError: () => {
@@ -175,6 +214,6 @@ export default function YouTubeVideo({
       mount.remove()
       if (mediaRef.current === adapter) mediaRef.current = null
     }
-  }, [videoId, portrait, mediaRef])
+  }, [videoId, portrait, mediaRef, clipStartSec, clipEndSec])
   return <div ref={container} className="qt-youtube-surface" />
 }

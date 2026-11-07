@@ -106,3 +106,19 @@ it('embeds custom drill instructions alongside compact published references', as
   expect(decoded.drills.at(-1).instructions).toBe(source.drills.at(-1).instructions)
   expect(decoded.drills.at(-1).durationSec).toBe(600)
 })
+
+it('preserves demonstration excerpts without inheriting another excerpt of the same video', async () => {
+  const assignment = original()
+  const media = { id:'youtube-QKz7fDjPnvg',provider:'youtube',youtubeId:'QKz7fDjPnvg',status:'approved' }
+  assignment.drills[0].media = { ...media, clipStartSec:10, clipEndSec:30 }
+  assignment.drills[1].media = { ...media }
+  const approvedCatalog = { assignments:[{...assignment,drills:[{...assignment.drills[0],media:{...media,clipStartSec:40,clipEndSec:60}}]}] }
+  const pass = await createPracticeCode(assignment,'https://train.quicktrack.cc')
+  const decoded = await readPracticeCode(pass.code, approvedCatalog)
+  const offline = await readPracticeCode(pass.code, {assignments:[]})
+  expect((await createPracticeCode(offline,'https://train.quicktrack.cc')).identity).toBe(pass.identity)
+  expect(offline.drills[0].media.status).toBe('unavailable')
+  expect(decoded.drills[0].media).toMatchObject({clipStartSec:10,clipEndSec:30})
+  expect(decoded.drills[1].media.clipStartSec).toBeUndefined()
+  expect((await createPracticeCode(decoded,'https://train.quicktrack.cc')).identity).toBe(pass.identity)
+})

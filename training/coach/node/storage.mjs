@@ -72,6 +72,7 @@ export class CoachStore {
           [
             'queued',
             'processing',
+            'retrying_revision',
             'creating_pr',
             'submitted',
             'revising',

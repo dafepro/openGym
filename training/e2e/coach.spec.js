@@ -588,3 +588,24 @@ test('coach access check never flashes the form and returning to an existing req
     'An unfinished practice brief about fast, close soccer touches.',
   )
 })
+
+test('a failed revision retries its existing request and keeps the same PR and recipients',async({page},testInfo)=>{
+ const id='12345678-1234-4234-8234-123456789abc'
+ let posts=0,job={id,brief,createdAt:Date.now(),plan,status:'attention',canRetryRevision:true,reason:'Research returned an unfinished response. Your feedback and existing PR are saved.',prUrl:'https://github.com/dafepro/openGym/pull/39',recipientCount:1,recipients:[{channel:'email',address:'parent@example.org'}]}
+ await page.route('**/api/coach/config',route=>route.fulfill({json:{configured:true,channels:{}}}))
+ await page.route('**/api/coach/requests',route=>{
+  if(route.request().method()==='POST'){
+   expect(route.request().postDataJSON()).toEqual({retryRequestId:id});posts++
+   job={...job,status:'retrying_revision',canRetryRevision:false,reason:undefined}
+   return route.fulfill({status:202,json:job})
+  }
+  return route.fulfill({json:{requests:[job],coach:{email:'coach@example.org'}}})
+ })
+ await page.getByRole('link',{name:'Coach’s desk',exact:true}).click()
+ await page.getByRole('button',{name:'Retry revision',exact:true}).click()
+ await expect(page.getByText('Retrying revision',{exact:true})).toBeVisible()
+ expect(posts).toBe(1)
+ await expect(page.getByRole('link',{name:'Open pull request'})).toHaveAttribute('href',job.prUrl)
+ await expect(page.getByRole('button',{name:'Retry revision',exact:true})).toHaveCount(0)
+ await capture(page,testInfo,'coach-retrying-preserved-revision')
+})

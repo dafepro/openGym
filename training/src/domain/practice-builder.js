@@ -11,7 +11,7 @@ export function drillLibrary(catalog) {
   return catalog.assignments.flatMap(assignment => assignment.drills).filter(drill => {
     // One demonstration can occur in several assigned sessions. Keep the first
     // current prescription while retaining distinct custom/no-video exercises.
-    const key = drill.media.status === 'approved' ? drill.media.id : drill.id
+    const key = drill.media.status === 'approved' ? `${drill.media.id}:${drill.media.clipStartSec ?? ''}:${drill.media.clipEndSec ?? ''}` : drill.id
     if (seen.has(key)) return false
     seen.add(key); return true
   }).map(copy)
