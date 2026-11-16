@@ -11,7 +11,7 @@ vi.mock('../lib/sound.js', () => ({ beep: vi.fn(), vibrate: vi.fn(), unlock: vi.
 vi.mock('../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})) }))
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
-const clone = value => JSON.parse(JSON.stringify(value))
+const clone = (value) => JSON.parse(JSON.stringify(value))
 const SQUAT = '0043'
 
 let root, container, sheetRoot, sheetContainer
@@ -21,16 +21,36 @@ function mount(entry, over = {}) {
   S.unit = 'lb'
   Object.assign(S, over)
   S.active = {
-    id: 'focus-test', d: '2026-09-28', start: Date.now(), routineId: null,
-    name: 'Focus', bw: null, cur: 0, workoutView: 'focus', backfill: true, entries: [entry],
+    id: 'focus-test',
+    d: '2026-09-28',
+    start: Date.now(),
+    routineId: null,
+    name: 'Focus',
+    bw: null,
+    cur: 0,
+    workoutView: 'focus',
+    backfill: true,
+    entries: [entry]
   }
   useStore.setState({ S, user: null })
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
-  act(() => root.render(<MemoryRouter><Workout /></MemoryRouter>))
+  act(() =>
+    root.render(
+      <MemoryRouter>
+        <Workout />
+      </MemoryRouter>
+    )
+  )
 }
 
+// The rarely used rows sit folded under More (MenuSheet's `more`, v1.4.4): open it like a user would.
+const unfold = (c) => {
+  const m = c.querySelector('.menu-more')
+  if (m) act(() => m.click())
+  return c
+}
 function openMenu() {
   act(() => container.querySelector('button[aria-label="More"]').click())
   const sheet = useUI.getState().sheets.at(-1)
@@ -38,7 +58,7 @@ function openMenu() {
   document.body.appendChild(sheetContainer)
   sheetRoot = createRoot(sheetContainer)
   act(() => sheetRoot.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
-  return sheetContainer
+  return unfold(sheetContainer)
 }
 
 beforeEach(() => {
@@ -54,14 +74,45 @@ afterEach(() => {
   useUI.getState().stopRest()
 })
 
-describe('Focus view for past workouts', () => {
+describe('Focus workout view', () => {
+  // TestFlight 11-08: the band chips were on the set list only.
+  it('picks the bands of the set on screen, as the list does', () => {
+    mount(
+      { id: SQUAT, target: { sets: 1, reps: 10 }, sets: [{ w: 0, r: 10, done: false }] },
+      {
+        bands: [{ id: 'b-red', name: 'Red', color: '#eb5757', level: 'Heavy' }],
+        bandEx: { [SQUAT]: true }
+      }
+    )
+    const chip = [...container.querySelectorAll('.focus-bands .chip.band')].find((b) => b.textContent.includes('Red'))
+    expect(chip).toBeTruthy()
+    expect(chip.textContent).toContain('Heavy')
+    act(() => chip.click())
+    expect(useStore.getState().S.active.entries[0].sets[0].bands).toEqual(['b-red'])
+  })
+
+  // FocusView.css spaces the steppers and greys a finished set's numbers through .focus-set,
+  // which the set's wrapper had lost: the label sat closer to the stepper above it than to its own.
+  it('gives the set its focus-set class, with complete once it is done', () => {
+    mount({
+      id: SQUAT,
+      target: { sets: 2, reps: 5 },
+      sets: [
+        { w: 95, r: 5, done: true },
+        { w: 95, r: 5, done: false }
+      ]
+    })
+    const set = container.querySelector('[data-testid="focus-set"]')
+    expect(set.classList.contains('focus-set')).toBe(true)
+  })
+
   it('omits a plan that repeats the prescription and keeps plate guidance in the badge row', () => {
     mount({
       id: SQUAT,
       target: { sets: 1, reps: 5, weight: 95 },
       planned: { sets: 1, reps: 5, weight: 95 },
       plan: { kind: 'up' },
-      sets: [{ w: 95, r: 5, done: false }],
+      sets: [{ w: 95, r: 5, done: false }]
     })
 
     const summary = container.querySelector('.focus-prescription')
@@ -78,7 +129,7 @@ describe('Focus view for past workouts', () => {
       target: { sets: 4, reps: 8, weight: 95 },
       planned: { sets: 3, reps: 5, weight: 95 },
       plan: { kind: 'up' },
-      sets: Array.from({ length: 4 }, () => ({ w: 95, r: 8, done: false })),
+      sets: Array.from({ length: 4 }, () => ({ w: 95, r: 8, done: false }))
     })
 
     const summary = container.querySelector('.focus-prescription')
@@ -92,8 +143,9 @@ describe('Focus view for past workouts', () => {
   it('offers the per-exercise progression switch and marks the current exercise', () => {
     mount({ id: SQUAT, target: { sets: 1, reps: 5, weight: 95 }, sets: [{ w: 95, r: 5, done: false }] })
 
-    const item = [...openMenu().querySelectorAll('.menu-item')]
-      .find(el => el.querySelector('.tt')?.textContent === 'Don’t count for progression')
+    const item = [...openMenu().querySelectorAll('.menu-item')].find(
+      (el) => el.querySelector('.tt')?.textContent === 'Don’t count for progression'
+    )
     expect(item).toBeTruthy()
     act(() => item.click())
 
@@ -104,11 +156,48 @@ describe('Focus view for past workouts', () => {
     expect(container.querySelector('.noprog')).toBeNull()
   })
 
+  // Discord: "In Focus mode, how do I add an extra set?" The ⋯ menu has it now, with the warm-up,
+  // like the Cards layout's buttons; the new set is the one on screen when the others are done.
+  it('adds a set and a warm-up set from the exercise menu', () => {
+    mount({
+      id: SQUAT,
+      target: { sets: 2, reps: 5, weight: 95 },
+      sets: [
+        { w: 95, r: 5, done: true },
+        { w: 95, r: 5, done: true }
+      ]
+    })
+    const pick = (label) => {
+      const item = [...openMenu().querySelectorAll('.menu-item')].find(
+        (el) => el.querySelector('.tt')?.textContent === label
+      )
+      expect(item, label).toBeTruthy()
+      act(() => item.click())
+      act(() => sheetRoot.unmount())
+      sheetContainer.remove()
+      sheetRoot = sheetContainer = null
+    }
+    pick('Add set')
+    const sets = () => useStore.getState().S.active.entries[0].sets
+    expect(sets()).toHaveLength(3)
+    expect(sets()[2]).toMatchObject({ w: 95, r: 5, done: false })
+    expect(container.querySelectorAll('.focus-dots button')).toHaveLength(3)
+    expect(container.querySelector('.focus-dots button.active').getAttribute('aria-label')).toBe('Set 3')
+    pick('Add warm-up set')
+    expect(sets()).toHaveLength(4)
+    expect(sets().filter((row) => row.phase === 'warmup' || row.warmup)).toHaveLength(1)
+  })
+
+  it("title-cases the exercise menu's heading like the Cards layout does", () => {
+    mount({ id: SQUAT, target: { sets: 1, reps: 5, weight: 95 }, sets: [{ w: 95, r: 5, done: false }] })
+    expect(openMenu().querySelector('h3').className).toBe('capitalize')
+  })
+
   it('uses the exercise rest-pause duration for a new burst', () => {
     mount({
       id: SQUAT,
       target: { sets: 1, reps: 5, weight: 95, intensifier: { type: 'restpause', restSec: 7 } },
-      sets: [{ w: 95, r: 5, done: false }],
+      sets: [{ w: 95, r: 5, done: false }]
     })
 
     act(() => container.querySelector('button[aria-label="Set menu"]').click())
@@ -117,8 +206,9 @@ describe('Focus view for past workouts', () => {
     document.body.appendChild(sheetContainer)
     sheetRoot = createRoot(sheetContainer)
     act(() => sheetRoot.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
-    const item = [...sheetContainer.querySelectorAll('.menu-item')]
-      .find(el => el.querySelector('.tt')?.textContent === 'Add burst')
+    const item = [...sheetContainer.querySelectorAll('.menu-item')].find(
+      (el) => el.querySelector('.tt')?.textContent === 'Add burst'
+    )
     act(() => item.click())
 
     expect(useStore.getState().S.active.entries[0].sets[0].clusters[0].restSec).toBe(7)
@@ -128,11 +218,11 @@ describe('Focus view for past workouts', () => {
 // The speed stepper follows the profile's speed unit like the set row does (lib/speed.js): shown,
 // stepped and typed in mph, stored in km/h. It used to say km/h whatever the setting.
 describe('Focus view cardio speed', () => {
-  const BIKE = '2138'   // stationary bike, cardio
+  const BIKE = '2138' // stationary bike, cardio
   const bike = () => ({ id: BIKE, target: { sets: 1, min: 20, speed: 8 }, sets: [{ min: 20, speed: 8, done: false }] })
   const cell = () => container.querySelector('button[aria-label="Increase speed"]').closest('.stp-w')
   const stored = () => useStore.getState().S.active.entries[0].sets[0].speed
-  const type = value => {
+  const type = (value) => {
     const input = cell().querySelector('input')
     act(() => {
       Object.getOwnPropertyDescriptor(input.constructor.prototype, 'value').set.call(input, value)
@@ -143,7 +233,7 @@ describe('Focus view cardio speed', () => {
   it('reads, steps and takes typing in mph for a profile in pounds, and stores km/h', () => {
     mount(bike())
     expect(cell().querySelector('.stp-l').textContent).toBe('Speed (mph)')
-    expect(cell().querySelector('input').value).toBe('4.97')   // 8 km/h
+    expect(cell().querySelector('input').value).toBe('4.97') // 8 km/h
     act(() => container.querySelector('button[aria-label="Increase speed"]').click())
     expect(stored()).toBe(8.8)
     type('6')
@@ -153,7 +243,8 @@ describe('Focus view cardio speed', () => {
   it('follows a chosen unit over the weight unit, and leaves km/h as it was', () => {
     mount(bike(), { unit: 'kg', speedUnit: 'mph' })
     expect(cell().querySelector('.stp-l').textContent).toBe('Speed (mph)')
-    act(() => root.unmount()); container.remove()
+    act(() => root.unmount())
+    container.remove()
     mount(bike(), { speedUnit: 'kmh' })
     expect(cell().querySelector('.stp-l').textContent).toBe('Speed (km/h)')
     expect(cell().querySelector('input').value).toBe('8')

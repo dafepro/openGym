@@ -19,6 +19,7 @@ import { downloadAndInstall, fetchChecksum } from './update.js'
 beforeEach(() => {
   vi.resetAllMocks()
   native.addListener.mockResolvedValue({ remove: native.remove })
+  native.installApk.mockRejectedValueOnce(new Error('no cached APK')).mockResolvedValue(undefined)
 })
 
 it('streams the APK to disk and delegates hash verification to the native installer', async () => {
@@ -40,7 +41,7 @@ it('withholds installation after a failed download and removes its progress list
   await expect(downloadAndInstall('https://example.test/uplift.apk', 'a'.repeat(64), vi.fn())).rejects.toThrow(
     'offline'
   )
-  expect(native.installApk).not.toHaveBeenCalled()
+  expect(native.installApk).toHaveBeenCalledTimes(1) // only the failed cache probe
   expect(native.remove).toHaveBeenCalledOnce()
 })
 

@@ -79,3 +79,47 @@ The archived original Uplift repository's main was verified through the connecte
 at `aa4c2838`, matching its preserved local checkout. Production promotion remains a separate
 manual action. Workflow conditions, formatting, all nine Worker tests, the production build and
 Worker dry-run passed for this follow-up.
+
+## Follow-up sync — 2026-11-16
+
+Re-fetched upstream and fork origin after integration. Upstream main remains
+`e4a68a94c42a3c17cbd560d66ce2e46a7048ab99` (1.4.5); fork main and the production
+source branch began at `8d71dc690173c7bc779b81de494ccd3b69b0e6bd`. This merge imports
+2,005 upstream commits while preserving both histories. See
+[ADR 012](../decisions/012-opengym-145-integration.md) for the integration decisions.
+
+The existing adapters remain useful. Adapt Focus at upstream's exercise-unit/gym
+view boundary instead of duplicating its new unit engine. Both phone and watch
+now build and commit the same completed-session record, including circuits and
+session targets; warm-up-only finishes cannot advance a programme. Keep the
+strict StrongLifts reader behind the new multi-app dispatcher, preserve unknown
+and zero-rep rows, and exclude imported history from current load caches.
+Drive's deterministic conflict policy now extends upstream multi-reading weigh-ins.
+
+Adopt upstream's shared print/card rendering and use the Uplift mark there. Keep
+base CSS unchanged, with fork presentation in the theme stylesheet. Preserve the
+mounted controller, explicit Finish, live navigation, and full-width Details/Focused
+switch. The production browser check caught and corrected a selected-segment contrast
+regression caused by upstream's new dark-theme specificity, including scrollable
+segments. Both light and dark selected labels meet 4.5:1 contrast in the built app.
+
+Verification on synthetic data:
+
+- Frontend: 925 files, 10,328 tests passed; native localization coverage passed.
+  After the final CSS correction, all 26 theme/legacy-browser fallback checks passed.
+- API: 1,085 tests passed. MCP: 153 tests passed. Worker: all nine tests passed.
+- All 25 locale packs have matching 5,945 keys; strict source-string coverage passed.
+- Fatigue/progression probes passed 108,000 history comparisons and 2,100 latest-record
+  deletion comparisons. Recommendation benchmark with 5,632 exercises/4,000 workouts:
+  cold 44.95 ms, warm median 7.51 ms and p95 10.84 ms on the local machine.
+- Production local/no-media build and Worker dry-run passed. Existing build warnings
+  concern large chunks and ineffective dynamic imports. No account backend or media
+  directory is added to the Worker bundle.
+- Chromium at 390 × 844 against built `dist/`: exercise-pinned pounds over a kilogram
+  profile display/edit correctly; Home/Resume retains the edit; reload persists it;
+  explicit Finish opens the completion flow. No browser page errors occurred.
+
+Physical native builds, Garmin hardware and live Google consent were not exercised.
+This sync publishes source/builds only; central production promotion is separate.
+The DigitalOcean/state-ownership work is a proposal in private `dafepro/deploy`
+[PR 116](https://github.com/dafepro/deploy/pull/116), not an infrastructure apply.

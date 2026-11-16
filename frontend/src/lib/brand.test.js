@@ -39,7 +39,7 @@ describe('theme accessibility and install identity', () => {
     const css = readFileSync('src/uplift-theme.css', 'utf8')
     const tokens = selector => Object.fromEntries([...css.match(selector)[1].matchAll(/--([\w-]+):\s*(#[\da-f]+);/g)].map(m => [m[1], m[2]]))
     const dark = tokens(/:root \{([^}]+)\}/)
-    const light = tokens(/:root\[data-theme="light"\] \{([^}]+)\}/)
+    const light = tokens(/:root\[data-theme=['"']light['"']\] \{([^}]+)\}/)
     for (const theme of [dark, light]) {
       for (const key of ['bg', 'surface', 'surface-2']) expect(contrast(theme['label-2'], theme[key])).toBeGreaterThanOrEqual(4.5)
     }

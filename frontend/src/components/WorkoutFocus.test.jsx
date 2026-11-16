@@ -724,3 +724,15 @@ describe('the workout focus layout', () => {
     expect(useStore.getState().S.active.entries[0].sets[1].done).toBe(false)
   })
 })
+
+it('shows a pinned exercise in pounds and stores edits in the kilogram profile', () => {
+  mount([squat([{ w: 20.4117, r: 5, done: false }])], {
+    unit: 'kg', workoutView: 'focus', exUnit: { '0043': { unit: 'lb', _ts: 1 } },
+  })
+  act(() => root.render(<MemoryRouter initialEntries={['/workout']}><Workout /></MemoryRouter>))
+  expect(document.querySelector('.wf-prep').textContent).toContain('(lb)')
+  expect(document.querySelector('.wf-prep input[aria-label="load"]').value).toBe('45')
+  tap('Increase load')
+  expect(row().w).toBeCloseTo(24.9476, 4)
+  expect(document.querySelector('.wf-prep input[aria-label="load"]').value).toBe('55')
+})

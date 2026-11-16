@@ -793,3 +793,11 @@ body.workout-focus #app {
 .wf-secondary-actions>button:disabled {
   opacity: .35;
 }
+
+/* iOS 15 keeps visible surfaces before color-mix support. */
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  .wf-rep-glow { background: radial-gradient(ellipse, rgba(208,248,120,.24), transparent 70%); }
+  .wf-kicker { background: var(--surface-2); }
+  .wf-reps-control>button:active { background: var(--surface-2); }
+  :root[data-theme="light"] .wf-kicker { color: var(--label); }
+}

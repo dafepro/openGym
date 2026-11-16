@@ -1,40 +1,12 @@
 name: Tests
-"on":
-  pull_request:
-    paths:
-      - frontend/**
-      - shared/**
-      - worker/**
-      - wrangler.jsonc
-      - package.json
-      - package-lock.json
-      - api/**
-      - mcp/**
-      - scripts/build-coach-assets.mjs
-      - scripts/build-coach-library.mjs
-      - scripts/build-api-docs.mjs
-      - website/api.html
-      - api/coach/prompts/**
-      - .github/workflows/test.yml
+'on':
+  pull_request: null
   push:
     branches:
       - main
-      - coach
-    paths:
-      - frontend/**
-      - shared/**
-      - worker/**
-      - wrangler.jsonc
-      - package.json
-      - package-lock.json
-      - api/**
-      - mcp/**
-      - scripts/build-coach-assets.mjs
-      - scripts/build-coach-library.mjs
-      - scripts/build-api-docs.mjs
-      - website/api.html
-      - api/coach/prompts/**
-      - .github/workflows/test.yml
+      - stores
+      - watch
+      - ci-*
   workflow_dispatch:
     inputs:
       build_runner:
@@ -49,97 +21,397 @@ name: Tests
 permissions:
   contents: read
 concurrency:
-  group: test-${{ github.ref }}
+  group: tests-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+env:
+  NODE_VERSION: 26
+  FORCE_COLOR: '1'
 jobs:
-  test:
-    runs-on:
-      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
-      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      frontend: ${{ steps.f.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch' }}
+      api: ${{ steps.f.outputs.api == 'true' || github.event_name == 'workflow_dispatch' }}
+      mcp: ${{ steps.f.outputs.mcp == 'true' || github.event_name == 'workflow_dispatch' }}
+      images: ${{ steps.f.outputs.images == 'true' || github.event_name == 'workflow_dispatch' }}
+      android: ${{ steps.f.outputs.android == 'true' || github.event_name == 'workflow_dispatch' }}
+      catalogue: ${{ steps.f.outputs.catalogue == 'true' || github.event_name == 'workflow_dispatch' }}
+      routines: ${{ steps.f.outputs.routines == 'true' || github.event_name == 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          node-version: 22
+          persist-credentials: false
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
+        id: f
+        with:
+          base: ${{ github.event_name == 'push' && github.ref_name || '' }}
+          filters: |
+            frontend:
+              - 'worker/**'
+              - 'shared/**'
+              - 'wrangler.jsonc'
+              - 'package*.json'
+              - '.github/workflows/test.yml'
+              - 'scripts/ci/**'
+              - 'frontend/src/**'
+              - 'frontend/public/**'
+              - 'frontend/scripts/**'
+              - 'frontend/index.html'
+              - 'frontend/vite.config.js'
+              - 'frontend/package*.json'
+              # The phone build and the Coach import the api's shared core.
+              - 'api/coach/core/**'
+              - 'api/coach/prompts/**'
+              - 'api/sync-stamps.js'
+              - 'api/nudge-copy.js'
+              - 'api/server.js'
+              - 'api/test/fixtures/**'
+              - 'catalogue/**'
+              - 'scripts/build-coach-*.mjs'
+              - 'web/Dockerfile'
+            api:
+              - '.github/workflows/test.yml'
+              - 'scripts/ci/**'
+              - 'api/**'
+              - 'website/api.html'
+              - 'scripts/build-api-docs.mjs'
+              - 'website/*.html'
+              - 'scripts/build-coach-*.mjs'
+              - 'catalogue/**'
+              - 'frontend/src/lib/**'
+              - 'frontend/src/locales/**'
+            mcp:
+              - '.github/workflows/test.yml'
+              - 'scripts/ci/**'
+              - 'mcp/**'
+              - 'frontend/src/lib/**'
+              # The HTTP and log_workout end-to-end tests drive the real api/server.js.
+              - 'api/*.js'
+            images:
+              - '.github/workflows/test.yml'
+              - 'api/Dockerfile'
+              - 'api/package*.json'
+              - 'api/*.js'
+              - 'api/coach/**'
+              - 'web/**'
+              - 'frontend/package*.json'
+              - 'frontend/vite.config.js'
+              - 'mcp/Dockerfile'
+              - 'mcp/package*.json'
+              - 'mcp/src/**'
+            android:
+              - '.github/workflows/test.yml'
+              - 'frontend/android/**'
+              - 'frontend/package*.json'
+              - 'frontend/capacitor.config.json'
+              - 'frontend/scripts/check-mobile-bundle.mjs'
+              - 'frontend/scripts/check-app-media.mjs'
+              - 'scripts/android/**'
+              - 'scripts/catalogue/stage-media.mjs'
+            catalogue:
+              - '.github/workflows/test.yml'
+              - 'catalogue/**'
+              - 'scripts/catalogue/**'
+              - 'frontend/src/lib/exercises-data.js'
+              - 'frontend/src/instr/**'
+              - 'frontend/src/exercise-names/**'
+              - 'frontend/src/exercise-desc/**'
+            routines:
+              - '.github/workflows/test.yml'
+              - 'routines/**'
+              - 'scripts/routines/**'
+              - 'website/routines/**'
+              - 'website/index.html'
+              - 'catalogue/exercises/**'
+              - 'api/coach/core/starter-plans.js'
+              - 'api/coach/core/routine-library.js'
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: >-
+      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name !=
+      'pull_request_target') || (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' ||
+      (github.event.inputs.build_runner != 'github' && vars.BUILD_RUNNER != 'github')) &&
+      fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
           cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts --no-audit --no-fund
         working-directory: frontend
-      - run: npm test
+      - name: Unit and component tests
         working-directory: frontend
-      - run: npm run test:worker
-      - run: npm run build
+        run: >
+          npx vitest run --reporter=default --reporter=json --outputFile.json=test-results.json --reporter=junit
+          --outputFile.junit=junit.xml --coverage --coverage.provider=v8 --coverage.include='src/**'
+          --coverage.reporter=json-summary --coverage.reporter=text-summary
+      - name: Uplift Worker regressions
+        run: npm run test:worker
+      - name: Web build
+        run: npm run build
         working-directory: frontend
-      - run: node scripts/check-locales.mjs
+      - name: No seasonal date hook in the build
+        run: node scripts/check-season-clock.mjs dist
         working-directory: frontend
-      - run: node scripts/check-source-strings.mjs
+      - name: Bundle size
+        run: node scripts/bundle-size.mjs --out bundle-size.json
         working-directory: frontend
-      - run: npm run test:fatigue-probe
+      - name: Locale packs are in sync
+        run: node scripts/check-locales.mjs
         working-directory: frontend
-    name: test
+      - name: Untranslated strings in src (report only)
+        run: node scripts/check-source-strings.mjs
+        working-directory: frontend
+      - name: Garmin watch app check
+        run: node garmin/check.mjs
+        working-directory: frontend
+      - name: Fatigue model property probe
+        run: npm run test:fatigue-probe
+        working-directory: frontend
+      - name: Uplift production build and Worker dry run
+        run: |-
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:worker
+          npm run check:worker
+      - name: Stats
+        if: always()
+        run: >
+          node scripts/ci/test-report.mjs --label Frontend --root frontend --vitest frontend/test-results.json
+          --coverage frontend/coverage/coverage-summary.json --bundle frontend/bundle-size.json --out
+          stats/frontend.json
+      - name: Test audit
+        if: always()
+        run: node scripts/ci/test-audit.mjs frontend/src frontend/scripts api/test mcp/test > /dev/null
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: stats-frontend
+          path: |
+            stats/frontend.json
+            frontend/junit.xml
+          retention-days: 30
+          if-no-files-found: ignore
+  api:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: >-
+      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name !=
+      'pull_request_target') || (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' ||
+      (github.event.inputs.build_runner != 'github' && vars.BUILD_RUNNER != 'github')) &&
+      fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
+          cache-dependency-path: |
+            api/package-lock.json
+            package-lock.json
+      - run: npm ci --omit=optional --no-audit --no-fund
+        working-directory: api
+      - name: API tests
+        working-directory: api
+        run: >
+          node --test --experimental-test-coverage --test-coverage-exclude='test/**'
+          --test-coverage-exclude='node_modules/**' --test-reporter=spec --test-reporter-destination=stdout
+          --test-reporter=../scripts/ci/node-test-reporter.mjs --test-reporter-destination=test-results.jsonl
+          --test-reporter=lcov --test-reporter-destination=lcov.info --test-reporter=junit
+          --test-reporter-destination=junit.xml test/*.test.js
+      - name: Generated Coach assets are current
+        run: node scripts/build-coach-assets.mjs --check
+      - run: npm ci --no-audit --no-fund
+      - name: Generated API docs are current
+        run: node scripts/build-api-docs.mjs --check
+      - name: Coach core loads in plain node
+        run: node api/scripts/check-core-loadable.mjs
+      - name: Stats
+        if: always()
+        run: >
+          node scripts/ci/test-report.mjs --label API --root api --node api/test-results.jsonl --lcov api/lcov.info
+          --out stats/api.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: stats-api
+          path: |
+            stats/api.json
+            api/junit.xml
+          retention-days: 30
+          if-no-files-found: ignore
     permissions:
       contents: read
       actions: read
       checks: read
   mcp:
-    runs-on:
-      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
-      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    needs: changes
+    if: needs.changes.outputs.mcp == 'true'
+    runs-on: >-
+      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name !=
+      'pull_request_target') || (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' ||
+      (github.event.inputs.build_runner != 'github' && vars.BUILD_RUNNER != 'github')) &&
+      fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          node-version: 22
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
           cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
-          cache-dependency-path: mcp/package-lock.json
-      - run: npm ci
+          cache-dependency-path: |
+            mcp/package-lock.json
+            api/package-lock.json
+      - run: npm ci --no-audit --no-fund
         working-directory: mcp
-      - run: npm test
+      - run: npm ci --no-audit --no-fund --omit=optional
+        working-directory: api
+      - name: MCP tests
         working-directory: mcp
-      - run: npm run check:node-loadable
+        run: >
+          npx vitest run --reporter=default --reporter=json --outputFile.json=test-results.json --coverage
+          --coverage.provider=v8 --coverage.reporter=json-summary
+      - name: Server loads in plain node
+        run: npm run check:node-loadable
         working-directory: mcp
-    name: mcp
+      - name: Stats
+        if: always()
+        run: >
+          node scripts/ci/test-report.mjs --label MCP --root mcp --vitest mcp/test-results.json --coverage
+          mcp/coverage/coverage-summary.json --out stats/mcp.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: stats-mcp
+          path: stats/mcp.json
+          retention-days: 30
+          if-no-files-found: ignore
     permissions:
       contents: read
       actions: read
       checks: read
-  api:
-    runs-on:
-      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
-      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+  catalogue:
+    needs: changes
+    if: needs.changes.outputs.catalogue == 'true'
+    runs-on: >-
+      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name !=
+      'pull_request_target') || (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' ||
+      (github.event.inputs.build_runner != 'github' && vars.BUILD_RUNNER != 'github')) &&
+      fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          node-version: 22
-          cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
-          cache-dependency-path: api/package-lock.json
-      - run: npm ci --omit=optional
-        working-directory: api
-      - run: npm test
-        working-directory: api
-      - run: node scripts/build-coach-assets.mjs --check
-      - run: npm ci
-      - run: node scripts/build-api-docs.mjs --check
-      - run: node api/scripts/check-core-loadable.mjs
-    name: api
-    permissions:
-      contents: read
-      actions: read
-      checks: read
-  api-image:
-    runs-on:
-      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || (github.event.pull_request.head.repo.full_name
-      == github.repository && github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' || (github.event.inputs.build_runner
-      != 'github' && vars.BUILD_RUNNER != 'github')) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Validate the catalogue
+        run: node scripts/catalogue/validate.mjs
+      - name: Generated files are up to date
+        run: node scripts/catalogue/build.mjs --check
+      - name: Media stay within 180 px (licence)
+        run: node scripts/catalogue/check-media.mjs
+      - name: The community library blocks every catalogue file (licence, by checksum)
+        run: node scripts/catalogue/media-hashes.mjs --check
+  routines:
+    needs: changes
+    if: needs.changes.outputs.routines == 'true'
+    runs-on: >-
+      ${{ (github.repository == 'dafepro/openGym' && ((github.event_name != 'pull_request' && github.event_name !=
+      'pull_request_target') || (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.id == 313492551))) && (github.event.inputs.build_runner == 'mac' ||
+      (github.event.inputs.build_runner != 'github' && vars.BUILD_RUNNER != 'github')) &&
+      fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || 'ubuntu-24.04' }}
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
-      - run: docker build --target default -t opengym-api:default ./api
-      - run: docker build --target coach   -t opengym-api:coach   ./api
-      - run: docker build -t opengym-api:published ./api
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Validate the routines
+        run: node scripts/routines/validate.mjs
+      - name: Build the routines site
+        run: node scripts/routines/build.mjs --out "$RUNNER_TEMP/routines"
+      - name: Routines tests (validator, build, filters, submit service)
+        run: node --test scripts/routines/routines.test.mjs
+  images:
+    needs: changes
+    if: needs.changes.outputs.images == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+      - name: api, default target
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          pull: true
+          context: ./api
+          target: default
+          load: true
+          tags: opengym-api:default
+          cache-from: type=gha,scope=ci-api
+          cache-to: type=gha,mode=max,scope=ci-api
+      - name: api, coach target
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          pull: true
+          context: ./api
+          target: coach
+          load: true
+          tags: opengym-api:coach
+          cache-from: type=gha,scope=ci-api-coach
+          cache-to: type=gha,mode=max,scope=ci-api-coach
+      - name: api, as published
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          pull: true
+          context: ./api
+          load: true
+          tags: opengym-api:published
+          cache-from: type=gha,scope=ci-api
+      - name: web
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          pull: true
+          context: .
+          file: ./web/Dockerfile
+          load: true
+          tags: opengym-web:ci
+          cache-from: type=gha,scope=ci-web
+          cache-to: type=gha,mode=max,scope=ci-web
+      - name: mcp
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          context: .
+          file: ./mcp/Dockerfile
+          load: true
+          tags: opengym-mcp:ci
+          cache-from: type=gha,scope=ci-mcp
+          cache-to: type=gha,mode=max,scope=ci-mcp
       - name: the image published as :latest has no AI runtime either
         run: |
           docker run --rm opengym-api:published node -e \
@@ -147,18 +419,47 @@ jobs:
           ! docker run --rm opengym-api:published codex --version
           ! docker run --rm opengym-api:published bwrap --version
       - name: the default image boots and serves, with no AI runtime in it
-        run: |
-          docker run -d --name api-default -e DATA_DIR=/data -p 3000:3000 opengym-api:default
+        run: >
+          docker network create og
+
+          docker run -d --name api-default --network og --network-alias api -e DATA_DIR=/data -p 3000:3000
+          opengym-api:default
+
           for i in $(seq 1 30); do
             curl -fsS http://localhost:3000/api/config >/dev/null 2>&1 && break
             sleep 1
           done
+
           curl -fsS http://localhost:3000/api/config | tee /dev/stderr | grep -q '"invite_only"'
-          # Absent by construction, not by accident: --omit=optional is the only thing keeping
-          # the AI dependency out of the image an owner gets when they never asked for it.
+
           docker run --rm opengym-api:default node -e \
             'import("@anthropic-ai/claude-agent-sdk").then(()=>{console.error("AI runtime present in the default image");process.exit(1)},()=>process.exit(0))'
-          docker rm -f api-default
+      - name: the web image serves the app and reaches the api through nginx
+        run: |
+          docker run -d --name web --network og -p 8080:80 opengym-web:ci
+          for i in $(seq 1 30); do curl -fsS http://localhost:8080/ >/dev/null 2>&1 && break; sleep 1; done
+          curl -fsS http://localhost:8080/ | grep -q 'id="root"'
+          curl -fsS http://localhost:8080/api/config | grep -q '"invite_only"'
+          # Without the mcp container, /mcp says so in JSON instead of nginx's 502 page.
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8080/mcp)" = 503
+          curl -s -X POST http://localhost:8080/mcp | grep -q 'MCP is not running'
+      - name: the mcp image boots and is reached through nginx at /mcp
+        run: >
+          docker run -d --name mcp --network og --network-alias mcp -e OPENGYM_API_URL=http://api:3000 opengym-mcp:ci
+
+          for i in $(seq 1 30); do docker exec mcp wget -q -O- http://127.0.0.1:3100/mcp/health >/dev/null 2>&1 &&
+          break; sleep 1; done
+
+          docker exec mcp wget -q -O- http://127.0.0.1:3100/mcp/health | grep -q '"ok":true'
+
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d
+          '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' http://localhost:8080/mcp)
+
+          test "$code" = 401
+
+          curl -s -D - -o /dev/null -X POST http://localhost:8080/mcp | grep -qi '^www-authenticate: Bearer'
+
+          docker rm -f web api-default mcp
       - name: the coach image carries a runnable Agent SDK
         run: |
           docker run --rm opengym-api:coach node --input-type=module -e '
@@ -168,22 +469,133 @@ jobs:
             console.log(r.version);
           '
       - name: the coach image carries the Codex runtime and its sandbox
-        run:
-          "docker run --rm opengym-api:coach codex --version\ndocker run --rm opengym-api:coach bwrap --version\n# Owned by the user jobs drop to, and 0700 \u2014\
-          \ a credential cache readable by anything\n# else in the container would undo the point of dropping privileges at all.\ntest \"$(docker run --rm opengym-api:coach\
-          \ stat -c '%U %a' /coach-auth)\" = \"coach 700\"\n"
+        run: |
+          docker run --rm opengym-api:coach codex --version
+          docker run --rm opengym-api:coach bwrap --version
+          # Owned by the user jobs drop to, and 0700: a credential cache readable by anything
+          # else in the container would undo the point of dropping privileges at all.
+          test "$(docker run --rm opengym-api:coach stat -c '%U %a' /coach-auth)" = "coach 700"
       - name: neither Codex nor its sandbox is in the default image
         run: |
-          # bubblewrap is a Codex requirement, so an owner who never opted in should not be
-          # carrying it. Both commands must fail.
           ! docker run --rm opengym-api:default codex --version 2>/dev/null
           ! docker run --rm opengym-api:default bwrap --version 2>/dev/null
       - name: the privilege drop can actually be performed in the image
-        run:
-          "# canDropPrivileges() fails closed, so a missing `coach` user disables every job \u2014\n# including the fixture provider. Cheaper to assert here than\
-          \ to discover on an instance.\ndocker run --rm opengym-api:default id coach\n"
-    name: api-image
-    permissions:
-      contents: read
-      actions: read
-      checks: read
+        run: |
+          # canDropPrivileges() fails closed, so a missing `coach` user disables every job,
+          # including the fixture provider.
+          docker run --rm opengym-api:default id coach
+  android:
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/stores' }}
+          add-job-summary: on-failure
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: frontend
+      - name: Phone bundle + cap sync
+        run: npm run build:mobile
+        working-directory: frontend
+      - name: JVM unit tests, sideload APK, play flavour compiles, F-Droid APK, openGym Offline APK, Wear OS
+        working-directory: frontend/android
+        run: >-
+          ./gradlew --no-daemon testSideloadDebugUnitTest assembleSideloadDebug compilePlayDebugJavaWithJavac
+          assembleFdroidRelease assembleOfflineDebug :wear:testDebugUnitTest :wear:compileReleaseKotlin
+      - name: F-Droid build is free of Google Play services
+        run: scripts/android/check-fdroid.sh
+      - name: openGym Offline has no network
+        run: scripts/android/check-offline.sh
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: opengym-offline-debug-apk
+          path: frontend/android/app/build/outputs/apk/offline/debug/*.apk
+          retention-days: 7
+          if-no-files-found: error
+      - name: Stats
+        if: always()
+        working-directory: frontend/android
+        run: |
+          {
+            echo "### Android"
+            for a in app/build/outputs/apk/sideload/debug/*.apk; do
+              [ -f "$a" ] && echo "- debug sideload APK: $(numfmt --to=iec "$(stat -c %s "$a")") ($(basename "$a"))"
+            done
+            for a in app/build/outputs/apk/fdroid/release/*.apk; do
+              [ -f "$a" ] && echo "- F-Droid APK (unsigned): $(numfmt --to=iec "$(stat -c %s "$a")") ($(basename "$a"))"
+            done
+            for a in app/build/outputs/apk/offline/debug/*.apk; do
+              [ -f "$a" ] && echo "- openGym Offline debug APK: $(numfmt --to=iec "$(stat -c %s "$a")") ($(basename "$a"))"
+            done
+            cat app/build/test-results/testSideloadDebugUnitTest/*.xml wear/build/test-results/testDebugUnitTest/*.xml 2>/dev/null \
+              | grep -o '<testsuite [^>]*' | sed -E 's/.*name="([^"]*)".*tests="([0-9]+)".*failures="([0-9]+)".*/- JVM: \1: \2 tests, \3 failed/' || true
+          } >> "$GITHUB_STEP_SUMMARY"
+  report:
+    needs:
+      - frontend
+      - api
+      - mcp
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          pattern: stats-*
+          merge-multiple: true
+          path: dl
+      - name: Test report
+        run: >
+          set -- $(find dl -name '*.json' | sort)
+
+          if [ $# -eq 0 ]; then echo "Nothing was tested in this run (no matching changes)." >> "$GITHUB_STEP_SUMMARY";
+          exit 0; fi
+
+          node scripts/ci/test-report.mjs --combine "$@" --out combined.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: test-stats
+          path: combined.json
+          retention-days: 90
+          if-no-files-found: ignore
+  tests-ok:
+    needs:
+      - changes
+      - frontend
+      - api
+      - mcp
+      - catalogue
+      - routines
+      - images
+      - android
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Every job passed or had nothing to check
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | node -e '
+            const n = JSON.parse(require("fs").readFileSync(0, "utf8"))
+            for (const [k, v] of Object.entries(n)) console.log(k.padEnd(10), v.result)
+            const bad = Object.entries(n).filter(([, v]) => !["success", "skipped"].includes(v.result))
+            if (bad.length) { console.log("::error::" + bad.map(([k, v]) => k + ": " + v.result).join(", ")); process.exit(1) }'

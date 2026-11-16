@@ -376,3 +376,14 @@ it('keeps a timed progression increment in seconds out of the load grid', () => 
   })
   expect(propose(s).config).toMatchObject({ mode: 'time', inc: 30, sec: 30, weight: 40 })
 })
+
+it('builds a reviewed addition on its pinned unit grid and stores profile-unit loads', () => {
+  const state = base({ exUnit: { [ID]: { unit: 'lb', _ts: NOW } } })
+  const cfg = { id: ID, sets: 2, reps: 8, weight: 20.4117, restSec: 150 }
+  const before = structuredClone(state)
+  const built = buildWorkoutAddition(state, cfg)
+  expect(built.target.weight).toBeCloseTo(20.4117, 4)
+  expect(built.sets.filter(x => x.phase !== 'warmup').map(x => x.w)).toEqual([20.4117, 20.4117])
+  expect(built.noProg).toBe(true)
+  expect(state).toEqual(before)
+})
