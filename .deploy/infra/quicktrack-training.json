@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "app": "quicktrack-training",
+  "environment": "production",
+  "settings": {
+    "loginLimit": 6,
+    "sessionTtlSeconds": 43200
+  }
+}

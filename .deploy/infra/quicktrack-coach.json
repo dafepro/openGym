@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "app": "quicktrack-coach",
+  "environment": "production",
+  "settings": {
+    "sessionDuration": "8h",
+    "connectTimeout": 5
+  }
+}
