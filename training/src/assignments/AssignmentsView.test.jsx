@@ -38,18 +38,21 @@ it('keeps sign-in failures recoverable without exposing records', async () => {
   expect(screen.queryByText('Close control')).toBeNull()
 })
 
-it('removes loaded records when the account expires', async () => {
+it.each(['unauthorized', 'redirect'])('removes loaded records when account access fails: %s', async (failure) => {
   let expired = false
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () =>
-      expired ? Response.json({ error: 'Sign in required' }, { status: 401 }) : Response.json({ records: [record] })
-    )
+    vi.fn(async () => {
+      if (expired && failure === 'redirect') throw new TypeError('Failed to fetch')
+      return expired
+        ? Response.json({ error: 'Sign in required' }, { status: 401 })
+        : Response.json({ records: [record] })
+    })
   )
   render(<AssignmentsView sessions={[]} />)
   await screen.findByText('Close control')
   expired = true
   fireEvent.click(screen.getByRole('button', { name: 'Refresh assignments' }))
-  await screen.findByText('Continue with Google')
+  await screen.findByText(failure === 'redirect' ? 'Sign in for coach assignments' : 'Continue with Google')
   expect(screen.queryByText('Close control')).toBeNull()
 })

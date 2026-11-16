@@ -5,7 +5,7 @@ import Reveal from '../components/Reveal.jsx'
 import PracticeSketch from '../components/PracticeSketch.jsx'
 import PracticePreparation from '../components/PracticePreparation.jsx'
 import { SessionDetail } from '../views/HistoryDetails.jsx'
-import { Button, Notice, prescriptionLabel } from '../components/ui.jsx'
+import { Button, Notice, prescriptionLabel, countLabel, isVideoReview, isSelfPacedPractice } from '../components/ui.jsx'
 import { consent } from './model.js'
 import useAssignments from './useAssignments.js'
 import { journalGroups, journalKey, matchingSessions } from './journal.js'
@@ -28,7 +28,11 @@ function ResultEntry({ record, open = false }) {
         <>
           <p className="pb-result-count">
             {result.status === 'completed' ? 'Complete' : 'Partial'} ·{' '}
-            {result.rows.filter((r) => r.status === 'done').length} sets recorded
+            {countLabel(
+              result.rows.filter((r) => r.status === 'done').length,
+              isVideoReview(record.practice) ? 'video' : isSelfPacedPractice(record.practice) ? 'drill' : 'set'
+            )}{' '}
+            {isVideoReview(record.practice) ? 'reviewed' : 'recorded'}
           </p>
           {result.note && <p className="pb-player-note">{result.note}</p>}
           {record.comment && (

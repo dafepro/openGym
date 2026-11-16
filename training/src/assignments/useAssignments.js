@@ -24,7 +24,14 @@ export default function useAssignments(coach) {
       if (request === generation.current)
         setState({ records: data.records, loading: false, signedIn: true, auth: false, error: '' })
     } catch (error) {
-      if (request === generation.current) setState((s) => ({ ...s, loading: false, error: error.message }))
+      if (request === generation.current)
+        setState({
+          records: [],
+          loading: false,
+          signedIn: false,
+          auth: false,
+          error: error instanceof TypeError ? 'Reconnect or sign in again to load assignments.' : error.message
+        })
     }
   }, [endpoint])
   useEffect(() => {
