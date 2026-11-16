@@ -3,6 +3,7 @@ import { APP_CONFIG } from './config.js'
 import { useHashRoute } from './lib/routes.js'
 import TrainingExperience from './components/TrainingExperience.jsx'
 import TrainingShell from './components/TrainingShell.jsx'
+import TextAlertsView from './views/TextAlertsView.jsx'
 import { LoadingState, Notice } from './components/ui.jsx'
 import { fetchTrainingCatalog } from './controllers/training-catalog.js'
 import { ROUTES } from './lib/routes.js'
@@ -16,6 +17,7 @@ export default function App() {
   const route = useHashRoute()
   if (PrivatePreviewShell) return <Suspense fallback={<TrainingShell page={route} localPreview><LoadingState label="Opening local preview…" /></TrainingShell>}><PrivatePreviewShell route={route} /></Suspense>
   if (DemoShell) return <Suspense fallback={<TrainingShell page={route} sample><LoadingState label="Opening sample practice…" /></TrainingShell>}><DemoShell route={route} /></Suspense>
+  if (route === 'texts') return <TrainingShell page={route} sourceUrl={APP_CONFIG.sourceUrl} onNavigate={page => { window.location.hash = ROUTES[page] }}><TextAlertsView /></TrainingShell>
   return <TrainingApplication route={route} />
 }
 
