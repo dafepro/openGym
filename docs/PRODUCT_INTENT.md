@@ -54,3 +54,9 @@ branch. Focus uses the existing workout controller; Drive and Garmin remain sepa
 around the same local store. Phone and watch share finished-record construction and commit;
 warm-up-only sessions preserve their routine's place. Native updates use a fork-owned release
 channel alongside upstream's downloader. See ADR 009 and the upstream integration review.
+
+## Optional soccer ball game
+
+The home-screen ball can open a flat-pitch game with two target goals and a local
+goal tally. Optional, explicitly enabled phone tilt complements pull-to-kick and
+keyboard controls. Keep this toy separate from training records (ADR 015).
