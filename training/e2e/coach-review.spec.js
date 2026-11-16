@@ -74,7 +74,8 @@ test('coach previews the player view, edits quantities and approves the newly re
   await expect(page.locator('iframe')).toHaveCount(0)
   await review.getByLabel('Sets', { exact: true }).fill('3')
   await review.getByLabel('Rest seconds', { exact: true }).fill('45')
-  await expect(review.getByText('Target edits are unsaved.', { exact: false })).toBeVisible()
+  await expect(review.getByRole('button', { name: 'Save target changes' })).toBeEnabled()
+  await expect(review.getByRole('button', { name: 'Approve for publishing' })).toBeDisabled()
   await review.getByRole('button', { name: 'Save target changes' }).click()
   await expect(review).toHaveCount(0)
   expect(state.mutations[0]).toMatchObject({

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Icon from './Icon.jsx'
 import Dialog from './Dialog.jsx'
 import DrillDemonstration from './DrillDemonstration.jsx'
 import DrillPreview from './DrillPreview.jsx'
@@ -50,11 +51,15 @@ export default function CoachReviewDesk({ job, canReview, paused, onReview, onCl
       <Dialog title="Review practice" className="pb-review-dialog" onClose={onClose} dismissDisabled={busy}>
         <div className="pb-review-desk">
           <header>
-            <p className="qt-eyebrow">Coach review</p>
             <h2>{edition.plan.title}</h2>
             <p>{edition.plan.goal}</p>
           </header>
-          <p>{edition.plan.overview}</p>
+          {edition.plan.overview && (
+            <details>
+              <summary>Notes</summary>
+              <p>{edition.plan.overview}</p>
+            </details>
+          )}
           {!canReview && <Notice title="Preview only">The publishing coach approves and revises this practice.</Notice>}
           {stale && (
             <Notice title="A newer version is available">
@@ -73,14 +78,10 @@ export default function CoachReviewDesk({ job, canReview, paused, onReview, onCl
               </Button>
             </Notice>
           )}
-          {job.deskApproved && (
-            <Notice title="Approved">
-              This version is waiting for publication checks. Further edits require a new review.
-            </Notice>
-          )}
+          {job.deskApproved && <Notice title="Approved">Publishing checks are running.</Notice>}
           {error && (
             <Notice title="Review not saved" tone="error">
-              {error} Your edits are still here.
+              {error}
             </Notice>
           )}
           {preview && (
@@ -110,13 +111,14 @@ export default function CoachReviewDesk({ job, canReview, paused, onReview, onCl
                   {preview && (
                     <Button
                       variant="secondary"
+                      icon="video"
+                      aria-label={`Review video: ${drill.title}`}
+                      title="Review video"
                       onClick={() => setOverlay({ type: 'video', drill: preview.drills[index] })}
-                    >
-                      Review video: {drill.title}
-                    </Button>
+                    />
                   )}
                   <fieldset disabled={disabled} className="pb-review-targets">
-                    <legend>Targets for {drill.title}</legend>
+                    <legend className="qt-visually-hidden">Targets for {drill.title}</legend>
                     <label className="qt-field">
                       Sets
                       <input
@@ -183,14 +185,15 @@ export default function CoachReviewDesk({ job, canReview, paused, onReview, onCl
               ))}
             </ol>
             {dirty && (
-              <p role="status">Target edits are unsaved. Save them, then review the new version before approving.</p>
+              <p role="status" className="pb-review-unsaved" title="Unsaved changes">
+                <Icon name="pencil" size={18} />
+                <span className="qt-visually-hidden">Unsaved changes</span>
+              </p>
             )}
             <Button type="submit" disabled={disabled || !dirty}>
               Save target changes
             </Button>
-            <p className="qt-fine-print">
-              Saving targets creates a new version without another research run. Rest changes are explicit.
-            </p>
+            <p className="qt-fine-print">Target edits do not run research.</p>
           </form>
           <form
             onSubmit={(event) => {
@@ -213,14 +216,11 @@ export default function CoachReviewDesk({ job, canReview, paused, onReview, onCl
                 placeholder="Explain which drills, instructions or videos should change."
               />
             </label>
-            <p className="qt-fine-print">
-              Requesting changes runs research again. Save target edits first; feedback stays private to the coaching
-              service and its research provider.
-            </p>
+            <p className="qt-fine-print">Uses another research run. Feedback is sent to the research provider.</p>
             <Button variant="secondary" type="submit" disabled={disabled || dirty || !feedback.trim() || paused}>
               Request changes
             </Button>
-            {paused && <p>Research is paused. You can still review and save targets.</p>}
+            {paused && <p>Research is paused.</p>}
           </form>
           <section className="pb-review-approve" aria-label="Approve this version">
             <label>
@@ -232,12 +232,7 @@ export default function CoachReviewDesk({ job, canReview, paused, onReview, onCl
               />{' '}
               I reviewed the instructions, targets and demonstrations for this version.
             </label>
-            <p>
-              Approval publishes this exact version after checks pass.{' '}
-              {job.recipientCount
-                ? `${job.recipientCount} saved recipients may be notified only after the practice is verified live.`
-                : 'No recipients are selected for notifications.'}
-            </p>
+            {job.recipientCount > 0 && <p>Notifies {job.recipientCount} recipients after publication.</p>}
             <Button disabled={disabled || dirty || !!feedback.trim() || !checked} onClick={() => void act('approve')}>
               {busy ? 'Saving review…' : 'Approve for publishing'}
             </Button>
@@ -246,9 +241,7 @@ export default function CoachReviewDesk({ job, canReview, paused, onReview, onCl
       </Dialog>
       {overlay?.type === 'preview' && (
         <Dialog title="Player preview" className="pb-review-dialog" onClose={() => setOverlay(null)}>
-          <p>
-            Preview only · no session or athletic work is recorded.{dirty ? ' Includes your unsaved target edits.' : ''}
-          </p>
+          <p>{dirty ? 'Preview includes unsaved edits.' : null}</p>
           <TodayView
             assignment={preview}
             preview

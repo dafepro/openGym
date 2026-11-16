@@ -58,4 +58,4 @@ channel alongside upstream's downloader. See ADR 009 and the upstream integratio
 Soccer practice publication supports review inside the coach desk: a player preview,
 explicit target edits, video review, revision feedback and exact-version approval.
 Keep infrastructure details behind an optional disclosure and retain the existing
-publishing-owner, CI and live-publication boundaries (ADR 014).
+publishing-owner, CI and live-publication boundaries (ADR 017).
