@@ -54,3 +54,10 @@ branch. Focus uses the existing workout controller; Drive and Garmin remain sepa
 around the same local store. Phone and watch share finished-record construction and commit;
 warm-up-only sessions preserve their routine's place. Native updates use a fork-owned release
 channel alongside upstream's downloader. See ADR 009 and the upstream integration review.
+
+## Soccer offline recovery
+
+Playbook opens previously downloaded practices and local progress when connectivity
+fails. Keep device-only saving distinct from cloud sharing, label an older or recovered
+library, and preserve exact active/history snapshots during reconnection. Videos and
+coach/player services remain connection-dependent. See ADR 013.

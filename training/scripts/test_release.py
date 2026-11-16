@@ -41,6 +41,12 @@ class ReleaseTests(unittest.TestCase):
     def make_release(self):
         return package(SHA, self.worker, self.assets, self.output)
 
+    def test_offline_shell_round_trip_and_checksum(self):
+        (self.assets / 'sw.js').write_bytes(b'self.addEventListener("fetch", () => {})')
+        metadata = self.make_release()
+        self.assertIn('assets/sw.js', metadata['files'])
+        self.assertEqual(verify(self.output, SHA), metadata)
+
     def test_only_terminal_wrangler_debug_reference_is_removed(self):
         self.assertEqual(worker_entry(b'export default {};\n//# sourceMappingURL=index.js.map\n'), b'export default {};\n')
         other = b'export default {};\n//# sourceMappingURL=unexpected.map\n'
