@@ -10,9 +10,7 @@ async function pullDown(page, ball, endY) {
   return { x, y }
 }
 
-test('pulling back aims and charges the kick; tap returns the ball', async ({
-  page,
-}, testInfo) => {
+test('pulling back aims and charges the kick; tap returns the ball', async ({ page }, testInfo) => {
   const home = page.getByRole('button', { name: 'Kick the soccer ball' })
   const ball = page.getByRole('button', { name: 'Return soccer ball' })
   const arrow = page.locator('.pb-kick-aim')
@@ -33,7 +31,7 @@ test('pulling back aims and charges the kick; tap returns the ball', async ({
         tail,
         tip: tail + rotation.b * width,
         direction: rotation.b,
-        gradientRadius: element.querySelector('radialGradient').r.baseVal.value,
+        gradientRadius: element.querySelector('radialGradient').r.baseVal.value
       }
     })
   const light = await guide()
@@ -54,11 +52,9 @@ test('pulling back aims and charges the kick; tap returns the ball', async ({
     await expect(ball).toHaveCount(0)
   } else {
     await expect(ball).toHaveAttribute('data-moving', 'true')
-    await expect
-      .poll(async () => (await ball.boundingBox()).y)
-      .toBeLessThan(origin.y - 15)
+    await expect.poll(async () => (await ball.boundingBox()).y).toBeLessThan(origin.y - 15)
     await expect(ball).toHaveAttribute('data-moving', 'false', {
-      timeout: 15000,
+      timeout: 15000
     })
     await noHorizontalOverflow(page)
 
@@ -68,18 +64,16 @@ test('pulling back aims and charges the kick; tap returns the ball', async ({
     await expect
       .poll(async () => (await ball.boundingBox()).y, {
         intervals: [16],
-        timeout: 4000,
+        timeout: 4000
       })
       .toBeLessThan(16)
     await expect(ball).toHaveAttribute('data-moving', 'false', {
-      timeout: 15000,
+      timeout: 15000
     })
     if (testInfo.project.use.hasTouch) await ball.tap()
     else await ball.click()
     await expect(home).toBeVisible()
-    await expect(
-      page.getByRole('heading', { name: 'My practices' }),
-    ).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'My practices' })).toBeVisible()
     expect((await home.boundingBox()).y).toBeCloseTo(origin.y)
 
     await home.focus()
@@ -89,7 +83,7 @@ test('pulling back aims and charges the kick; tap returns the ball', async ({
     await expect(home).toBeFocused()
     await home.press('Enter')
   }
-  await page.getByRole('button', { name: 'New practice', exact: true }).click()
+  await page.getByRole('button', { name: 'Create practice', exact: true }).click()
   await expect(ball).toHaveCount(0)
   await expect(arrow).toHaveCount(0)
 })

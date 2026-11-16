@@ -66,3 +66,10 @@ Playbook uses purposeful copy, accessible visual state and restrained motion.
 Do not duplicate the practice player or history for each entry point. Regression
 checks protect real user outcomes rather than preserving incidental UI structure
 (ADR 019).
+
+## Soccer practice preparation
+
+Before starting, show concise setup requirements and honestly bounded timing from
+the supplied practice. Keep missing setup explicit and preserve a direct Start
+action. Creation, importing and creating an individual drill have distinct labels
+(ADR 014).

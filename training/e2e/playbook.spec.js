@@ -1,15 +1,31 @@
-import { test, expect, assignedTitle, firstTitle, repsTitle, installSyntheticRoutes, capture, noHorizontalOverflow, expectSavedRecap } from './fixtures.js'
+import {
+  test,
+  expect,
+  assignedTitle,
+  firstTitle,
+  repsTitle,
+  installSyntheticRoutes,
+  capture,
+  noHorizontalOverflow,
+  expectSavedRecap
+} from './fixtures.js'
 
-test('assigned practice starts tracking, opens muted help, and records actual work in history', async ({ page }, testInfo) => {
+test('assigned practice starts tracking, opens muted help, and records actual work in history', async ({
+  page
+}, testInfo) => {
   await noHorizontalOverflow(page)
   await capture(page, testInfo, 'assigned-practice')
   await page.getByRole('button', { name: 'Start practice', exact: true }).click()
   const dock = page.getByRole('region', { name: 'Practice controls' })
   await expect(dock).toHaveAttribute('data-phase', 'working')
-  await expect.poll(() => dock.evaluate(element => {
-    const bounds = element.getBoundingClientRect()
-    return bounds.top >= 0 && bounds.bottom <= window.innerHeight + 1
-  })).toBe(true)
+  await expect
+    .poll(() =>
+      dock.evaluate((element) => {
+        const bounds = element.getBoundingClientRect()
+        return bounds.top >= 0 && bounds.bottom <= window.innerHeight + 1
+      })
+    )
+    .toBe(true)
   const timer = page.getByRole('timer', { name: 'Time practiced' })
   await expect(timer).not.toHaveText('0:00')
   await noHorizontalOverflow(page)
@@ -18,22 +34,24 @@ test('assigned practice starts tracking, opens muted help, and records actual wo
   await page.getByRole('button', { name: 'Watch demonstration', exact: true }).click()
   const demo = page.getByRole('dialog', { name: firstTitle, exact: true })
   const video = demo.locator('video')
-  await expect.poll(() => video.evaluate(element => !element.paused && element.currentTime > 0 && element.muted)).toBe(true)
+  await expect
+    .poll(() => video.evaluate((element) => !element.paused && element.currentTime > 0 && element.muted))
+    .toBe(true)
   await expect(demo.getByRole('button', { name: 'Unmute video', exact: true })).toBeVisible()
   const playBounds = await demo.getByRole('button', { name: 'Pause video', exact: true }).boundingBox()
   const muteBounds = await demo.getByRole('button', { name: 'Unmute video', exact: true }).boundingBox()
   expect(playBounds.x).toBeGreaterThan(muteBounds.x)
   await demo.getByRole('button', { name: 'Pause video', exact: true }).click()
-  await expect.poll(() => video.evaluate(element => element.paused)).toBe(true)
+  await expect.poll(() => video.evaluate((element) => element.paused)).toBe(true)
   await expect(demo.locator('.qt-playback-toggle .qt-play-shape')).toHaveCSS('opacity', '1')
   await demo.getByRole('button', { name: 'Play video', exact: true }).click()
-  await expect.poll(() => video.evaluate(element => !element.paused)).toBe(true)
+  await expect.poll(() => video.evaluate((element) => !element.paused)).toBe(true)
   await expect(demo.locator('.qt-playback-toggle .qt-pause-shape')).toHaveCSS('opacity', '1')
   await demo.getByRole('button', { name: 'Unmute video', exact: true }).click()
-  await expect.poll(() => video.evaluate(element => element.muted)).toBe(false)
+  await expect.poll(() => video.evaluate((element) => element.muted)).toBe(false)
   await expect(demo.locator('.qt-sound-icon svg').first()).toHaveCSS('opacity', '1')
   await demo.getByRole('button', { name: 'Mute video', exact: true }).click()
-  await expect.poll(() => video.evaluate(element => element.muted)).toBe(true)
+  await expect.poll(() => video.evaluate((element) => element.muted)).toBe(true)
   await expect(demo.locator('.qt-sound-icon svg').last()).toHaveCSS('opacity', '1')
   await capture(page, testInfo, 'drill-demonstration')
   await demo.getByRole('button', { name: 'Close dialog', exact: true }).click()
@@ -50,7 +68,10 @@ test('assigned practice starts tracking, opens muted help, and records actual wo
   await expectSavedRecap(page)
   await page.getByRole('button', { name: 'View history', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Me', exact: true })).toBeVisible()
-  await page.getByRole('region', { name: 'Session history' }).getByRole('button', { name: new RegExp(assignedTitle) }).click()
+  await page
+    .getByRole('region', { name: 'Session history' })
+    .getByRole('button', { name: new RegExp(assignedTitle) })
+    .click()
   const history = page.getByRole('dialog', { name: assignedTitle, exact: true })
   await history.getByRole('button', { name: new RegExp(repsTitle) }).click()
   await expect(history.getByText('Planned: 3 reps · Actual: 2 reps', { exact: true })).toBeVisible()
@@ -92,12 +113,16 @@ test('drill buttons preserve time and entered reps, then return to skipped work'
   await expectSavedRecap(page)
 })
 
-test('personal drill edits and deletion preserve completed work and saved practice snapshots', async ({ page }, testInfo) => {
+test('personal drill edits and deletion preserve completed work and saved practice snapshots', async ({
+  page
+}, testInfo) => {
   test.setTimeout(60_000)
-  await page.getByRole('button', { name: /My own drill/ }).click()
+  await page.getByRole('button', { name: /Create drill/ }).click()
   await page.getByRole('textbox', { name: 'Drill name', exact: true }).fill('My backyard touches')
   await page.getByRole('textbox', { name: /Setup/ }).fill('A ball and a clear patch of grass')
-  await page.getByRole('textbox', { name: 'How to do it', exact: true }).fill('Keep the ball close. Count each controlled touch.')
+  await page
+    .getByRole('textbox', { name: 'How to do it', exact: true })
+    .fill('Keep the ball close. Count each controlled touch.')
   await page.getByRole('button', { name: 'Reps & sets', exact: true }).click()
   await page.getByRole('button', { name: 'Fine-tune targets', exact: true }).click()
   await page.getByRole('spinbutton', { name: 'Reps per set', exact: true }).fill('5')
@@ -105,8 +130,11 @@ test('personal drill edits and deletion preserve completed work and saved practi
   await capture(page, testInfo, 'own-drill-editor')
   await page.getByRole('button', { name: 'Save for later', exact: true }).click()
   await page.reload()
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Practice', exact: true }).click()
-  await page.getByRole('button', { name: /My own drill/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('button', { name: 'Practice', exact: true })
+    .click()
+  await page.getByRole('button', { name: /Create drill/ }).click()
   await page.getByRole('button', { name: /My saved drills/ }).click()
   const saved = page.locator('.pb-own-saved-row').filter({ hasText: 'My backyard touches' })
   await expect(saved).toBeVisible()
@@ -117,7 +145,10 @@ test('personal drill edits and deletion preserve completed work and saved practi
   await expectSavedRecap(page)
   await page.getByRole('button', { name: 'View history', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Me', exact: true })).toBeVisible()
-  await page.getByRole('region', { name: 'Session history' }).getByRole('button', { name: /My backyard touches/ }).click()
+  await page
+    .getByRole('region', { name: 'Session history' })
+    .getByRole('button', { name: /My backyard touches/ })
+    .click()
   const detail = page.getByRole('dialog', { name: /My backyard touches/ })
   await detail.getByRole('button', { name: /My backyard touches/ }).click()
   await expect(detail.getByText('Planned: 5 reps · Actual: 5 reps', { exact: true })).toBeVisible()
@@ -126,13 +157,13 @@ test('personal drill edits and deletion preserve completed work and saved practi
   const nav = page.getByRole('navigation', { name: 'Main navigation' })
   await nav.getByRole('button', { name: 'Practice', exact: true }).click()
   await page.getByRole('button', { name: /Recent/ }).click()
-  await page.locator('.pb-practice-choice').filter({hasText:'My backyard touches'}).click()
+  await page.locator('.pb-practice-choice').filter({ hasText: 'My backyard touches' }).click()
   await page.getByRole('button', { name: 'Make it fit today', exact: true }).click()
   await page.getByRole('textbox', { name: 'Practice name', exact: true }).fill('Saved backyard practice')
   await page.getByRole('button', { name: 'Save practice', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeVisible()
   await nav.getByRole('button', { name: 'Practice', exact: true }).click()
-  await page.getByRole('button', { name: /My own drill/ }).click()
+  await page.getByRole('button', { name: /Create drill/ }).click()
   await page.getByRole('button', { name: /My saved drills/ }).click()
   await page.getByRole('button', { name: 'Edit My backyard touches', exact: true }).click()
   await page.getByRole('textbox', { name: 'Drill name', exact: true }).fill('Updated backyard touches')
@@ -145,8 +176,11 @@ test('personal drill edits and deletion preserve completed work and saved practi
   await expect(page.getByRole('button', { name: /My saved drills/ })).toHaveCount(0)
   await nav.getByRole('button', { name: 'Practice', exact: true }).click()
 
-  await page.getByRole('group', { name: 'Your practices', exact: true }).getByRole('button', { name: /^Saved/ }).click()
-  await page.locator('.pb-practice-choice').filter({hasText:'Saved backyard practice'}).click()
+  await page
+    .getByRole('group', { name: 'Your practices', exact: true })
+    .getByRole('button', { name: /^Saved/ })
+    .click()
+  await page.locator('.pb-practice-choice').filter({ hasText: 'Saved backyard practice' }).click()
   const selected = page.getByRole('region', { name: 'Selected whole practice' })
   await selected.getByRole('button', { name: 'Instructions for My backyard touches', exact: true }).first().click()
   const originalDrill = page.getByRole('dialog', { name: 'My backyard touches', exact: true })
@@ -156,7 +190,10 @@ test('personal drill edits and deletion preserve completed work and saved practi
   await originalDrill.getByRole('button', { name: 'Close dialog', exact: true }).click()
   await nav.getByRole('button', { name: 'Me', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Me', exact: true })).toBeVisible()
-  await page.getByRole('region', { name: 'Session history' }).getByRole('button', { name: /My backyard touches/ }).click()
+  await page
+    .getByRole('region', { name: 'Session history' })
+    .getByRole('button', { name: /My backyard touches/ })
+    .click()
   await detail.getByRole('button', { name: /My backyard touches/ }).click()
   await expect(detail.getByText('Planned: 5 reps · Actual: 5 reps', { exact: true })).toBeVisible()
   await detail.getByRole('button', { name: 'Delete session', exact: true }).click()
@@ -164,7 +201,10 @@ test('personal drill edits and deletion preserve completed work and saved practi
   await confirmation.getByRole('button', { name: 'Delete session', exact: true }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.locator('.qt-history-row')).toHaveCount(0)
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Practice', exact: true }).click()
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('button', { name: 'Practice', exact: true })
+    .click()
   await expect(page.getByRole('heading', { name: assignedTitle, exact: true })).toBeVisible()
 })
 
@@ -236,12 +276,18 @@ test('random practice respects available space, equipment and video requirements
   await page.getByRole('button', { name: 'Quit practice', exact: true }).click()
   await page.getByRole('button', { name: 'Discard without saving', exact: true }).click()
   await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible()
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Me', exact: true }).click()
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('button', { name: 'Me', exact: true })
+    .click()
   await expect(page.getByRole('heading', { name: 'Me', exact: true })).toBeVisible()
   await expect(page.locator('.qt-history-row')).toHaveCount(0)
 })
 
-test('an organizer previews the player experience and opens its shared practice in a fresh context', async ({ page, browser }, testInfo) => {
+test('an organizer previews the player experience and opens its shared practice in a fresh context', async ({
+  page,
+  browser
+}, testInfo) => {
   await page.getByRole('button', { name: 'Organizer', exact: true }).click()
   await page.getByRole('textbox', { name: 'Practice name', exact: true }).fill('Backyard Tuesday')
   await page.getByRole('textbox', { name: /Note for the player/ }).fill('Keep your touches close and enjoy it.')
@@ -258,7 +304,11 @@ test('an organizer previews the player experience and opens its shared practice 
   await expect(share.getByRole('button', { name: 'Copy link', exact: true })).toBeEnabled()
   await share.getByRole('button', { name: 'Copy link', exact: true }).click()
   await expect(share.getByRole('status')).toHaveText(/Copied\. Ready to send\.|Select the link below to copy it\./)
-  const receiverOptions = Object.fromEntries(['viewport', 'screen', 'deviceScaleFactor', 'isMobile', 'hasTouch', 'userAgent', 'reducedMotion'].filter(key => testInfo.project.use[key] !== undefined).map(key => [key, testInfo.project.use[key]]))
+  const receiverOptions = Object.fromEntries(
+    ['viewport', 'screen', 'deviceScaleFactor', 'isMobile', 'hasTouch', 'userAgent', 'reducedMotion']
+      .filter((key) => testInfo.project.use[key] !== undefined)
+      .map((key) => [key, testInfo.project.use[key]])
+  )
   const fresh = await browser.newContext(receiverOptions)
   try {
     await installSyntheticRoutes(fresh)
@@ -298,11 +348,15 @@ test('nested filters release the page and rapid navigation keeps controls respon
   const nav = page.getByRole('navigation', { name: 'Main navigation' })
   await page.evaluate(() => {
     const original = document.querySelector('[aria-label="Main navigation"]')
-    const probe = window.__navContinuity = { running: true, frames: [] }
+    const probe = (window.__navContinuity = { running: true, frames: [] })
     const sample = () => {
       const current = document.querySelector('[aria-label="Main navigation"]')
       const style = getComputedStyle(original)
-      probe.frames.push({ sameNode: current === original && original.isConnected, interactive: !original.inert && original.getAttribute('aria-hidden') !== 'true', visible: style.display !== 'none' && style.visibility === 'visible' && Number(style.opacity) >= 0.99 })
+      probe.frames.push({
+        sameNode: current === original && original.isConnected,
+        interactive: !original.inert && original.getAttribute('aria-hidden') !== 'true',
+        visible: style.display !== 'none' && style.visibility === 'visible' && Number(style.opacity) >= 0.99
+      })
       if (probe.running) requestAnimationFrame(sample)
     }
     requestAnimationFrame(sample)
@@ -313,9 +367,15 @@ test('nested filters release the page and rapid navigation keeps controls respon
     await nav.getByRole('button', { name: 'Practice', exact: true }).click()
     await expect(page.getByRole('heading', { name: assignedTitle, exact: true })).toBeVisible()
   }
-  const navFrames = await page.evaluate(() => { window.__navContinuity.running = false; return window.__navContinuity.frames })
+  const navFrames = await page.evaluate(() => {
+    window.__navContinuity.running = false
+    return window.__navContinuity.frames
+  })
   expect(navFrames.length).toBeGreaterThan(1)
-  expect(navFrames.every(frame => frame.sameNode && frame.interactive && frame.visible), 'Bottom navigation stays mounted, visible and interactive across visible-to-visible transitions').toBe(true)
+  expect(
+    navFrames.every((frame) => frame.sameNode && frame.interactive && frame.visible),
+    'Bottom navigation stays mounted, visible and interactive across visible-to-visible transitions'
+  ).toBe(true)
   await page.getByText('See the 2 drills', { exact: true }).click()
   await page.getByRole('button', { name: `Instructions for ${firstTitle}`, exact: true }).click()
   await expect(page.getByRole('dialog', { name: firstTitle, exact: true })).toBeVisible()

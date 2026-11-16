@@ -13,15 +13,45 @@ import * as storage from '../storage/index.js'
 import { decodePractice } from '../domain/practice-builder.js'
 import { validateCatalog } from '../domain/content.js'
 
-const catalog = validateCatalog({ schemaVersion: 1, revision: 'integration-v1', currentAssignmentId: 'assigned', currentAssignmentRevision: 'v1', assignments: [{ id: 'assigned', revision: 'v1', title: 'Assigned close touches', status: 'current', drills: [{ id: 'touches', title: 'Close touches', instructions: 'Keep touches close.', mode: 'practice', sets: 1, side: 'both', restSec: null, media: { id: 'touches', status: 'unavailable' } }] }] })
+const catalog = validateCatalog({
+  schemaVersion: 1,
+  revision: 'integration-v1',
+  currentAssignmentId: 'assigned',
+  currentAssignmentRevision: 'v1',
+  assignments: [
+    {
+      id: 'assigned',
+      revision: 'v1',
+      title: 'Assigned close touches',
+      status: 'current',
+      drills: [
+        {
+          id: 'touches',
+          title: 'Close touches',
+          instructions: 'Keep touches close.',
+          mode: 'practice',
+          sets: 1,
+          side: 'both',
+          restSec: null,
+          media: { id: 'touches', status: 'unavailable' }
+        }
+      ]
+    }
+  ]
+})
 let databaseName, repository, user, elapsed
 const wall = 1793836800000
-function App({ content = catalog }) { return <TrainingExperience route={useHashRoute()} catalog={content} databaseName={databaseName}/> }
-const button = name => screen.getByRole('button', { name, exact: true })
-const field = name => screen.getByRole('textbox', { name, exact: true })
-const fill = async (element, value) => { await user.clear(element); await user.type(element, value) }
+function App({ content = catalog }) {
+  return <TrainingExperience route={useHashRoute()} catalog={content} databaseName={databaseName} />
+}
+const button = (name) => screen.getByRole('button', { name, exact: true })
+const field = (name) => screen.getByRole('textbox', { name, exact: true })
+const fill = async (element, value) => {
+  await user.clear(element)
+  await user.type(element, value)
+}
 const load = async (content = catalog) => {
-  const mounted = render(<App content={content}/>)
+  const mounted = render(<App content={content} />)
   await screen.findByRole('button', { name: 'Start practice', exact: true })
   return mounted
 }
@@ -29,37 +59,73 @@ const state = () => repository.load()
 // Delay one real repository write without replacing controller or IndexedDB.
 const saveBarrier = () => {
   const original = storage.createTrainingRepository
-  let armed = false, release, entered
-  const gate = new Promise(resolve => { release = resolve })
-  const started = new Promise(resolve => { entered = resolve })
-  vi.spyOn(storage, 'createTrainingRepository').mockImplementation(options => {
-    const actual = original(options)
-    return { ...actual, save: async (...args) => {
-      if (armed) { armed = false; entered(); await gate }
-      return actual.save(...args)
-    } }
+  let armed = false,
+    release,
+    entered
+  const gate = new Promise((resolve) => {
+    release = resolve
   })
-  return { arm: () => { armed = true }, release, started }
+  const started = new Promise((resolve) => {
+    entered = resolve
+  })
+  vi.spyOn(storage, 'createTrainingRepository').mockImplementation((options) => {
+    const actual = original(options)
+    return {
+      ...actual,
+      save: async (...args) => {
+        if (armed) {
+          armed = false
+          entered()
+          await gate
+        }
+        return actual.save(...args)
+      }
+    }
+  })
+  return {
+    arm: () => {
+      armed = true
+    },
+    release,
+    started
+  }
 }
-const approvedCatalog = mode => {
+const approvedCatalog = (mode) => {
   const content = structuredClone(catalog)
   const drill = content.assignments[0].drills[0]
   drill.media = { id: 'touches', status: 'approved', path: '/media/touches' }
   drill.mode = mode
-  if (mode === 'time') { drill.durationSec = 10; drill.restSec = 0 }
+  if (mode === 'time') {
+    drill.durationSec = 10
+    drill.restSec = 0
+  }
   return validateCatalog(content)
 }
-
 
 beforeEach(() => {
   elapsed = 0
   vi.spyOn(Date, 'now').mockImplementation(() => wall + elapsed)
   vi.spyOn(performance, 'now').mockImplementation(() => elapsed)
   vi.stubGlobal('indexedDB', new IDBFactory())
-  vi.stubGlobal('matchMedia', vi.fn(query => ({ matches: query.includes('prefers-reduced-motion'), media: query, addEventListener() {}, removeEventListener() {} })))
-  Object.defineProperty(navigator, 'locks', { configurable: true, value: { request: vi.fn((_name, _options, callback) => callback({ name: 'integration-lock' })) } })
-  vi.spyOn(HTMLDialogElement.prototype, 'showModal').mockImplementation(function () { this.setAttribute('open', '') })
-  vi.spyOn(HTMLDialogElement.prototype, 'close').mockImplementation(function () { this.removeAttribute('open') })
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((query) => ({
+      matches: query.includes('prefers-reduced-motion'),
+      media: query,
+      addEventListener() {},
+      removeEventListener() {}
+    }))
+  )
+  Object.defineProperty(navigator, 'locks', {
+    configurable: true,
+    value: { request: vi.fn((_name, _options, callback) => callback({ name: 'integration-lock' })) }
+  })
+  vi.spyOn(HTMLDialogElement.prototype, 'showModal').mockImplementation(function () {
+    this.setAttribute('open', '')
+  })
+  vi.spyOn(HTMLDialogElement.prototype, 'close').mockImplementation(function () {
+    this.removeAttribute('open')
+  })
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => Promise.resolve())
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
   vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
@@ -70,7 +136,12 @@ beforeEach(() => {
   repository = createTrainingRepository({ name: databaseName })
   user = userEvent.setup()
 })
-afterEach(async () => { cleanup(); await repository.close(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
+afterEach(async () => {
+  cleanup()
+  await repository.close()
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
 
 describe('Playbook connected React flows with durable local storage', () => {
   it('starts work in one tap, pauses on Back, and resumes in one explicit action', async () => {
@@ -96,30 +167,38 @@ describe('Playbook connected React flows with durable local storage', () => {
     expect(screen.getByRole('navigation', { name: 'Main navigation' }).getAttribute('aria-hidden')).toBeNull()
   })
 
-  it.each(['practice', 'time'])('resumes %s work after a pending Back pause even before that pause has committed', async mode => {
-    const barrier = saveBarrier()
-    try {
-      await load(approvedCatalog(mode))
-      await user.click(button('Start practice'))
-      await waitFor(async () => expect((await state()).activeSession?.phase).toBe('working'))
-      const sessionId = (await state()).activeSession.id
-      elapsed += 1000
-      barrier.arm()
-      await user.click(button('Back to practice, keeping your progress'))
-      await barrier.started
-      await screen.findByRole('button', { name: 'Resume practice', exact: true })
-      // The rendered and persisted snapshots still show working while Pause waits.
-      expect((await state()).activeSession.phase).toBe('working')
-      await user.click(button('Resume practice'))
-      barrier.release()
-      await screen.findByRole('button', { name: mode === 'practice' ? 'Pause practice timer' : 'Pause set', exact: true })
-      const resumed = (await state()).activeSession
-      expect(resumed.phase).toBe('working')
-      if (mode === 'practice') expect(resumed.practiceTimer.paused).toBe(false)
-      else expect(resumed.timer.elapsedBefore).toBe(1)
-      expect((await state()).activeSession.id).toBe(sessionId)
-    } finally { barrier.release() }
-  })
+  it.each(['practice', 'time'])(
+    'resumes %s work after a pending Back pause even before that pause has committed',
+    async (mode) => {
+      const barrier = saveBarrier()
+      try {
+        await load(approvedCatalog(mode))
+        await user.click(button('Start practice'))
+        await waitFor(async () => expect((await state()).activeSession?.phase).toBe('working'))
+        const sessionId = (await state()).activeSession.id
+        elapsed += 1000
+        barrier.arm()
+        await user.click(button('Back to practice, keeping your progress'))
+        await barrier.started
+        await screen.findByRole('button', { name: 'Resume practice', exact: true })
+        // The rendered and persisted snapshots still show working while Pause waits.
+        expect((await state()).activeSession.phase).toBe('working')
+        await user.click(button('Resume practice'))
+        barrier.release()
+        await screen.findByRole('button', {
+          name: mode === 'practice' ? 'Pause practice timer' : 'Pause set',
+          exact: true
+        })
+        const resumed = (await state()).activeSession
+        expect(resumed.phase).toBe('working')
+        if (mode === 'practice') expect(resumed.practiceTimer.paused).toBe(false)
+        else expect(resumed.timer.elapsedBefore).toBe(1)
+        expect((await state()).activeSession.id).toBe(sessionId)
+      } finally {
+        barrier.release()
+      }
+    }
+  )
 
   it('does not show a committed paused control until the pause write is durable', async () => {
     const barrier = saveBarrier()
@@ -138,46 +217,60 @@ describe('Playbook connected React flows with durable local storage', () => {
       await screen.findByRole('button', { name: 'Resume practice timer', exact: true })
       expect((await state()).activeSession.practiceTimer.paused).toBe(true)
       mounted.unmount()
-      render(<App/>)
+      render(<App />)
       await screen.findByRole('button', { name: 'Resume practice timer', exact: true })
       expect((await state()).activeSession.practiceTimer.paused).toBe(true)
-    } finally { barrier.release() }
+    } finally {
+      barrier.release()
+    }
   })
 
-  it.each(['practice', 'time'])('opening help pauses %s work, and closing it requires an explicit resume', async mode => {
-    await load(approvedCatalog(mode))
-    await user.click(button('Start practice'))
-    await waitFor(async () => expect((await state()).activeSession?.phase).toBe('working'))
-    elapsed += 1000
-    await user.click(button('Watch demonstration'))
-    const help = screen.getByRole('dialog', { name: 'Close touches', exact: true })
-    // Media calls are stubbed: this proves dialog/work state, not playback.
-    expect(help.querySelector('video')).toBeTruthy()
-    await waitFor(async () => {
-      const active = (await state()).activeSession
-      if (mode === 'practice') expect(active.practiceTimer.paused).toBe(true)
-      else { expect(active.phase).toBe('ready'); expect(active.rows[0].actual).toBe(1) }
-    })
-    elapsed += 1000
-    await user.click(within(help).getByRole('button', { name: 'Close dialog', exact: true }))
-    const resume = button(mode === 'practice' ? 'Resume practice timer' : 'Resume set')
-    expect(resume.disabled).toBe(false)
-    const paused = (await state()).activeSession
-    if (mode === 'practice') expect(paused.practiceTimer.elapsedBefore).toBe(1)
-    else { expect(paused.timer).toBeNull(); expect(paused.rows[0].actual).toBe(1) }
-    await user.click(resume)
-    await waitFor(async () => {
-      const active = (await state()).activeSession
-      expect(active.phase).toBe('working')
-      if (mode === 'practice') expect(active.practiceTimer.paused).toBe(false)
-      else expect(active.timer.elapsedBefore).toBe(1)
-    })
-    elapsed += 1000
-    await user.click(button('Finish practice'))
-    await screen.findByRole('heading', { name: mode === 'practice' ? 'Practice complete' : 'Session saved', exact: true })
-    const recorded = (await state()).sessions[0].rows[0]
-    expect(mode === 'practice' ? recorded.practiceSeconds : recorded.actual).toBe(2)
-  })
+  it.each(['practice', 'time'])(
+    'opening help pauses %s work, and closing it requires an explicit resume',
+    async (mode) => {
+      await load(approvedCatalog(mode))
+      await user.click(button('Start practice'))
+      await waitFor(async () => expect((await state()).activeSession?.phase).toBe('working'))
+      elapsed += 1000
+      await user.click(button('Watch demonstration'))
+      const help = screen.getByRole('dialog', { name: 'Close touches', exact: true })
+      // Media calls are stubbed: this proves dialog/work state, not playback.
+      expect(help.querySelector('video')).toBeTruthy()
+      await waitFor(async () => {
+        const active = (await state()).activeSession
+        if (mode === 'practice') expect(active.practiceTimer.paused).toBe(true)
+        else {
+          expect(active.phase).toBe('ready')
+          expect(active.rows[0].actual).toBe(1)
+        }
+      })
+      elapsed += 1000
+      await user.click(within(help).getByRole('button', { name: 'Close dialog', exact: true }))
+      const resume = button(mode === 'practice' ? 'Resume practice timer' : 'Resume set')
+      expect(resume.disabled).toBe(false)
+      const paused = (await state()).activeSession
+      if (mode === 'practice') expect(paused.practiceTimer.elapsedBefore).toBe(1)
+      else {
+        expect(paused.timer).toBeNull()
+        expect(paused.rows[0].actual).toBe(1)
+      }
+      await user.click(resume)
+      await waitFor(async () => {
+        const active = (await state()).activeSession
+        expect(active.phase).toBe('working')
+        if (mode === 'practice') expect(active.practiceTimer.paused).toBe(false)
+        else expect(active.timer.elapsedBefore).toBe(1)
+      })
+      elapsed += 1000
+      await user.click(button('Finish practice'))
+      await screen.findByRole('heading', {
+        name: mode === 'practice' ? 'Practice complete' : 'Session saved',
+        exact: true
+      })
+      const recorded = (await state()).sessions[0].rows[0]
+      expect(mode === 'practice' ? recorded.practiceSeconds : recorded.actual).toBe(2)
+    }
+  )
 
   it('finishes a paused timed drill at its observed checkpoint rather than its target', async () => {
     await load(approvedCatalog('time'))
@@ -203,7 +296,11 @@ describe('Playbook connected React flows with durable local storage', () => {
     const sessionId = (await state()).activeSession.id
     elapsed += 1000
     const finish = button('Finish practice')
-    act(() => { fireEvent.click(finish); fireEvent.click(finish); fireEvent.click(finish) })
+    act(() => {
+      fireEvent.click(finish)
+      fireEvent.click(finish)
+      fireEvent.click(finish)
+    })
     await screen.findByRole('heading', { name: 'Practice complete', exact: true })
     const saved = await state()
     expect(saved.activeSession).toBeNull()
@@ -212,37 +309,46 @@ describe('Playbook connected React flows with durable local storage', () => {
     expect(saved.sessions[0].rows[0].practiceSeconds).toBe(1)
   })
 
-  it.each(['practice', 'time'])('closing the exit sheet leaves %s work paused, while Resume explicitly restarts it', async mode => {
-    await load(approvedCatalog(mode))
-    await user.click(button('Start practice'))
-    await waitFor(async () => expect((await state()).activeSession?.phase).toBe('working'))
-    elapsed += 1000
-    await user.click(button('Quit practice'))
-    let exit = await screen.findByRole('dialog', { name: 'Leave practice?', exact: true })
-    await user.click(within(exit).getByRole('button', { name: 'Close dialog', exact: true }))
-    const active = (await state()).activeSession
-    if (mode === 'practice') expect(active.practiceTimer.paused).toBe(true)
-    else { expect(active.phase).toBe('ready'); expect(active.rows[0].actual).toBe(1) }
-    elapsed += 1000
-    await user.click(button('Quit practice'))
-    exit = await screen.findByRole('dialog', { name: 'Leave practice?', exact: true })
-    await user.click(within(exit).getByRole('button', { name: 'Resume practice', exact: true }))
-    await waitFor(async () => {
-      const resumed = (await state()).activeSession
-      expect(resumed.phase).toBe('working')
-      if (mode === 'practice') expect(resumed.practiceTimer.paused).toBe(false)
-      else expect(resumed.timer.elapsedBefore).toBe(1)
-    })
-    elapsed += 1000
-    await user.click(button('Finish practice'))
-    await screen.findByRole('heading', { name: mode === 'practice' ? 'Practice complete' : 'Session saved', exact: true })
-    const recorded = (await state()).sessions[0].rows[0]
-    expect(mode === 'practice' ? recorded.practiceSeconds : recorded.actual).toBe(2)
-  })
+  it.each(['practice', 'time'])(
+    'closing the exit sheet leaves %s work paused, while Resume explicitly restarts it',
+    async (mode) => {
+      await load(approvedCatalog(mode))
+      await user.click(button('Start practice'))
+      await waitFor(async () => expect((await state()).activeSession?.phase).toBe('working'))
+      elapsed += 1000
+      await user.click(button('Quit practice'))
+      let exit = await screen.findByRole('dialog', { name: 'Leave practice?', exact: true })
+      await user.click(within(exit).getByRole('button', { name: 'Close dialog', exact: true }))
+      const active = (await state()).activeSession
+      if (mode === 'practice') expect(active.practiceTimer.paused).toBe(true)
+      else {
+        expect(active.phase).toBe('ready')
+        expect(active.rows[0].actual).toBe(1)
+      }
+      elapsed += 1000
+      await user.click(button('Quit practice'))
+      exit = await screen.findByRole('dialog', { name: 'Leave practice?', exact: true })
+      await user.click(within(exit).getByRole('button', { name: 'Resume practice', exact: true }))
+      await waitFor(async () => {
+        const resumed = (await state()).activeSession
+        expect(resumed.phase).toBe('working')
+        if (mode === 'practice') expect(resumed.practiceTimer.paused).toBe(false)
+        else expect(resumed.timer.elapsedBefore).toBe(1)
+      })
+      elapsed += 1000
+      await user.click(button('Finish practice'))
+      await screen.findByRole('heading', {
+        name: mode === 'practice' ? 'Practice complete' : 'Session saved',
+        exact: true
+      })
+      const recorded = (await state()).sessions[0].rows[0]
+      expect(mode === 'practice' ? recorded.practiceSeconds : recorded.actual).toBe(2)
+    }
+  )
 
   it('creates, reloads, edits and performs a personal drill without rewriting its history', async () => {
     const mounted = await load()
-    await user.click(screen.getByRole('button', { name: /My own drill/ }))
+    await user.click(screen.getByRole('button', { name: /Create drill/ }))
     await fill(field('Drill name'), 'Backyard touches')
     await fill(screen.getByRole('textbox', { name: /Setup/ }), 'A ball and a clear space')
     await fill(field('How to do it'), 'Count each close touch.')
@@ -256,7 +362,7 @@ describe('Playbook connected React flows with durable local storage', () => {
     const original = JSON.parse(localStorage.getItem(customKey)).drills[0]
     mounted.unmount()
     await load()
-    await user.click(screen.getByRole('button', { name: /My own drill/ }))
+    await user.click(screen.getByRole('button', { name: /Create drill/ }))
     await user.click(screen.getByRole('button', { name: /My saved drills/ }))
     await user.click(button('Edit Backyard touches'))
     expect(field('How to do it').value).toBe('Count each close touch.')
@@ -282,8 +388,13 @@ describe('Playbook connected React flows with durable local storage', () => {
     await user.click(within(history).getByRole('button', { name: /My close touches/ }))
     expect(within(history).getByText('Planned: 5 reps · Actual: 4 reps', { exact: true })).toBeTruthy()
     await user.click(within(history).getByRole('button', { name: 'Close dialog', exact: true }))
-    await user.click(within(screen.getByRole('navigation', { name: 'Main navigation' })).getByRole('button', { name: 'Practice', exact: true }))
-    await user.click(screen.getByRole('button', { name: /My own drill/ }))
+    await user.click(
+      within(screen.getByRole('navigation', { name: 'Main navigation' })).getByRole('button', {
+        name: 'Practice',
+        exact: true
+      })
+    )
+    await user.click(screen.getByRole('button', { name: /Create drill/ }))
     await user.click(screen.getByRole('button', { name: /My saved drills/ }))
     await user.click(button('Edit My close touches'))
     await fill(field('How to do it'), 'Changed only in my reusable drill.')
@@ -298,7 +409,7 @@ describe('Playbook connected React flows with durable local storage', () => {
 
   it('reports hidden invalid targets, retains the form, and cancels an edit without changing saved data', async () => {
     await load()
-    await user.click(screen.getByRole('button', { name: /My own drill/ }))
+    await user.click(screen.getByRole('button', { name: /Create drill/ }))
     await fill(field('Drill name'), 'Timed touches')
     await fill(field('How to do it'), 'Count controlled touches.')
     await user.click(button('Timed sets'))
@@ -313,7 +424,7 @@ describe('Playbook connected React flows with durable local storage', () => {
     await user.click(button('Save for later'))
     await screen.findByRole('heading', { name: 'Assigned close touches', exact: true })
     const original = localStorage.getItem(`${databaseName}:custom-drills-v1`)
-    await user.click(screen.getByRole('button', { name: /My own drill/ }))
+    await user.click(screen.getByRole('button', { name: /Create drill/ }))
     await user.click(screen.getByRole('button', { name: /My saved drills/ }))
     await user.click(button('Edit Timed touches'))
     await fill(field('Drill name'), 'Unsaved rename')
@@ -363,11 +474,11 @@ describe('Playbook connected React flows with durable local storage', () => {
     expect(screen.getByRole('button', { name: /Your setup/ }).getAttribute('aria-expanded')).toBe('true')
     await user.click(screen.getByRole('checkbox', { name: 'Only drills with a demonstration', exact: true }))
     const proposal = screen.getByRole('region', { name: 'Random practice proposal' })
-    const shownTitles = [...proposal.querySelectorAll('.pb-drill-name strong')].map(item => item.textContent)
+    const shownTitles = [...proposal.querySelectorAll('.pb-drill-name strong')].map((item) => item.textContent)
     expect(shownTitles).toHaveLength(3)
     await user.click(button('Start this practice'))
     await waitFor(async () => expect((await state()).activeSession?.phase).toBe('working'))
-    expect((await state()).activeSession.assignment.drills.map(drill => drill.title)).toEqual(shownTitles)
+    expect((await state()).activeSession.assignment.drills.map((drill) => drill.title)).toEqual(shownTitles)
     await user.click(button('Quit practice'))
     // Quit persists the timer pause before opening the exit sheet.
     const exit = await screen.findByRole('dialog', { name: 'Leave practice?', exact: true })
@@ -394,7 +505,9 @@ describe('Playbook connected React flows with durable local storage', () => {
     const shared = await readPracticeCode(link, catalog)
     expect(shared.title).toBe('Tuesday touches')
     expect(shared.note).toBe('Use your left foot first.')
-    expect(shared.drills.map(({ id, ...drill }) => drill)).toEqual(catalog.assignments[0].drills.map(({ id, ...drill }) => drill))
+    expect(shared.drills.map(({ id, ...drill }) => drill)).toEqual(
+      catalog.assignments[0].drills.map(({ id, ...drill }) => drill)
+    )
     expect((await state()).sessions).toEqual([])
   })
 })
