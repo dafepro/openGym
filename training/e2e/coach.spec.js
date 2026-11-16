@@ -299,12 +299,12 @@ test('a rejected request can be revised without silently reusing notification re
   ).toHaveCount(0)
 })
 
-test('published coach review opens the final practice with its reviewed title', async ({ page }) => {
+test('published coach review opens the final practice with its reviewed title', async ({ page }, testInfo) => {
   const published = {
     ...catalog.assignments[0],
     title: 'Reviewed close control practice'
   }
-  const pass = await createPracticeCode(published, 'http://127.0.0.1:4188')
+  const pass = await createPracticeCode(published, testInfo.project.use.baseURL)
   const job = {
     id: 'published-example',
     brief,
