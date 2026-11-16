@@ -1,46 +1,73 @@
 import { decodeVisibleQR } from './qr.js'
-import { test, expect, catalog, assignedTitle, installSyntheticRoutes, capture, noHorizontalOverflow } from './fixtures.js'
+import {
+  test,
+  expect,
+  catalog,
+  assignedTitle,
+  installSyntheticRoutes,
+  capture,
+  noHorizontalOverflow
+} from './fixtures.js'
 import { createPracticeCode } from '../src/domain/practice-code.js'
 
-
-test('saving is one star action, stays collapsed, survives reload and removes only the saved copy', async ({ page }, testInfo) => {
-  const save=page.getByRole('button',{name:'Save assigned practice',exact:true})
+test('saving is one star action, stays collapsed, survives reload and removes only the saved copy', async ({
+  page
+}, testInfo) => {
+  const save = page.getByRole('button', { name: 'Save assigned practice', exact: true })
   await save.click()
-  await expect(page.getByRole('button',{name:'Remove assigned practice from My practices',exact:true})).toHaveAttribute('aria-pressed','true')
+  await expect(
+    page.getByRole('button', { name: 'Remove assigned practice from My practices', exact: true })
+  ).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('.pb-practice-choice')).toHaveCount(1)
-  await expect(page.locator('.pb-practice-choice')).toHaveAttribute('aria-expanded','false')
-  await expect(page.getByRole('button',{name:/Starred/})).toHaveCount(0)
+  await expect(page.locator('.pb-practice-choice')).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.getByRole('button', { name: /Starred/ })).toHaveCount(0)
   await page.reload()
   await expect(page.locator('.pb-practice-choice')).toHaveCount(1)
-  await expect(page.locator('.pb-practice-choice')).toHaveAttribute('aria-expanded','false')
+  await expect(page.locator('.pb-practice-choice')).toHaveAttribute('aria-expanded', 'false')
   await page.locator('.pb-practice-choice').click()
-  await page.getByRole('region',{name:'Selected whole practice',exact:true}).getByRole('button',{name:'Remove from My practices',exact:true}).press('Enter')
+  await page
+    .getByRole('region', { name: 'Selected whole practice', exact: true })
+    .getByRole('button', { name: 'Remove from My practices', exact: true })
+    .press('Enter')
   await expect(page.locator('.pb-practice-choice')).toHaveCount(0)
-  await expect(page.getByRole('group',{name:'Your practices',exact:true}).getByRole('button',{name:'Saved',exact:true})).toBeFocused()
+  await expect(
+    page.getByRole('group', { name: 'Your practices', exact: true }).getByRole('button', { name: 'Saved', exact: true })
+  ).toBeFocused()
   await save.click()
-  await expect(page.locator('.pb-practice-choice')).toHaveAttribute('aria-expanded','false')
-  await page.getByRole('button',{name:'Remove assigned practice from My practices',exact:true}).click()
+  await expect(page.locator('.pb-practice-choice')).toHaveAttribute('aria-expanded', 'false')
+  await page.getByRole('button', { name: 'Remove assigned practice from My practices', exact: true }).click()
   await expect(page.locator('.pb-practice-choice')).toHaveCount(0)
-  await expect(page.getByRole('heading',{name:assignedTitle,exact:true})).toBeVisible()
-  await page.getByRole('button',{name:'Start practice',exact:true}).click()
-  await expect(page.getByRole('region',{name:'Practice controls'})).toHaveAttribute('data-phase','working')
+  await expect(page.getByRole('heading', { name: assignedTitle, exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Start practice', exact: true }).click()
+  await expect(page.getByRole('region', { name: 'Practice controls' })).toHaveAttribute('data-phase', 'working')
   await noHorizontalOverflow(page)
-  await capture(page,testInfo,'saved-practice-start')
+  await capture(page, testInfo, 'saved-practice-start')
 })
 
-test('a coach creates custom targets, shares a scannable pass, and a fresh player saves and starts it', async ({ page, browser }, testInfo) => {
+test('a coach creates custom targets, shares a scannable pass, and a fresh player saves and starts it', async ({
+  page,
+  browser
+}, testInfo) => {
   test.setTimeout(90_000)
-  await page.getByRole('button', { name: 'New practice', exact: true }).click()
+  await page.getByRole('button', { name: 'Create practice', exact: true }).click()
   await page.getByRole('textbox', { name: 'Practice name', exact: true }).fill('Coach’s after-school three')
-  for (const [title, mode, target, side] of [['Cone dribbling', 'Reps & sets', 8, 'both'], ['Wall sit', 'Timed sets', 30, 'both'], ['Skill move', 'Timed sets', 600, 'each']]) {
+  for (const [title, mode, target, side] of [
+    ['Cone dribbling', 'Reps & sets', 8, 'both'],
+    ['Wall sit', 'Timed sets', 30, 'both'],
+    ['Skill move', 'Timed sets', 600, 'each']
+  ]) {
     await page.getByRole('button', { name: 'Add drill', exact: true }).click()
     await page.getByRole('dialog').getByRole('button', { name: 'My own drill', exact: true }).click()
     await page.getByRole('textbox', { name: 'Drill name', exact: true }).fill(title)
     await page.getByRole('textbox', { name: /Setup/ }).fill('A clear space and the equipment your coach specified.')
-    await page.getByRole('textbox', { name: 'How to do it', exact: true }).fill(`Practice ${title.toLowerCase()} with control. Keep your head up.`)
+    await page
+      .getByRole('textbox', { name: 'How to do it', exact: true })
+      .fill(`Practice ${title.toLowerCase()} with control. Keep your head up.`)
     await page.getByRole('button', { name: mode, exact: true }).click()
     await page.getByRole('button', { name: 'Fine-tune targets', exact: true }).click()
-    await page.getByRole('spinbutton', { name: mode === 'Timed sets' ? 'Seconds per set' : 'Reps per set', exact: true }).fill(String(target))
+    await page
+      .getByRole('spinbutton', { name: mode === 'Timed sets' ? 'Seconds per set' : 'Reps per set', exact: true })
+      .fill(String(target))
     await page.getByRole('combobox', { name: 'Feet', exact: true }).selectOption(side)
     await page.getByRole('button', { name: 'Save & add drill', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Arrange a practice', exact: true })).toBeVisible()
@@ -51,21 +78,31 @@ test('a coach creates custom targets, shares a scannable pass, and a fresh playe
   const scanned = await decodeVisibleQR(page)
   expect(scanned).toMatch(/\/#\/shared\/QT[23]\./)
   await capture(page, testInfo, 'coach-practice-pass')
-  const options = Object.fromEntries(['viewport', 'screen', 'deviceScaleFactor', 'isMobile', 'hasTouch', 'userAgent', 'reducedMotion'].filter(key => testInfo.project.use[key] !== undefined).map(key => [key, testInfo.project.use[key]]))
+  const options = Object.fromEntries(
+    ['viewport', 'screen', 'deviceScaleFactor', 'isMobile', 'hasTouch', 'userAgent', 'reducedMotion']
+      .filter((key) => testInfo.project.use[key] !== undefined)
+      .map((key) => [key, testInfo.project.use[key]])
+  )
   const fresh = await browser.newContext(options)
   try {
     await installSyntheticRoutes(fresh)
     const player = await fresh.newPage()
     await player.goto('/')
-    await player.getByRole('button', { name: 'Add a practice', exact: true }).click()
+    await player.getByRole('button', { name: 'Import practice', exact: true }).click()
     await player.getByRole('textbox', { name: 'Practice link or code', exact: true }).fill(scanned)
     await player.getByRole('button', { name: 'Open practice', exact: true }).click()
     await expect(player.getByRole('heading', { name: 'Coach’s after-school three', exact: true })).toBeVisible()
     await expect(player.getByRole('list', { name: 'Drills in this practice' })).toContainText('10 min · each foot')
     await player.getByRole('button', { name: 'Save practice', exact: true }).click()
-    await expect(player.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(player.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
     await player.reload()
-    await expect(player.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(player.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
     await player.getByRole('button', { name: 'My practices', exact: true }).click()
     await expect(player.getByLabel('Saved practices', { exact: true }).locator('.pb-practice-choice')).toHaveCount(1)
     await player.locator('.pb-practice-choice').first().click()
@@ -76,12 +113,15 @@ test('a coach creates custom targets, shares a scannable pass, and a fresh playe
     await expect(player.getByRole('region', { name: 'Practice controls' })).toContainText('10:00')
     await noHorizontalOverflow(player)
     await capture(player, testInfo, 'received-custom-target')
-  } finally { await fresh.unrouteAll({ behavior: 'wait' }); await fresh.close() }
+  } finally {
+    await fresh.unrouteAll({ behavior: 'wait' })
+    await fresh.close()
+  }
 })
 
-test('damaged codes recover in place and duplicate imports stay one saved practice', async ({ page }) => {
-  const pass = await createPracticeCode(catalog.assignments[0], 'http://127.0.0.1:4188')
-  await page.getByRole('button', { name: 'Add a practice', exact: true }).click()
+test('damaged codes recover in place and duplicate imports stay one saved practice', async ({ page, baseURL }) => {
+  const pass = await createPracticeCode(catalog.assignments[0], baseURL)
+  await page.getByRole('button', { name: 'Import practice', exact: true }).click()
   const input = page.getByRole('textbox', { name: 'Practice link or code', exact: true })
   await input.fill('QT2.broken.code')
   await page.getByRole('button', { name: 'Open practice', exact: true }).click()
@@ -89,9 +129,15 @@ test('damaged codes recover in place and duplicate imports stay one saved practi
   await input.fill(pass.code)
   await page.getByRole('button', { name: 'Open practice', exact: true }).click()
   await page.getByRole('button', { name: 'Save practice', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
   await page.goto(pass.link)
-  await expect(page.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
   await page.getByRole('button', { name: 'My practices', exact: true }).click()
   await expect(page.getByLabel('Saved practices', { exact: true }).locator('.pb-practice-choice')).toHaveCount(1)
 })
@@ -107,7 +153,10 @@ test('a completed practice can be recovered, starred and shared directly from hi
   await history.getByRole('button', { name: new RegExp(assignedTitle) }).click()
   let detail = page.getByRole('dialog', { name: assignedTitle, exact: true })
   await detail.getByRole('button', { name: 'Save practice', exact: true }).click()
-  await expect(detail.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(detail.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
   await detail.getByRole('button', { name: 'Share practice', exact: true }).click()
   await expect(page.getByRole('img', { name: 'Scan to open this practice' })).toBeVisible()
   expect(await decodeVisibleQR(page)).toMatch(/\/#\/shared\/QT[23]\./)
@@ -119,8 +168,8 @@ test('a completed practice can be recovered, starred and shared directly from hi
   await capture(page, testInfo, 'recovered-from-history')
 })
 
-test('a full device never claims an imported practice was saved or starts it unsaved', async ({ page }) => {
-  const pass = await createPracticeCode(catalog.assignments[0], 'http://127.0.0.1:4188')
+test('a full device never claims an imported practice was saved or starts it unsaved', async ({ page, baseURL }) => {
+  const pass = await createPracticeCode(catalog.assignments[0], baseURL)
   await page.goto(pass.link)
   await page.evaluate(() => {
     const write = Storage.prototype.setItem
@@ -143,13 +192,20 @@ test('blocked clipboard access selects the requested code for manual copying', a
   await page.getByRole('button', { name: 'Share practice', exact: true }).press('Enter')
   const share = page.getByRole('dialog', { name: 'Share this practice', exact: true })
   await expect(share.getByRole('button', { name: 'Copy code', exact: true })).toBeEnabled()
-  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: () => Promise.reject(new Error('Clipboard denied')) } }))
+  await page.evaluate(() =>
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: () => Promise.reject(new Error('Clipboard denied')) }
+    })
+  )
   await share.getByRole('button', { name: 'Copy code', exact: true }).click()
   const field = share.getByRole('textbox', { name: 'Practice code', exact: true })
   await expect(field).toBeVisible()
   await expect(field).toBeFocused()
   expect(await field.inputValue()).toMatch(/^QT[23]\./)
-  expect(await field.evaluate(input => input.selectionStart === 0 && input.selectionEnd === input.value.length)).toBe(true)
+  expect(await field.evaluate((input) => input.selectionStart === 0 && input.selectionEnd === input.value.length)).toBe(
+    true
+  )
   await expect(share.getByRole('status')).toContainText('Select the code below')
   await share.getByRole('button', { name: 'Copy link', exact: true }).click()
   await expect(share.getByRole('textbox', { name: 'Practice link', exact: true })).toBeFocused()
@@ -157,7 +213,9 @@ test('blocked clipboard access selects the requested code for manual copying', a
   await expect(page.getByRole('button', { name: 'Share practice', exact: true })).toBeFocused()
 })
 
-test('practice cards animate both ways while closed actions and the bottom navigation stay safe', async ({ page }, testInfo) => {
+test('practice cards animate both ways while closed actions and the bottom navigation stay safe', async ({
+  page
+}, testInfo) => {
   await page.getByRole('button', { name: 'Save assigned practice', exact: true }).click()
   const card = page.locator('.pb-library-card').first()
   const heading = card.locator('.pb-practice-choice')
@@ -167,35 +225,70 @@ test('practice cards animate both ways while closed actions and the bottom navig
   await expect(panel).toHaveAttribute('data-open', 'false')
   await heading.click()
   await expect(panel).toHaveAttribute('data-open', 'true')
-  await panel.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => {}))))
-  const fullHeight = await panel.evaluate(element => element.getBoundingClientRect().height)
+  await panel.evaluate((element) =>
+    Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => {})))
+  )
+  const fullHeight = await panel.evaluate((element) => element.getBoundingClientRect().height)
   for (const open of [false, true]) {
-    await panel.evaluate(element => {
+    await panel.evaluate((element) => {
       const nav = document.querySelector('[aria-label="Main navigation"]')
-      const frames = []; let running = true, frame
-      const sample = () => { const style = getComputedStyle(nav); frames.push({ height: element.getBoundingClientRect().height, open: element.dataset.open, inert: element.inert, navSame: nav === document.querySelector('[aria-label="Main navigation"]'), navVisible: style.visibility === 'visible' && Number(style.opacity) === 1 && !nav.inert }); if (running) frame = requestAnimationFrame(sample) }
-      sample(); window.__libraryFrames = () => { running = false; cancelAnimationFrame(frame); sample(); return frames }
+      const frames = []
+      let running = true,
+        frame
+      const sample = () => {
+        const style = getComputedStyle(nav)
+        frames.push({
+          height: element.getBoundingClientRect().height,
+          open: element.dataset.open,
+          inert: element.inert,
+          navSame: nav === document.querySelector('[aria-label="Main navigation"]'),
+          navVisible: style.visibility === 'visible' && Number(style.opacity) === 1 && !nav.inert
+        })
+        if (running) frame = requestAnimationFrame(sample)
+      }
+      sample()
+      window.__libraryFrames = () => {
+        running = false
+        cancelAnimationFrame(frame)
+        sample()
+        return frames
+      }
     })
     await heading.click()
     await expect(panel).toHaveAttribute('data-open', String(open))
-    await expect.poll(() => panel.evaluate(element => element.getBoundingClientRect().height)).toBe(open ? fullHeight : 0)
+    await expect
+      .poll(() => panel.evaluate((element) => element.getBoundingClientRect().height))
+      .toBe(open ? fullHeight : 0)
     const frames = await page.evaluate(() => window.__libraryFrames())
-    await testInfo.attach(`practice-card-${open ? 'open' : 'close'}`, { body: JSON.stringify(frames), contentType: 'application/json' })
-    expect(frames.every(frame => frame.navSame && frame.navVisible)).toBe(true)
-    expect(frames.filter(frame => frame.open === 'false').every(frame => frame.inert)).toBe(true)
-    if (!reduced) expect(frames.some(frame => frame.height > 1 && frame.height < fullHeight - 1), 'The card has real intermediate heights in both directions').toBe(true)
+    await testInfo.attach(`practice-card-${open ? 'open' : 'close'}`, {
+      body: JSON.stringify(frames),
+      contentType: 'application/json'
+    })
+    expect(frames.every((frame) => frame.navSame && frame.navVisible)).toBe(true)
+    expect(frames.filter((frame) => frame.open === 'false').every((frame) => frame.inert)).toBe(true)
+    if (!reduced)
+      expect(
+        frames.some((frame) => frame.height > 1 && frame.height < fullHeight - 1),
+        'The card has real intermediate heights in both directions'
+      ).toBe(true)
   }
   await card.getByRole('button', { name: 'Start this practice', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Practice controls' })).toHaveAttribute('data-phase', 'working')
 })
 
-test('a growing playbook finds drills inside practices and remembers the chosen collection', async ({ page }, testInfo) => {
+test('a growing playbook finds drills inside practices and remembers the chosen collection', async ({
+  page,
+  baseURL
+}, testInfo) => {
   for (let index = 1; index <= 5; index++) {
     const assignment = { ...catalog.assignments[0], title: `Evening practice ${index}` }
-    const pass = await createPracticeCode(assignment, 'http://127.0.0.1:4188')
+    const pass = await createPracticeCode(assignment, baseURL)
     await page.goto(pass.link)
     await page.getByRole('button', { name: 'Save practice', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByRole('button', { name: 'Remove from My practices', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
   }
   await page.getByRole('button', { name: 'My practices', exact: true }).click()
   const search = page.getByRole('searchbox', { name: 'Find a practice', exact: true })

@@ -54,3 +54,10 @@ branch. Focus uses the existing workout controller; Drive and Garmin remain sepa
 around the same local store. Phone and watch share finished-record construction and commit;
 warm-up-only sessions preserve their routine's place. Native updates use a fork-owned release
 channel alongside upstream's downloader. See ADR 009 and the upstream integration review.
+
+## Soccer practice preparation
+
+Before starting, show concise setup requirements and honestly bounded timing from
+the supplied practice. Keep missing setup explicit and preserve a direct Start
+action. Creation, importing and creating an individual drill have distinct labels
+(ADR 014).
