@@ -54,3 +54,10 @@ branch. Focus uses the existing workout controller; Drive and Garmin remain sepa
 around the same local store. Phone and watch share finished-record construction and commit;
 warm-up-only sessions preserve their routine's place. Native updates use a fork-owned release
 channel alongside upstream's downloader. See ADR 009 and the upstream integration review.
+
+## Individual soccer coaching
+
+The owner approved the player–coach assignment loop described in ADR 012. Support
+one coach and a few individual players, signed-in assignment acceptance, optional
+due dates, explicit sharing of finished work, coach feedback and fresh assignments
+for repeats or revisions. Other player history remains local and private.

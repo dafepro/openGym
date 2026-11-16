@@ -6,6 +6,7 @@ COPY --chown=node:node package.json ./package.json
 COPY --chown=node:node coach ./coach
 COPY --chown=node:node worker/http.js ./worker/http.js
 COPY --chown=node:node src/domain ./src/domain
+COPY --chown=node:node src/assignments/model.js ./src/assignments/model.js
 USER node
 EXPOSE 8787
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 CMD ["node", "--input-type=module", "-e", "const r=await fetch('http://127.0.0.1:8787/healthz');process.exit(r.ok?0:1)"]
