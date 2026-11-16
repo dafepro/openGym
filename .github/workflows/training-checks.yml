@@ -55,7 +55,8 @@ jobs:
           # Linux's software WebKit skips complete short composited transitions.
           - platform: macos-webkit
             # macOS 14 silently falls back to frozen WebKit r2251.
-            os: macos-26
+            # Intel avoids the ARM hosted-runner capacity queue while retaining native macOS 26 WebKit.
+            os: macos-26-intel
             engines: webkit
             projects: --project=mobile-webkit
     runs-on: ${{ matrix.os }}
