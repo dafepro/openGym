@@ -1,3 +1,4 @@
+import { createStartedSession, reduceSession } from '../../src/domain/session.js'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DatabaseSync } from 'node:sqlite'
@@ -72,6 +73,35 @@ test('signed coach/player isolation, acceptance, persistence and stale writes', 
     assert.equal((await call('player', 'p@example.com', input)).status, 200)
     assert.equal((await call('player', 'p@example.com', input)).status, 400)
     assert.equal((await (await call('coach', 'coach@example.com')).json()).records[0].status, 'accepted')
+    let session = createStartedSession(practice, { id: 'verified-session', now: Date.now() })
+    session = reduceSession(session, {
+      type: 'DONE',
+      id: 'record',
+      sessionId: session.id,
+      rowId: session.currentRowId,
+      actual: 3,
+      now: Date.now()
+    })
+    session = reduceSession(session, { type: 'FINISH', id: 'finish', sessionId: session.id, now: Date.now() })
+    const submission = { id: records[0].id, revision: 1, action: 'submit', session, note: 'Synthetic live-flow check' }
+    assert.equal((await call('player', 'stranger@example.com', submission)).status, 400)
+    assert.equal((await call('player', 'p@example.com', submission)).status, 200)
+    const submitted = (await (await call('coach', 'coach@example.com')).json()).records[0]
+    assert.equal(submitted.result.rows[0].actual, 3)
+    assert.equal(submitted.result.note, submission.note)
+    const review = { id: records[0].id, revision: 2, action: 'review', comment: 'Repeat this practice' }
+    assert.equal((await call('coach', 'other-coach@example.com', review)).status, 400)
+    assert.equal((await call('coach', 'coach@example.com', review)).status, 200)
+    const reviewed = (await (await call('player', 'p@example.com')).json()).records[0]
+    assert.equal(reviewed.status, 'reviewed')
+    assert.equal(reviewed.comment, review.comment)
+    assert.equal(
+      (await call('coach', 'coach@example.com', { action: 'create', email: 'p@example.com', practice })).status,
+      200
+    )
+    const repeated = (await (await call('player', 'p@example.com')).json()).records
+    assert.equal(repeated[0].status, 'pending')
+    assert.equal(repeated[1].status, 'reviewed')
     assert.equal((await call('coach', 'coach@example.com', null, 'assignment-login')).status, 303)
   } finally {
     db.close()
