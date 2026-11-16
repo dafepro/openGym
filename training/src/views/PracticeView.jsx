@@ -54,6 +54,7 @@ export default function PracticeView({
   sample = false,
   saved = false,
   finishedSession,
+  sharing,
   onHistory,
   complete = false,
   completedCount = 0,
@@ -122,7 +123,7 @@ export default function PracticeView({
             : reviewOnly
               ? 'Your video review is saved. No athletic work was recorded.'
               : complete
-                ? 'A little more practice, in the books.'
+                ? ''
                 : selfPaced
                   ? 'Saved, including drills left unfinished.'
                   : 'Saved, including sets left unfinished.'}
@@ -146,6 +147,7 @@ export default function PracticeView({
           }
         />
         <p className="qt-fine-print">{saveError ? 'Not saved yet.' : 'Saved on this device.'}</p>
+        {sharing}
         <div className="qt-recap-actions">
           {onHistory && !saveError && (
             <Button icon="history" onClick={onHistory}>

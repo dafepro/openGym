@@ -2,6 +2,7 @@ import Icon from './Icon.jsx'
 import PlaybookMark from './PlaybookMark.jsx'
 import { Notice } from './ui.jsx'
 import OfflineStatus from './OfflineStatus.jsx'
+import '../styles/practice-home.css'
 
 export default function TrainingShell({
   children,
@@ -18,7 +19,7 @@ export default function TrainingShell({
   const navigate = (next) => onNavigate?.(next)
   return (
     <div
-      className={`qt-shell${practice ? ' qt-shell--practice' : ''}${page === 'today' || page === 'shared' ? ' qt-shell--today' : ''}`}
+      className={`qt-shell${practice ? ' qt-shell--practice' : ''}${page === 'today' || page === 'assignments' || page === 'shared' ? ' qt-shell--today' : ''}`}
     >
       <a
         className="qt-skip-link"
@@ -46,10 +47,32 @@ export default function TrainingShell({
           <PlaybookMark />
           QuickTrack
         </button>
+        <div className="pb-primary-links">
+          <a
+            href="#/today"
+            aria-current={['today', 'assignments', 'build', 'shared'].includes(page) ? 'page' : undefined}
+          >
+            <Icon name="play" size={18} />
+            Practice
+          </a>
+          <a href="#/history" aria-current={page === 'history' ? 'page' : undefined}>
+            <Icon name="history" size={18} />
+            History
+          </a>
+          <a
+            href="#/coach"
+            aria-label="Coach’s desk"
+            aria-current={['coach', 'assignments-coach'].includes(page) ? 'page' : undefined}
+          >
+            <Icon name="clipboard" size={18} />
+            Coach
+          </a>
+        </div>
         <div className="pb-header-actions">
           {onOrganize && (
             <button className="qt-organizer-link" type="button" onClick={onOrganize}>
-              Organizer
+              <Icon name="pencil" size={18} />
+              <span className="qt-visually-hidden">Organizer</span>
             </button>
           )}
           <button
@@ -80,7 +103,6 @@ export default function TrainingShell({
 
       {!practice && (
         <footer className="qt-footer">
-          {page !== 'coach' && <a href="#/coach">Coach’s desk</a>}
           {sourceUrl && (
             <a href={sourceUrl} target="_blank" rel="noreferrer">
               Application source

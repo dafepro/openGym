@@ -8,13 +8,12 @@ export const ROUTES = Object.freeze({
   coach: '#/coach',
   texts: '#/texts',
   me: '#/me',
-  history: '#/me',
+  history: '#/history',
   practice: '#/practice',
   build: '#/build'
 })
 
 export function routeFromHash(hash = '') {
-  if (hash === '#/history') return 'me'
   if (hash.startsWith('#/shared/')) return 'shared'
   return Object.keys(ROUTES).find((route) => ROUTES[route] === hash) || 'today'
 }

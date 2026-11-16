@@ -21,7 +21,7 @@ it('requires explicit acceptance before offering start or submission', async () 
   vi.stubGlobal('fetch', fetcher)
   render(<AssignmentsView coach={false} practices={[]} sessions={[]} onStart={() => {}} />)
   await screen.findByText('Close control')
-  expect(screen.queryByText('Start assigned practice')).toBeNull()
+  expect(screen.queryByText('Start practice')).toBeNull()
   fireEvent.click(screen.getByText('Accept assignment'))
   await waitFor(() => expect(fetcher.mock.calls.some(([, o]) => o?.method === 'POST')).toBe(true))
   const request = fetcher.mock.calls.find(([, o]) => o?.method === 'POST')[1]
@@ -33,7 +33,26 @@ it('keeps sign-in failures recoverable without exposing records', async () => {
     vi.fn(async () => Response.json({ error: 'Sign in required' }, { status: 401 }))
   )
   render(<AssignmentsView coach={false} practices={[]} sessions={[]} onStart={() => {}} />)
-  await screen.findByText('Sign in required')
+  await screen.findByText('Continue with Google')
   expect(screen.getByText('Continue with Google').getAttribute('href')).toBe('/api/player/login')
+  expect(screen.queryByText('Close control')).toBeNull()
+})
+
+it.each(['unauthorized', 'redirect'])('removes loaded records when account access fails: %s', async (failure) => {
+  let expired = false
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      if (expired && failure === 'redirect') throw new TypeError('Failed to fetch')
+      return expired
+        ? Response.json({ error: 'Sign in required' }, { status: 401 })
+        : Response.json({ records: [record] })
+    })
+  )
+  render(<AssignmentsView sessions={[]} />)
+  await screen.findByText('Close control')
+  expired = true
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh assignments' }))
+  await screen.findByText(failure === 'redirect' ? 'Sign in for coach assignments' : 'Continue with Google')
   expect(screen.queryByText('Close control')).toBeNull()
 })

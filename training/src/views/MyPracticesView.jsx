@@ -162,36 +162,6 @@ export default function MyPracticesView({
         <KickableBall />
       </header>
       {featured}
-      <section className="pb-home-tools" aria-label="Make practice yours">
-        <div className="pb-home-create">
-          <Button variant="secondary" icon="plus" onClick={onNew} disabled={disabled}>
-            Create practice
-          </Button>
-          {onImport && (
-            <Button variant="secondary" icon="qr" onClick={onImport} disabled={disabled}>
-              Import practice
-            </Button>
-          )}
-        </div>
-        <div className="pb-quick-actions">
-          <button type="button" disabled={disabled} onClick={onRandom}>
-            <Icon name="shuffle" />
-            <span>
-              <strong>Surprise me</strong>
-              <small>Build a mix for your setup</small>
-            </span>
-            <Icon name="arrow" size={16} />
-          </button>
-          <button type="button" disabled={disabled} onClick={onOwnDrill}>
-            <Icon name="pencil" />
-            <span>
-              <strong>Create drill</strong>
-              <small>Add your own instructions</small>
-            </span>
-            <Icon name="arrow" size={16} />
-          </button>
-        </div>
-      </section>
       <section className="pb-home-collection" aria-label="Your practice collection">
         <div className="pb-section-heading">
           <h2>Your playbook</h2>
@@ -252,13 +222,37 @@ export default function MyPracticesView({
               search.current?.focus()
             }}
           >
-            {query
-              ? 'Try a practice name or a drill inside it.'
-              : tab === 'saved'
-                ? 'Star a practice to keep it here.'
-                : 'Completed practices appear here.'}
+            {query ? 'Try a practice name or a drill inside it.' : tab === 'saved' ? '' : ''}
           </EmptyState>
         )}
+      </section>
+      <section className="pb-home-tools" aria-label="Make practice yours">
+        <div className="pb-home-create">
+          <Button variant="secondary" icon="plus" onClick={onNew} disabled={disabled}>
+            Create practice
+          </Button>
+          {onImport && (
+            <Button variant="secondary" icon="qr" onClick={onImport} disabled={disabled}>
+              Import practice
+            </Button>
+          )}
+        </div>
+        <div className="pb-quick-actions">
+          <button type="button" disabled={disabled} onClick={onRandom}>
+            <Icon name="shuffle" />
+            <span>
+              <strong>Surprise me</strong>
+            </span>
+            <Icon name="arrow" size={16} />
+          </button>
+          <button type="button" disabled={disabled} onClick={onOwnDrill}>
+            <Icon name="pencil" />
+            <span>
+              <strong>Create drill</strong>
+            </span>
+            <Icon name="arrow" size={16} />
+          </button>
+        </div>
       </section>
     </div>
   )

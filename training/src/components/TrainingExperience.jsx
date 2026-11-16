@@ -42,6 +42,7 @@ import TodayView from '../views/TodayView.jsx'
 import PracticeView from '../views/PracticeView.jsx'
 import CoachView from '../views/CoachView.jsx'
 import MeView from '../views/MeView.jsx'
+import HistoryView from '../views/HistoryView.jsx'
 import { standardDrills } from '../domain/standard-workouts.js'
 import { AssignmentDetail, SessionDetail } from '../views/HistoryDetails.jsx'
 
@@ -671,9 +672,8 @@ function TrainingExperienceView({
                         : 'Progress saved on this device'}
               </p>
             )}
-            {route === 'today' && (
+            {(route === 'today' || route === 'assignments') && (
               <>
-                <a href="#/assignments">My assignments</a>
                 <MyPracticesView
                   value={libraryView}
                   onChange={setLibraryView}
@@ -691,18 +691,28 @@ function TrainingExperienceView({
                   onWatchDrill={watchDrill}
                   disabled={readOnly || starting}
                   featured={
-                    <TodayView
-                      compact
-                      onStar={() => starPractice(currentAssignment)}
-                      starred={isStarred(currentAssignment)}
-                      assignment={currentAssignment}
+                    <AssignmentsView
+                      embedded
+                      sessions={progress.sessions}
                       activeSession={active}
-                      sample={sample}
-                      disabled={readOnly || starting}
-                      onStart={readOnly ? undefined : () => begin(currentAssignment)}
                       onResume={resumePractice}
-                      onOpenDrill={previewDrill}
-                      onWatchDrill={watchDrill}
+                      disabled={readOnly || starting}
+                      onStart={begin}
+                      fallback={
+                        <TodayView
+                          compact
+                          onStar={() => starPractice(currentAssignment)}
+                          starred={isStarred(currentAssignment)}
+                          assignment={currentAssignment}
+                          activeSession={active}
+                          sample={sample}
+                          disabled={readOnly || starting}
+                          onStart={readOnly ? undefined : () => begin(currentAssignment)}
+                          onResume={resumePractice}
+                          onOpenDrill={previewDrill}
+                          onWatchDrill={watchDrill}
+                        />
+                      }
                     />
                   }
                 />
@@ -944,13 +954,18 @@ function TrainingExperienceView({
                   {shared.error || 'Ask for the complete practice link.'}
                 </Notice>
               ))}
-            {route === 'coach' && (
-              <>
-                <a href="#/assignments-coach">Manage player assignments</a>
-                <CoachView />
-              </>
+            {['coach', 'assignments-coach'].includes(route) && (
+              <nav className="pb-coach-tabs" aria-label="Coach workspace">
+                <a href="#/assignments-coach" aria-current={route === 'assignments-coach' ? 'page' : undefined}>
+                  Players
+                </a>
+                <a href="#/coach" aria-current={route === 'coach' ? 'page' : undefined}>
+                  Practice requests
+                </a>
+              </nav>
             )}
-            {['assignments', 'assignments-coach'].includes(route) && (
+            {route === 'coach' && <CoachView />}
+            {route === 'assignments-coach' && (
               <AssignmentsView
                 coach={route === 'assignments-coach'}
                 practices={catalog.assignments}
@@ -958,7 +973,17 @@ function TrainingExperienceView({
                 onStart={begin}
               />
             )}
-            {(route === 'me' || route === 'history') && (
+            {route === 'history' && (
+              <HistoryView
+                assignments={catalog.assignments}
+                sessions={[...(active ? [active] : []), ...progress.sessions]}
+                onOpenSession={(session) => setDialog({ type: 'session', session })}
+                onResume={resumePractice}
+                onExport={download}
+                onRestore={readOnly ? undefined : () => importInput.current?.click()}
+              />
+            )}
+            {route === 'me' && (
               <MeView
                 databaseName={databaseName}
                 assignments={catalog.assignments}
@@ -1028,9 +1053,14 @@ function TrainingExperienceView({
                 sample={sample}
                 saved={!!finished}
                 finishedSession={finished}
+                sharing={
+                  finished?.coachAssignmentId && !saveFailed ? (
+                    <AssignmentsView focusId={finished.coachAssignmentId} sessions={progress.sessions} />
+                  ) : null
+                }
                 onHistory={() => {
                   setFinished(null)
-                  navigate('me')
+                  navigate('history')
                 }}
                 complete={finished?.status === 'completed'}
                 completedCount={finished?.rows.filter((row) => row.status === 'done').length || 0}

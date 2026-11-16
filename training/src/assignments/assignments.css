@@ -1,79 +1,276 @@
-.pb-assignments form {
-  display: grid;
-  gap: 14px;
-  margin-block: 20px;
+.pb-assignments {
+  min-width: 0;
 }
-.pb-assignment-back {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-}
-.pb-assignment-card {
-  padding: 20px;
-  margin-top: 20px;
-  border: 1px solid var(--qt-border);
-  border-radius: 18px;
-  display: grid;
-  gap: 14px;
-  animation: assignment-enter 220ms ease both;
-}
-.pb-assignment-card summary {
-  min-height: 44px;
-  align-content: center;
-  cursor: pointer;
-}
-.pb-assignment-progress {
+.pb-assignments-heading {
   display: flex;
-  list-style: none;
-  padding: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.pb-assignments-heading h1 {
+  margin: 0;
+}
+.pb-assignments-heading > div {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
-.pb-assignment-progress li {
+.pb-section-label {
+  font-size: 13px;
+  color: var(--qt-muted);
+}
+.pb-icon-button {
   display: grid;
   place-items: center;
-  flex: 1;
-  padding: 10px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 50%;
   color: var(--qt-muted);
-  border-bottom: 2px solid var(--qt-border);
-  transition:
-    color 180ms,
-    border-color 180ms,
-    background 180ms;
+  background: transparent;
+  cursor: pointer;
 }
-.pb-assignment-progress [data-done='true'] {
-  color: var(--qt-mint);
-  border-color: var(--qt-mint);
-}
-.pb-assignment-progress [aria-current='step'] {
+.pb-icon-button:hover {
   background: var(--qt-surface-2);
-  border-radius: 8px 8px 0 0;
-  animation: assignment-step 220ms ease;
 }
-.pb-assignment-feedback {
+.pb-account-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  margin-block: 8px 16px;
+}
+.pb-assignment-stack {
+  display: grid;
+  gap: 18px;
+}
+.pb-assignment-card {
+  padding: clamp(20px, 4vw, 36px);
+  border: 1px solid var(--qt-border);
+  border-radius: 22px;
+  background: var(--qt-surface);
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  animation: assignment-enter 220ms ease both;
+}
+.pb-assignment-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+.pb-assignment-hero > div {
+  flex: 1;
+  min-width: 0;
+}
+.pb-assignment-card h2 {
+  margin: 14px 0;
+  font: 700 clamp(28px, 4vw, 44px)/1.12 var(--qt-display);
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+.pb-assignment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+.pb-state-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  background: #e3e8d6;
+  color: #315737;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pb-assignment-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--qt-muted);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.pb-assignment-person svg {
+  flex-shrink: 0;
+}
+.pb-practice-sketch {
+  width: clamp(100px, 24vw, 230px);
+  flex-shrink: 0;
+  color: var(--qt-text);
+}
+.pb-assignment-card .pb-assignment-start {
+  justify-self: start;
+  width: min(100%, 340px);
+  min-width: 0;
+  background: #a94622;
+  color: #fffaf4;
+  border-color: #a94622;
+  font-weight: 700;
+}
+.pb-assignment-card .pb-assignment-start.qt-button--secondary {
+  background: transparent;
+  color: var(--qt-text);
+  border-color: var(--qt-border);
+}
+.pb-assignment-accept {
+  display: grid;
+  gap: 12px;
+  max-width: 66ch;
+}
+.pb-assignment-accept p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--qt-muted);
   margin: 0;
-  padding: 12px;
-  border-left: 2px solid var(--qt-mint);
+}
+.pb-assignment-drills {
+  display: grid;
+  gap: 16px;
+  padding-left: 24px;
+}
+.pb-assignment-drills li > span {
+  display: block;
+  color: var(--qt-muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+.pb-assignment-drills p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.pb-send-result {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  background: var(--qt-surface-2);
+  border-radius: 14px;
+}
+.pb-send-result > p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--qt-mint);
+  margin: 0;
+}
+.pb-send-result .qt-button {
+  justify-self: start;
+}
+.pb-practice-journal {
+  margin-top: 24px;
+}
+.pb-practice-journal > h2 {
+  font: 600 17px var(--qt-body);
+  margin-bottom: 12px;
+}
+.pb-practice-journal > .pb-disclosure {
+  border: 1px solid var(--qt-border);
+  border-radius: 16px;
+  background: var(--qt-surface);
+  padding: 8px 18px;
+  margin-bottom: 12px;
+}
+.pb-practice-journal .pb-disclosure-trigger > span {
+  text-align: left;
+}
+.pb-practice-journal .pb-disclosure-trigger small {
+  display: block;
+  color: var(--qt-muted);
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 6px;
+}
+.pb-journal {
+  padding: 8px 0 8px 14px;
+  margin-left: 7px;
+  border-left: 1px solid #a4b496;
+}
+.pb-journal-entry {
+  position: relative;
+  padding: 12px 0;
+  min-width: 0;
+}
+.pb-journal > .pb-journal-entry + .pb-journal-entry {
+  border-top: 1px solid var(--qt-border);
+}
+.pb-journal-date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--qt-muted);
+  font-size: 12px;
+}
+.pb-journal-date > svg {
+  color: var(--qt-mint);
+}
+.pb-result-count {
+  font-size: 14px;
+  font-weight: 600;
+}
+.pb-player-note {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.pb-feedback {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: #eaf0df;
+  border-radius: 12px;
+  margin-block: 14px;
+}
+.pb-feedback > svg {
+  flex-shrink: 0;
+  color: var(--qt-mint);
+}
+.pb-feedback strong {
+  font-size: 13px;
+}
+.pb-feedback blockquote {
+  margin: 6px 0;
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.pb-feedback time {
+  font-size: 12px;
+  color: var(--qt-muted);
+}
+.pb-assignment-form form {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--qt-border);
+  border-radius: 18px;
+  background: var(--qt-surface);
+  margin-bottom: 20px;
 }
 .pb-assignment-loading {
   display: inline-flex;
+  margin: 12px;
   animation: assignment-spin 1s linear infinite;
+}
+.pb-assignment-card--completion {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.pb-assignment-card--completion .pb-journal-entry {
+  text-align: left;
 }
 @keyframes assignment-enter {
   from {
     opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes assignment-step {
-  from {
-    opacity: 0.5;
-    transform: scale(0.94);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -85,13 +282,48 @@
     transform: rotate(360deg);
   }
 }
+@media (max-width: 600px) {
+  .pb-assignment-hero {
+    position: relative;
+    display: block;
+  }
+  .pb-assignment-hero > div {
+    position: relative;
+    z-index: 1;
+  }
+  .pb-practice-sketch {
+    display: block;
+    width: 180px;
+    margin: 12px 0 0 auto;
+  }
+  .pb-assignment-card .pb-assignment-start {
+    width: 100%;
+    min-width: 0;
+  }
+  .pb-assignment-card {
+    gap: 14px;
+  }
+  .pb-assignments-heading {
+    gap: 8px;
+  }
+  .pb-assignments-heading h1 {
+    font-size: 28px;
+  }
+  .pb-send-result .qt-button {
+    width: 100%;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .pb-assignment-card,
-  .pb-assignment-progress [aria-current='step'],
   .pb-assignment-loading {
     animation: none;
   }
-  .pb-assignment-progress li {
-    transition: none;
-  }
+}
+.pb-duration {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--qt-muted);
+  font-size: 13px;
+  margin: 8px 0 0;
 }

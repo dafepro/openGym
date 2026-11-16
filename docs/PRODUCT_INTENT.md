@@ -97,3 +97,8 @@ The home ball opens a full-screen dark overlay with two goals and scores inside
 those goals. Drag to kick and tap the ball to close. No visible copy, pitch drawing,
 directional controls or phone tilt. Keep the game separate from training records
 (ADR 018).
+
+The soccer home leads with the next individual assignment and keeps feedback and
+previous submitted sessions with that practice. Completion offers explicit sharing
+after a successful local save. Practice, History and Coach form consistent navigation;
+creation tools follow the saved library. See ADR 020.

@@ -14,7 +14,7 @@ function players(group) {
   return `${group.min}–${group.max} players`
 }
 
-export default function PracticePreparation({ practice }) {
+export default function PracticePreparation({ practice, compact = false }) {
   const info = practicePreparation(practice)
   const knownSeconds = info.workSeconds + info.restSeconds
   const time = info.reviewOnly
@@ -24,6 +24,13 @@ export default function PracticePreparation({ practice }) {
       : info.openEnded
         ? `${minutes(knownSeconds)} + untimed work`
         : `About ${minutes(knownSeconds)} + setup`
+  if (compact)
+    return (
+      <p className="pb-duration">
+        <Icon name="clock" size={16} />
+        {time}
+      </p>
+    )
   return (
     <section className="pb-preparation" aria-label="Before you start">
       <dl className="pb-preparation-facts">

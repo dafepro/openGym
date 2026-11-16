@@ -29,3 +29,8 @@
 
 - Implemented: full-screen night ball overlay with goals, scores, drag-to-kick and
   tap-to-dismiss. Removed tilt and visible controls (ADR 018).
+
+- Implemented: practice-first soccer home, contextual feedback journal, and direct
+  submission from a saved assigned session (ADR 020). Reuses the player, local
+  history and actual-work renderer. Camera integration and broader coach queue
+  consolidation remain tracked in openGym #52.
