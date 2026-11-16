@@ -22,3 +22,7 @@
 - Soccer improvement 4: coach desk review, player preview, target editing, revision
   feedback and exact-version approval; technical diagnostics remain available on
   demand. PR validation and operational limits are documented in ADR 017.
+
+- Implemented: optional soccer field display, audible phase/countdown cues and
+  browser screen-awake support. Timed expiry requires explicit confirmation;
+  interrupted-time review and history formats remain intact (ADR 016).

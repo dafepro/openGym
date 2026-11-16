@@ -85,3 +85,8 @@ Soccer practice publication supports review inside the coach desk: a player prev
 explicit target edits, video review, revision feedback and exact-version approval.
 Keep infrastructure details behind an optional disclosure and retain the existing
 publishing-owner, CI and live-publication boundaries (ADR 017).
+
+Soccer practice offers optional field-side large controls, local audible cues and
+supported screen-awake behavior. Timer expiry requires explicit actual-time
+confirmation, regardless of page visibility; unattended time never proves work
+(ADR 016).

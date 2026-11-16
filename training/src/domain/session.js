@@ -110,13 +110,13 @@ function reconcile(session, now, foreground) {
     return
   }
   if (now >= timer.deadline) {
-    if (foreground && timer.observed && now - timer.observedAt <= OBSERVED_GAP_MS)
-      record(session, current(session), timer.target, now)
-    else {
-      session.phase = 'review'
-      timer.observed = false
-      timer.reviewElapsed = Math.min(86400, elapsed(timer, now))
-    }
+    // Visibility (including a wake lock) is not evidence of completed work.
+    session.phase = 'review'
+    timer.reviewElapsed = Math.min(
+      foreground && timer.observed && now - timer.observedAt <= OBSERVED_GAP_MS ? timer.target : 86400,
+      elapsed(timer, now)
+    )
+    timer.observed = false
   } else if (foreground && timer.observed) {
     timer.observedAt = now
   }
