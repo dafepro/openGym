@@ -67,7 +67,7 @@ test('assigned practice starts tracking, opens muted help, and records actual wo
   await page.getByRole('button', { name: 'Finish practice', exact: true }).click()
   await expectSavedRecap(page)
   await page.getByRole('button', { name: 'View history', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Me', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'History', exact: true })).toBeVisible()
   await page
     .getByRole('region', { name: 'Session history' })
     .getByRole('button', { name: new RegExp(assignedTitle) })
@@ -144,7 +144,7 @@ test('personal drill edits and deletion preserve completed work and saved practi
   await page.getByRole('button', { name: 'Finish practice', exact: true }).click()
   await expectSavedRecap(page)
   await page.getByRole('button', { name: 'View history', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Me', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'History', exact: true })).toBeVisible()
   await page
     .getByRole('region', { name: 'Session history' })
     .getByRole('button', { name: /My backyard touches/ })

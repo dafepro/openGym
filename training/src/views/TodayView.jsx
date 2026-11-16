@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PracticeSketch from '../components/PracticeSketch.jsx'
 import Disclosure from '../components/Disclosure.jsx'
 import Icon from '../components/Icon.jsx'
 import PracticePreparation from '../components/PracticePreparation.jsx'
@@ -69,7 +70,7 @@ export default function TodayView({
                       ? 'Shared practice'
                       : kind === 'personal'
                         ? 'Your practice'
-                        : 'Assigned practice'}
+                        : 'Featured practice'}
                 </Badge>
                 {compact && onStar && (
                   <button
@@ -84,7 +85,14 @@ export default function TodayView({
                   </button>
                 )}
               </div>
-              {compact ? <h2>{assignment.title}</h2> : <h1>{assignment.title}</h1>}
+              {compact ? (
+                <div className="pb-assignment-hero">
+                  <h2>{assignment.title}</h2>
+                  <PracticeSketch />
+                </div>
+              ) : (
+                <h1>{assignment.title}</h1>
+              )}
               {!compact && (
                 <p className="pb-practice-caption">
                   {countLabel(assignment.drills.length, reviewOnly ? 'video' : 'drill')}
