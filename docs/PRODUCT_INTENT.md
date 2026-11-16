@@ -57,6 +57,7 @@ channel alongside upstream's downloader. See ADR 009 and the upstream integratio
 
 ## Optional soccer ball game
 
-The home-screen ball can open a flat-pitch game with two target goals and a local
-goal tally. Optional, explicitly enabled phone tilt complements pull-to-kick and
-keyboard controls. Keep this toy separate from training records (ADR 015).
+The home ball opens a full-screen dark overlay with two goals and scores inside
+those goals. Drag to kick and tap the ball to close. No visible copy, pitch drawing,
+directional controls or phone tilt. Keep the game separate from training records
+(ADR 016).
