@@ -80,7 +80,6 @@ export default function TrainingShell({
 
       {!practice && (
         <footer className="qt-footer">
-          <span>{page === 'coach' ? 'Contacts stay private.' : 'Progress stays on this device.'}</span>
           {page !== 'coach' && <a href="#/coach">Coach’s desk</a>}
           {sourceUrl && (
             <a href={sourceUrl} target="_blank" rel="noreferrer">

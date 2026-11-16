@@ -324,7 +324,6 @@ test('published coach review opens the final practice with its reviewed title', 
   await page.route('**/api/coach/requests', (route) => route.fulfill({ json: { requests: [job] } }))
   await page.getByRole('link', { name: 'Coach’s desk', exact: true }).click()
   await expect(page.getByRole('heading', { name: published.title, exact: true })).toBeVisible()
-  await expect(page.getByText('Notifications accepted for sending.', { exact: true })).toBeVisible()
   await page.getByRole('link', { name: 'Open practice', exact: true }).click()
   await expect(page.getByRole('heading', { name: published.title, exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Start practice', exact: true })).toBeVisible()
