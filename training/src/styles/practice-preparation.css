@@ -47,3 +47,32 @@
   line-height: 1.5;
   color: var(--qt-muted);
 }
+
+.pb-preparation-facts dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pb-preparation-focus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pb-preparation {
+  animation: preparation-enter 200ms ease both;
+}
+@keyframes preparation-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-preparation {
+    animation: none;
+  }
+}

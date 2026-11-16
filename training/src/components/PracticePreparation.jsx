@@ -1,3 +1,4 @@
+import Icon from './Icon.jsx'
 import { practicePreparation } from '../domain/practice-preparation.js'
 import '../styles/practice-preparation.css'
 
@@ -27,13 +28,19 @@ export default function PracticePreparation({ practice }) {
     <section className="pb-preparation" aria-label="Before you start">
       <dl className="pb-preparation-facts">
         <div>
-          <dt>Time</dt>
+          <dt>
+            <Icon name="clock" size={18} />
+            <span className="qt-visually-hidden">Time</span>
+          </dt>
           <dd>{time}</dd>
         </div>
         {!info.reviewOnly && (
           <>
             <div>
-              <dt>Bring</dt>
+              <dt>
+                <Icon name="ball" size={18} />
+                <span className="qt-visually-hidden">Bring</span>
+              </dt>
               <dd>
                 {info.equipment.length
                   ? info.equipment.join(', ')
@@ -44,14 +51,20 @@ export default function PracticePreparation({ practice }) {
               </dd>
             </div>
             <div>
-              <dt>Space</dt>
+              <dt>
+                <Icon name="expand" size={18} />
+                <span className="qt-visually-hidden">Space</span>
+              </dt>
               <dd>
                 {info.space ? `${info.space.lengthM} × ${info.space.widthM} m` : 'Not specified'}
                 {info.space && info.missing.space && <small>Some drills unspecified</small>}
               </dd>
             </div>
             <div>
-              <dt>Players</dt>
+              <dt>
+                <Icon name="user" size={18} />
+                <span className="qt-visually-hidden">Players</span>
+              </dt>
               <dd>
                 {players(info.participants)}
                 {info.participants && info.missing.participants && <small>Some drills unspecified</small>}
@@ -63,23 +76,11 @@ export default function PracticePreparation({ practice }) {
       </dl>
       {!!info.focus.length && (
         <p className="pb-preparation-focus">
-          <strong>Focus</strong> {info.focus.slice(0, 3).join(' · ')}
+          <Icon name="flag" size={16} /> {info.focus.slice(0, 3).join(' · ')}
           {info.focus.length > 3 ? ` · +${info.focus.length - 3} more` : ''}
         </p>
       )}
-      <p className="pb-preparation-note">
-        {info.reviewOnly ? (
-          'Video review only; no athletic work recorded.'
-        ) : (
-          <>
-            {knownSeconds > 0
-              ? `${info.restSeconds > 0 ? 'Includes prescribed rest. ' : ''}Setup, pauses${info.openEnded ? ' and untimed work' : ''} add time.`
-              : 'No fixed duration. Take the time you need for each drill.'}
-            {Object.values(info.missing).some(Boolean) && ' Check drill instructions for missing setup details.'}
-            {info.participants?.varies && ' Player numbers change between drills.'}
-          </>
-        )}
-      </p>
+      {info.reviewOnly && <p className="pb-preparation-note">Video review · no workout recorded</p>}
     </section>
   )
 }

@@ -30,6 +30,5 @@ test('incomplete setup never appears as no equipment or a solo-only practice', a
   const preparation = page.getByRole('region', { name: 'Before you start' })
   await expect(preparation).toContainText('Partial list')
   await expect(preparation).toContainText('Some drills unspecified')
-  await expect(preparation).toContainText('Check drill instructions for missing setup details.')
   await expect(page.getByRole('button', { name: 'Start practice', exact: true })).toBeEnabled()
 })
