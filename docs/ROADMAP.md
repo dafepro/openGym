@@ -18,3 +18,7 @@
 - Implemented: soccer preparation summaries before Start and clearer Create/Import
   actions (ADR 014). Follow-up: preserve generated setup as structured coach content;
   prose-only and legacy setup remain explicitly unspecified in the summary.
+
+- Soccer improvement 4: coach desk review, player preview, target editing, revision
+  feedback and exact-version approval; technical diagnostics remain available on
+  demand. PR validation and operational limits are documented in ADR 017.

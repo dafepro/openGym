@@ -80,3 +80,8 @@ Playbook opens previously downloaded practices and local progress when connectiv
 fails. Keep device-only saving distinct from cloud sharing, label an older or recovered
 library, and preserve exact active/history snapshots during reconnection. Videos and
 coach/player services remain connection-dependent. See ADR 013.
+
+Soccer practice publication supports review inside the coach desk: a player preview,
+explicit target edits, video review, revision feedback and exact-version approval.
+Keep infrastructure details behind an optional disclosure and retain the existing
+publishing-owner, CI and live-publication boundaries (ADR 017).

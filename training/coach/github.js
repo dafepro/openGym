@@ -1,15 +1,8 @@
 import { issueStillApproved } from './approved-issues.js'
+import { deskApproved } from './desk-review.js'
 import { readLimited } from '../worker/http.js'
-import {
-  appendPractice,
-  assertAppendOnly,
-  validateAdditions,
-} from '../src/domain/public-practices.js'
-import {
-  compilePractice,
-  practicePRBody,
-  similarPractices,
-} from './compiler.js'
+import { appendPractice, assertAppendOnly, validateAdditions } from '../src/domain/public-practices.js'
+import { compilePractice, practicePRBody, similarPractices } from './compiler.js'
 export const REPOSITORY = 'dafepro/openGym'
 export const RELEASE_BRANCH = 'codex/quicktrack-training-release'
 export const PRACTICE_PATH = 'training/public/practice-additions.json'
@@ -17,7 +10,7 @@ export const REVIEWER_ID = 313492551
 export const REQUIRED_CHECKS = [
   'Verify isolated training app',
   'Playbook browser journeys (linux-chromium)',
-  'Playbook browser journeys (macos-webkit)',
+  'Playbook browser journeys (macos-webkit)'
 ]
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 export async function github(env, path, method = 'GET', data) {
@@ -28,34 +21,24 @@ export async function github(env, path, method = 'GET', data) {
     path.includes('://')
   )
     throw new Error('Invalid GitHub destination')
-  const token = env.COACH_GITHUB_ACCESS_TOKEN
-    ? await env.COACH_GITHUB_ACCESS_TOKEN()
-    : env.COACH_GITHUB_TOKEN
-  const response = await (env.TEST_FETCH || fetch)(
-    `https://api.github.com/repos/${REPOSITORY}${path}`,
-    {
-      method,
-      redirect: 'error',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'QuickTrack-Coach',
-        'Content-Type': 'application/json',
-      },
-      ...(data ? { body: JSON.stringify(data) } : {}),
-      signal: AbortSignal.timeout(20000),
+  const token = env.COACH_GITHUB_ACCESS_TOKEN ? await env.COACH_GITHUB_ACCESS_TOKEN() : env.COACH_GITHUB_TOKEN
+  const response = await (env.TEST_FETCH || fetch)(`https://api.github.com/repos/${REPOSITORY}${path}`, {
+    method,
+    redirect: 'error',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'QuickTrack-Coach',
+      'Content-Type': 'application/json'
     },
-  )
+    ...(data ? { body: JSON.stringify(data) } : {}),
+    signal: AbortSignal.timeout(20000)
+  })
   if (!response.ok)
-    throw Object.assign(
-      new Error('GitHub could not complete this operation.'),
-      { status: response.status },
-    )
+    throw Object.assign(new Error('GitHub could not complete this operation.'), { status: response.status })
   if (response.status === 204) return null
-  const text = new TextDecoder().decode(
-    await readLimited(response.body, 2000000),
-  )
+  const text = new TextDecoder().decode(await readLimited(response.body, 2000000))
   return text ? JSON.parse(text) : null
 }
 
@@ -64,7 +47,7 @@ export async function inspectWorkflow(job, env, sha, workflow, checks = []) {
     (check) =>
       REQUIRED_CHECKS.includes(check.name) &&
       check.status === 'completed' &&
-      ['failure', 'timed_out', 'cancelled'].includes(check.conclusion),
+      ['failure', 'timed_out', 'cancelled'].includes(check.conclusion)
   )
   if (env.COACH_GITHUB_ACTIONS_ENABLED !== 'true')
     return failed.length
@@ -72,21 +55,18 @@ export async function inspectWorkflow(job, env, sha, workflow, checks = []) {
           progress: {
             stage: 'checks_failed',
             message: `Checks need attention: ${failed.map((check) => check.name).join(', ')}.`,
-            url: job.prUrl,
-          },
+            url: job.prUrl
+          }
         }
       : {
           progress: {
             stage: 'checks',
             message: 'Waiting for checks and approval.',
-            url: job.prUrl,
-          },
+            url: job.prUrl
+          }
         }
 
-  const response = await github(
-    env,
-    `/actions/workflows/${workflow}/runs?head_sha=${sha}&per_page=10`,
-  )
+  const response = await github(env, `/actions/workflows/${workflow}/runs?head_sha=${sha}&per_page=10`)
   const runs = response.workflow_runs || []
   const run = runs.find(
     (item) =>
@@ -95,15 +75,15 @@ export async function inspectWorkflow(job, env, sha, workflow, checks = []) {
       item.head_repository?.full_name === REPOSITORY &&
       (workflow === 'training-checks.yml'
         ? item.event === 'pull_request'
-        : item.event === 'push' && item.head_branch === RELEASE_BRANCH),
+        : item.event === 'push' && item.head_branch === RELEASE_BRANCH)
   )
   if (!run)
     return {
       progress: {
         stage: 'waiting_build',
         message: 'Waiting for GitHub to start the build.',
-        url: job.prUrl,
-      },
+        url: job.prUrl
+      }
     }
   const progress = {
     stage: 'checks',
@@ -111,7 +91,7 @@ export async function inspectWorkflow(job, env, sha, workflow, checks = []) {
       workflow === 'training-checks.yml'
         ? 'Checks and approval are in progress.'
         : 'Building the approved practice release.',
-    url: run.html_url,
+    url: run.html_url
   }
   if (run.status !== 'completed') return { progress }
   if (run.conclusion === 'success')
@@ -122,8 +102,8 @@ export async function inspectWorkflow(job, env, sha, workflow, checks = []) {
         message:
           workflow === 'training-checks.yml'
             ? 'Checks passed. Waiting for approval of this revision.'
-            : 'Release built. Verifying deployment.',
-      },
+            : 'Release built. Verifying deployment.'
+      }
     }
   if (
     ['failure', 'timed_out', 'cancelled'].includes(run.conclusion) &&
@@ -135,67 +115,47 @@ export async function inspectWorkflow(job, env, sha, workflow, checks = []) {
       progress: {
         ...progress,
         stage: 'retrying_ci',
-        message: 'Retrying the failed build once for this exact revision.',
-      },
+        message: 'Retrying the failed build once for this exact revision.'
+      }
     }
   return {
     progress: {
       ...progress,
       stage: 'checks_failed',
-      message: 'The build needs attention after its retry. Open build details.',
-    },
+      message: 'The build needs attention after its retry. Open build details.'
+    }
   }
 }
 
 export async function inspectPublication(job, env) {
-  const result = await inspectWorkflow(
-    job,
-    env,
-    job.mergeSha,
-    'training-release.yml',
-  )
+  const result = await inspectWorkflow(job, env, job.mergeSha, 'training-release.yml')
   if (result.progress?.stage === 'passed')
-    result.progress.message =
-      'Release built. Waiting for deployment and checking the live catalog.'
-  const comments = await github(
-    env,
-    `/issues/${job.prNumber}/comments?per_page=100`,
-  )
+    result.progress.message = 'Release built. Waiting for deployment and checking the live catalog.'
+  const comments = await github(env, `/issues/${job.prNumber}/comments?per_page=100`)
   const marker = '<!-- quicktrack-deployment:v1 -->'
   for (const comment of [...comments].reverse()) {
     if (
-      comment.user?.login !==
-        `${env.COACH_GITHUB_APP_SLUG || 'quicktrack-coach-publisher'}[bot]` ||
+      comment.user?.login !== `${env.COACH_GITHUB_APP_SLUG || 'quicktrack-coach-publisher'}[bot]` ||
       !comment.body?.startsWith(marker)
     )
       continue
     try {
-      const receipt = JSON.parse(
-        comment.body.match(/```json\s*([\s\S]*?)```/)?.[1] || '',
-      )
+      const receipt = JSON.parse(comment.body.match(/```json\s*([\s\S]*?)```/)?.[1] || '')
       if (
         receipt.schema === 1 &&
         receipt.requestId === job.id &&
         receipt.sourceSha === job.mergeSha &&
-        [
-          'deploying',
-          'deployed',
-          'retrying_deploy',
-          'deployment_failed',
-          'validating',
-        ].includes(receipt.stage) &&
+        ['deploying', 'deployed', 'retrying_deploy', 'deployment_failed', 'validating'].includes(receipt.stage) &&
         typeof receipt.message === 'string' &&
         receipt.message.length <= 300 &&
-        /^https:\/\/github\.com\/dafepro\/deploy\/actions\/runs\/\d+$/.test(
-          receipt.url,
-        )
+        /^https:\/\/github\.com\/dafepro\/deploy\/actions\/runs\/\d+$/.test(receipt.url)
       )
         return {
           progress: {
             stage: receipt.stage,
             message: receipt.message,
-            url: receipt.url,
-          },
+            url: receipt.url
+          }
         }
     } catch {
       /* Unrelated comments never direct publication. */
@@ -212,20 +172,10 @@ async function optional(env, path) {
   }
 }
 export async function repositoryPractices(env, ref) {
-  const file = await github(
-    env,
-    `/contents/${PRACTICE_PATH}?ref=${encodeURIComponent(ref)}`,
-  )
-  if (file.encoding !== 'base64' || file.size > 750000)
-    throw new Error('Invalid public practice file')
+  const file = await github(env, `/contents/${PRACTICE_PATH}?ref=${encodeURIComponent(ref)}`)
+  if (file.encoding !== 'base64' || file.size > 750000) throw new Error('Invalid public practice file')
   return validateAdditions(
-    JSON.parse(
-      new TextDecoder().decode(
-        Uint8Array.from(atob(file.content.replace(/\s/g, '')), (c) =>
-          c.charCodeAt(0),
-        ),
-      ),
-    ),
+    JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(file.content.replace(/\s/g, '')), (c) => c.charCodeAt(0))))
   )
 }
 async function labels(env, number) {
@@ -234,14 +184,13 @@ async function labels(env, number) {
     await github(env, '/labels', 'POST', {
       name: 'coach:practice',
       color: '526447',
-      description:
-        'Validated soccer practice data; use the stored coach publishing workflow.',
+      description: 'Validated soccer practice data; use the stored coach publishing workflow.'
     })
   } catch (error) {
     if (error.status !== 422) throw error
   }
   await github(env, `/issues/${number}/labels`, 'POST', {
-    labels: ['coach:practice'],
+    labels: ['coach:practice']
   })
 }
 export async function writePracticePR(job, env) {
@@ -259,9 +208,7 @@ export async function writePracticePR(job, env) {
   if (headSha) current = await repositoryPractices(env, headSha)
   if (!equal(current, next)) {
     if (existing && (!job.headSha || headSha !== job.headSha))
-      throw new Error(
-        'The practice branch changed outside this request. Review it before continuing.',
-      )
+      throw new Error('The practice branch changed outside this request. Review it before continuing.')
     const commit = await github(env, `/git/commits/${baseSha}`)
     const tree = await github(env, '/git/trees', 'POST', {
       base_tree: commit.tree.sha,
@@ -270,33 +217,32 @@ export async function writePracticePR(job, env) {
           path: PRACTICE_PATH,
           mode: '100644',
           type: 'blob',
-          content: JSON.stringify(next, null, 2) + '\n',
-        },
-      ],
+          content: JSON.stringify(next, null, 2) + '\n'
+        }
+      ]
     })
     const created = await github(env, '/git/commits', 'POST', {
       message: `Add soccer practice: ${job.plan.title}`.replaceAll('@', '＠'),
       tree: tree.sha,
-      parents: [...new Set([headSha, baseSha].filter(Boolean))],
+      parents: [...new Set([headSha, baseSha].filter(Boolean))]
     })
     if (existing)
       await github(env, `/git/refs/heads/${branch}`, 'PATCH', {
         sha: created.sha,
-        force: false,
+        force: false
       })
     else
       await github(env, '/git/refs', 'POST', {
         ref: `refs/heads/${branch}`,
-        sha: created.sha,
+        sha: created.sha
       })
     headSha = created.sha
   }
   const matches = await github(
     env,
-    `/pulls?state=all&head=dafepro%3A${encodeURIComponent(branch)}&base=${encodeURIComponent(RELEASE_BRANCH)}&per_page=10`,
+    `/pulls?state=all&head=dafepro%3A${encodeURIComponent(branch)}&base=${encodeURIComponent(RELEASE_BRANCH)}&per_page=10`
   )
-  if (!Array.isArray(matches) || matches.length > 1)
-    throw new Error('Ambiguous practice pull request')
+  if (!Array.isArray(matches) || matches.length > 1) throw new Error('Ambiguous practice pull request')
   let pr = matches[0]
   if (pr?.state === 'closed')
     return {
@@ -304,18 +250,16 @@ export async function writePracticePR(job, env) {
       prUrl: pr.html_url,
       headSha,
       status: pr.merged_at ? 'publishing' : 'closed',
-      mergeSha: pr.merge_commit_sha,
+      mergeSha: pr.merge_commit_sha
     }
   let assignments = previous.practices.map((item) => item.assignment)
   try {
-    const response = await (env.TEST_FETCH || fetch)(
-      `${env.APP_ORIGIN}/api/catalog`,
-      { redirect: 'error', signal: AbortSignal.timeout(10000) },
-    )
+    const response = await (env.TEST_FETCH || fetch)(`${env.APP_ORIGIN}/api/catalog`, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(10000)
+    })
     if (response.ok)
-      assignments = JSON.parse(
-        new TextDecoder().decode(await readLimited(response.body, 1048576)),
-      ).assignments
+      assignments = JSON.parse(new TextDecoder().decode(await readLimited(response.body, 1048576))).assignments
   } catch {
     /* Repository practices still provide a useful overlap comparison. */
   }
@@ -323,7 +267,7 @@ export async function writePracticePR(job, env) {
   if (pr)
     pr = await github(env, `/pulls/${pr.number}`, 'PATCH', {
       title: job.plan.title.replaceAll('@', '＠'),
-      body,
+      body
     })
   else
     pr = await github(env, '/pulls', 'POST', {
@@ -331,28 +275,19 @@ export async function writePracticePR(job, env) {
       body,
       head: branch,
       base: RELEASE_BRANCH,
-      draft: false,
+      draft: false
     })
-  if (!Number.isSafeInteger(pr.number) || pr.number < 1)
-    throw new Error('Invalid pull request response')
+  if (!Number.isSafeInteger(pr.number) || pr.number < 1) throw new Error('Invalid pull request response')
   await labels(env, pr.number)
   return {
     prNumber: pr.number,
     prUrl: `https://github.com/${REPOSITORY}/pull/${pr.number}`,
     headSha,
     status: 'submitted',
-    reason: undefined,
+    reason: undefined
   }
 }
-export function approvalDecision(
-  pr,
-  reviews,
-  checks,
-  files,
-  job,
-  slug = 'quicktrack-coach-publisher',
-  approvedIssue = false,
-) {
+function matchesPracticePR(pr, files, job, slug = 'quicktrack-coach-publisher') {
   if (
     pr.state !== 'open' ||
     pr.draft ||
@@ -364,26 +299,29 @@ export function approvalDecision(
     pr.head.sha !== job.headSha
   )
     return false
-  if (
-    !files.length ||
-    files.length !== 1 ||
-    files[0].filename !== PRACTICE_PATH ||
-    files[0].status !== 'modified'
-  )
+  if (!files.length || files.length !== 1 || files[0].filename !== PRACTICE_PATH || files[0].status !== 'modified')
     return false
+  return true
+}
+export function approvalDecision(
+  pr,
+  reviews,
+  checks,
+  files,
+  job,
+  slug = 'quicktrack-coach-publisher',
+  approvedIssue = false,
+  approvedInDesk = false
+) {
+  if (!matchesPracticePR(pr, files, job, slug)) return false
   const latest = reviews
     .filter(
       (review) =>
-        review.user?.id === REVIEWER_ID &&
-        ['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state),
+        review.user?.id === REVIEWER_ID && ['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state)
     )
     .sort((a, b) => b.id - a.id)[0]
-  if (latest?.state === 'CHANGES_REQUESTED' || latest?.state === 'DISMISSED')
-    return false
-  if (
-    !approvedIssue &&
-    (latest?.state !== 'APPROVED' || latest.commit_id !== pr.head.sha)
-  )
+  if (latest?.state === 'CHANGES_REQUESTED' || latest?.state === 'DISMISSED') return false
+  if (!approvedIssue && !approvedInDesk && (latest?.state !== 'APPROVED' || latest.commit_id !== pr.head.sha))
     return false
   return REQUIRED_CHECKS.every((name) =>
     checks.some(
@@ -391,35 +329,26 @@ export function approvalDecision(
         check.name === name &&
         check.app?.slug === 'github-actions' &&
         check.status === 'completed' &&
-        check.conclusion === 'success',
-    ),
+        check.conclusion === 'success'
+    )
   )
 }
 export function nextFeedback(reviews, comments, job) {
   const items = [
     ...reviews
-      .filter(
-        (item) =>
-          item.user?.id === REVIEWER_ID &&
-          item.state === 'CHANGES_REQUESTED' &&
-          item.body?.trim(),
-      )
+      .filter((item) => item.user?.id === REVIEWER_ID && item.state === 'CHANGES_REQUESTED' && item.body?.trim())
       .map((item) => ({
         id: `review-${item.id}`,
         at: item.submitted_at,
-        text: item.body,
+        text: item.body
       })),
     ...comments
-      .filter(
-        (item) =>
-          item.user?.id === REVIEWER_ID &&
-          /^\/coach\s+\S/i.test(item.body || ''),
-      )
+      .filter((item) => item.user?.id === REVIEWER_ID && /^\/coach\s+\S/i.test(item.body || ''))
       .map((item) => ({
         id: `comment-${item.id}`,
         at: item.created_at,
-        text: item.body.replace(/^\/coach\s+/i, ''),
-      })),
+        text: item.body.replace(/^\/coach\s+/i, '')
+      }))
   ]
     .filter((item) => !(job.feedbackIds || []).includes(item.id))
     .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
@@ -428,7 +357,7 @@ export function nextFeedback(reviews, comments, job) {
   return {
     ...item,
     consumed: items.map((item) => item.id),
-    text: item.text.slice(0, 1000),
+    text: item.text.slice(0, 1000)
   }
 }
 export async function inspectPracticePR(job, env) {
@@ -440,22 +369,16 @@ export async function inspectPracticePR(job, env) {
       progress: {
         stage: 'building',
         message: 'Approved revision merged. Following the release build.',
-        url: pr.html_url,
-      },
+        url: pr.html_url
+      }
     }
   if (pr.state === 'closed')
     return {
       status: 'closed',
-      reason: 'The pull request was closed without publication.',
+      reason: 'The pull request was closed without publication.'
     }
-  const reviews = await github(
-    env,
-    `/pulls/${job.prNumber}/reviews?per_page=100`,
-  )
-  const comments = await github(
-    env,
-    `/issues/${job.prNumber}/comments?per_page=100`,
-  )
+  const reviews = await github(env, `/pulls/${job.prNumber}/reviews?per_page=100`)
+  const comments = await github(env, `/issues/${job.prNumber}/comments?per_page=100`)
   if (reviews.length >= 100 || comments.length >= 100)
     throw new Error('This request needs a manual review of its discussion.')
   const feedback = nextFeedback(reviews, comments, job)
@@ -463,8 +386,7 @@ export async function inspectPracticePR(job, env) {
   if (pr.head.sha !== job.headSha)
     return {
       status: 'attention',
-      reason:
-        'This PR changed outside the assistant. Review the new revision before continuing.',
+      reason: 'This PR changed outside the assistant. Review the new revision before continuing.'
     }
   const baseNow = await github(env, `/git/ref/heads/${RELEASE_BRANCH}`)
   const latestBase = await repositoryPractices(env, baseNow.object.sha)
@@ -474,13 +396,9 @@ export async function inspectPracticePR(job, env) {
     // invalidates the old review and reruns CI without another model call.
     return writePracticePR(job, env)
   }
-  const checks = await github(
-    env,
-    `/commits/${job.headSha}/check-runs?per_page=100&filter=latest`,
-  )
+  const checks = await github(env, `/commits/${job.headSha}/check-runs?per_page=100&filter=latest`)
   const files = await github(env, `/pulls/${job.prNumber}/files?per_page=100`)
-  if (checks.total_count >= 100)
-    throw new Error('Too many checks to verify safely')
+  if (checks.total_count >= 100) throw new Error('Too many checks to verify safely')
   if (
     !approvalDecision(
       pr,
@@ -490,17 +408,12 @@ export async function inspectPracticePR(job, env) {
       job,
       env.COACH_GITHUB_APP_SLUG,
       await issueStillApproved(job, env),
+      deskApproved(job)
     )
   )
     return {
       status: 'submitted',
-      ...(await inspectWorkflow(
-        job,
-        env,
-        job.headSha,
-        'training-checks.yml',
-        checks.check_runs || [],
-      )),
+      ...(await inspectWorkflow(job, env, job.headSha, 'training-checks.yml', checks.check_runs || []))
     }
   const before = await repositoryPractices(env, pr.base.sha),
     after = await repositoryPractices(env, pr.head.sha)
@@ -509,8 +422,22 @@ export async function inspectPracticePR(job, env) {
     throw new Error('The reviewed practice differs from the request')
   const merged = await github(env, `/pulls/${job.prNumber}/merge`, 'PUT', {
     sha: job.headSha,
-    merge_method: 'squash',
+    merge_method: 'squash'
   })
   if (!merged.merged) throw new Error('GitHub did not confirm the merge')
   return { status: 'publishing', mergeSha: merged.sha, reason: undefined }
+}
+
+// Before a desk mutation, verify the actual PR content matches the previewed
+// plan. The merge path still checks CI, append-only data and the exact head.
+export async function verifyDeskRevision(job, env) {
+  const pr = await github(env, `/pulls/${job.prNumber}`)
+  const files = await github(env, `/pulls/${job.prNumber}/files?per_page=100`)
+  if (!matchesPracticePR(pr, files, job, env.COACH_GITHUB_APP_SLUG))
+    throw new Error('The practice changed. Reload the latest review before continuing.')
+  const before = await repositoryPractices(env, pr.base.sha)
+  const after = await repositoryPractices(env, pr.head.sha)
+  assertAppendOnly(before, after)
+  if (!equal(after.practices.at(-1), compilePractice(job)))
+    throw new Error('The current practice differs from the preview. Open technical details for review.')
 }

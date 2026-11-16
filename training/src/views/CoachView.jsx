@@ -1,12 +1,11 @@
+import CoachReviewDesk from '../components/CoachReviewDesk.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Notice } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import Disclosure from '../components/Disclosure.jsx'
 import Reveal from '../components/Reveal.jsx'
 import { youtubeId } from '../domain/demonstration.js'
-import CoachRecipients, {
-  emptyRecipient,
-} from '../components/CoachRecipients.jsx'
+import CoachRecipients, { emptyRecipient } from '../components/CoachRecipients.jsx'
 import CoachPracticeShare from '../components/CoachPracticeShare.jsx'
 import CoachReadyAlerts from '../components/CoachReadyAlerts.jsx'
 import {
@@ -14,7 +13,7 @@ import {
   validateCoachRequest,
   parseRecipients,
   collectRecipients,
-  displayContact,
+  displayContact
 } from '../domain/coach-request.js'
 
 const draftKey = 'quicktrack.coach-draft.v1'
@@ -41,7 +40,7 @@ function readDraft() {
     return {
       ...value,
       recipients: parseRecipients(value.recipients),
-      recipientDraft,
+      recipientDraft
     }
   } catch {
     return null
@@ -56,12 +55,12 @@ const busy = new Set([
   'publishing',
   'ready',
   'submitted',
-  'notifying',
+  'notifying'
 ])
 const statusLabel = {
   queued: 'Queued',
   processing: 'Finding drills',
-  creating_pr: 'Preparing pull request',
+  creating_pr: 'Preparing review',
   revising: 'Updating practice',
   retrying_revision: 'Retrying revision',
   submitted: 'Awaiting approval',
@@ -74,7 +73,7 @@ const statusLabel = {
   ready: 'Practice ready',
   notifying: 'Sending notifications',
   notified: 'Practice ready',
-  notification_attention: 'Practice ready · check notifications',
+  notification_attention: 'Practice ready · check notifications'
 }
 async function api(path, options) {
   let response
@@ -82,35 +81,32 @@ async function api(path, options) {
     response = await fetch(`/api/coach/${path}`, {
       credentials: 'same-origin',
       redirect: 'error',
-      ...options,
+      ...options
     })
   } catch {
     throw Object.assign(
       new Error(
-        'Could not reach the coaching service. Your draft is preserved. If your coach session expired, sign in again.',
+        'Could not reach the coaching service. Your draft is preserved. If your coach session expired, sign in again.'
       ),
-      { signIn: path !== 'config' },
+      { signIn: path !== 'config' }
     )
   }
   if (response.status === 401)
     throw Object.assign(new Error('Sign in to see your coaching requests.'), {
-      signIn: true,
+      signIn: true
     })
   if (!response.headers.get('content-type')?.includes('application/json'))
-    throw new Error(
-      'The coaching service is temporarily unavailable. Your draft is still here.',
-    )
+    throw new Error('The coaching service is temporarily unavailable. Your draft is still here.')
   const data = await response.json()
-  if (!response.ok)
-    throw new Error(data.error || 'The coaching service is unavailable.')
+  if (!response.ok) throw new Error(data.error || 'The coaching service is unavailable.')
   return data
 }
-function RequestCard({ job, onRevise, onRetry, retrying }) {
+function RequestCard({ job, onRevise, onRetry, retrying, onReview }) {
   const step = job.practiceUrl
     ? 3
-    : job.status === 'publishing'
+    : job.status === 'publishing' || job.deskApproved
       ? 2
-      : ['submitted', 'creating_pr', 'revising'].includes(job.status)
+      : job.status === 'submitted'
         ? 1
         : 0
   return (
@@ -121,12 +117,14 @@ function RequestCard({ job, onRevise, onRetry, retrying }) {
     >
       <div className="pb-coach-request-meta">
         <span className="qt-eyebrow">
-          {statusLabel[job.status] || 'Request received'}
+          {job.deskApproved && job.status === 'submitted'
+            ? 'Approved · checking publication'
+            : statusLabel[job.status] || 'Request received'}
         </span>
         <time dateTime={new Date(job.createdAt).toISOString()}>
           {new Date(job.createdAt).toLocaleDateString(undefined, {
             month: 'short',
-            day: 'numeric',
+            day: 'numeric'
           })}
         </time>
       </div>
@@ -140,21 +138,14 @@ function RequestCard({ job, onRevise, onRetry, retrying }) {
         <p>{job.brief}</p>
       )}
       {!['failed', 'rejected', 'attention', 'closed'].includes(job.status) && (
-        <ol
-          className="pb-coach-progress"
-          aria-label="Practice request progress"
-        >
-          {['Research', 'PR', 'Publish', 'Ready'].map((label, index) => (
+        <ol className="pb-coach-progress" aria-label="Practice request progress">
+          {['Draft', 'Review', 'Publishing', 'Ready'].map((label, index) => (
             <li
               key={label}
-              data-state={
-                index < step ? 'done' : index === step ? 'current' : 'waiting'
-              }
+              data-state={index < step ? 'done' : index === step ? 'current' : 'waiting'}
               aria-current={index === step ? 'step' : undefined}
             >
-              <span>
-                {index < step ? <Icon name="check" size={12} /> : index + 1}
-              </span>
+              <span>{index < step ? <Icon name="check" size={12} /> : index + 1}</span>
               {label}
             </li>
           ))}
@@ -165,20 +156,12 @@ function RequestCard({ job, onRevise, onRetry, retrying }) {
           {job.reason}
         </p>
       )}
-      {job.progress && !job.practiceUrl && (
-        <p className="pb-coach-reason" role="status">
-          {job.progress.message}{' '}
-          {job.progress.url && (
-            <a href={job.progress.url} target="_blank" rel="noreferrer">
-              Build details
-            </a>
-          )}
-        </p>
+      {job.deskApproved && !job.practiceUrl && <p role="status">Approved · publication checks are in progress.</p>}
+      {job.status === 'publishing' && !job.practiceUrl && (
+        <p role="status">Publishing your practice. Sharing becomes available when it is verified live.</p>
       )}
       {job.plan && (
-        <Disclosure
-          summary={`${job.plan.drills.length} ${job.plan.drills.length === 1 ? 'drill' : 'drills'}`}
-        >
+        <Disclosure summary={`${job.plan.drills.length} ${job.plan.drills.length === 1 ? 'drill' : 'drills'}`}>
           <ol className="pb-coach-drills">
             {job.plan.drills.map((drill, index) => (
               <li key={index}>
@@ -202,21 +185,13 @@ function RequestCard({ job, onRevise, onRetry, retrying }) {
                 )}
                 <strong>{drill.title}</strong>
                 <span>
-                  {drill.sets} ×{' '}
-                  {drill.mode === 'time'
-                    ? `${drill.durationSec}s`
-                    : `${drill.reps} reps`}
+                  {drill.sets} × {drill.mode === 'time' ? `${drill.durationSec}s` : `${drill.reps} reps`}
                   {drill.side === 'each' ? ' each side' : ''}
                 </span>
                 <p>{drill.focus}</p>
                 <div>
                   {drill.sources.map((source) => (
-                    <a
-                      key={source.url}
-                      href={source.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
+                    <a key={source.url} href={source.url} target="_blank" rel="noreferrer">
                       {source.title}
                       <Icon name="arrow" size={12} />
                     </a>
@@ -229,11 +204,7 @@ function RequestCard({ job, onRevise, onRetry, retrying }) {
       )}
       <div className="pb-coach-request-links">
         {job.canRetryRevision && (
-          <button
-            type="button"
-            disabled={retrying}
-            onClick={() => onRetry(job)}
-          >
+          <button type="button" disabled={retrying} onClick={() => onRetry(job)}>
             Retry revision
           </button>
         )}
@@ -243,10 +214,8 @@ function RequestCard({ job, onRevise, onRetry, retrying }) {
             Revise brief
           </button>
         )}
-        {(job.prUrl || job.issueUrl) && (
-          <a href={job.prUrl || job.issueUrl} target="_blank" rel="noreferrer">
-            Open pull request <Icon name="arrow" size={14} />
-          </a>
+        {job.plan && job.reviewPractice && job.headSha && job.status === 'submitted' && (
+          <Button onClick={() => onReview(job)}>Review practice</Button>
         )}
         {job.practiceUrl && (
           <a href={job.practiceUrl}>
@@ -254,12 +223,32 @@ function RequestCard({ job, onRevise, onRetry, retrying }) {
           </a>
         )}
       </div>
-      {job.practiceUrl && (
-        <CoachPracticeShare url={job.practiceUrl} recipients={job.recipients} />
+      {(job.prUrl || job.issueUrl || job.progress) && (
+        <Disclosure summary="Technical details">
+          {job.progress && (
+            <p>
+              {job.progress.message}{' '}
+              {job.progress.url && (
+                <a href={job.progress.url} target="_blank" rel="noreferrer">
+                  Build details
+                </a>
+              )}
+            </p>
+          )}
+          {(job.prUrl || job.issueUrl) && (
+            <a href={job.prUrl || job.issueUrl} target="_blank" rel="noreferrer">
+              Open pull request
+            </a>
+          )}
+          {job.headSha && (
+            <p>
+              Version: <code>{job.headSha.slice(0, 12)}</code>
+            </p>
+          )}
+        </Disclosure>
       )}
-      {job.submitterEmail && (
-        <p className="pb-coach-submitter">Requested by {job.submitterEmail}</p>
-      )}
+      {job.practiceUrl && <CoachPracticeShare url={job.practiceUrl} recipients={job.recipients} />}
+      {job.submitterEmail && <p className="pb-coach-submitter">Requested by {job.submitterEmail}</p>}
       {job.recipients?.length > 0 && (
         <Disclosure
           summary={`${job.recipients.length} ${job.recipients.length === 1 ? 'recipient' : 'recipients'} · private`}
@@ -267,9 +256,7 @@ function RequestCard({ job, onRevise, onRetry, retrying }) {
           <ul className="pb-coach-private-contacts">
             {job.recipients.map((item) => (
               <li key={item.address}>
-                <strong>
-                  {item.name || (item.channel === 'email' ? 'Email' : 'Text')}
-                </strong>
+                <strong>{item.name || (item.channel === 'email' ? 'Email' : 'Text')}</strong>
                 <span>{displayContact(item)}</span>
               </li>
             ))}
@@ -281,11 +268,6 @@ function RequestCard({ job, onRevise, onRetry, retrying }) {
           {job.notifications?.some((item) => item.status === 'opt_in_required') ? 'A recipient hasn’t opted in to texts. Share the link yourself.' : 'Some notifications need attention. You can share the link above.'}
         </small>
       )}
-      {job.practiceUrl &&
-        job.recipientCount > 0 &&
-        job.status === 'notified' && (
-          <small>Notifications accepted for sending.</small>
-        )}
     </article>
   )
 }
@@ -295,9 +277,7 @@ export default function CoachView() {
     [jobs, setJobs] = useState([]),
     [brief, setBrief] = useState(draft?.brief || ''),
     [recipients, setRecipients] = useState(draft?.recipients || []),
-    [recipientDraft, setRecipientDraft] = useState(
-      draft?.recipientDraft || emptyRecipient(),
-    ),
+    [recipientDraft, setRecipientDraft] = useState(draft?.recipientDraft || emptyRecipient()),
     [authenticated, setAuthenticated] = useState(false),
     [checkingAccess, setCheckingAccess] = useState(true),
     [composerOpen, setComposerOpen] = useState(true),
@@ -307,6 +287,7 @@ export default function CoachView() {
     [sending, setSending] = useState(false),
     [accepted, setAccepted] = useState(false)
   const [retrying, setRetrying] = useState(null)
+  const [reviewId, setReviewId] = useState(null)
   const requestId = useRef(draft?.id || crypto.randomUUID()),
     live = useRef(true),
     initialized = useRef(false),
@@ -334,12 +315,7 @@ export default function CoachView() {
           if (!initialized.current) {
             initialized.current = true
             setComposerOpen(
-              !data.requests.length ||
-                !!(
-                  draft?.brief ||
-                  draft?.recipients?.length ||
-                  draft?.recipientDraft?.address
-                ),
+              !data.requests.length || !!(draft?.brief || draft?.recipients?.length || draft?.recipientDraft?.address)
             )
           }
           setCheckingAccess(false)
@@ -347,10 +323,7 @@ export default function CoachView() {
           setAuthenticated(true)
           setSignIn(false)
           setError('')
-          timer = setTimeout(
-            refresh,
-            data.requests.some((job) => busy.has(job.status)) ? 5000 : 30000,
-          )
+          timer = setTimeout(refresh, data.requests.some((job) => busy.has(job.status)) ? 5000 : 30000)
         }
       } catch (failure) {
         if (!cancelled) {
@@ -378,20 +351,15 @@ export default function CoachView() {
   }, [accepted])
   useEffect(() => {
     try {
-      if (
-        brief ||
-        recipients.length ||
-        recipientDraft.address ||
-        recipientDraft.name
-      )
+      if (brief || recipients.length || recipientDraft.address || recipientDraft.name)
         sessionStorage.setItem(
           draftKey,
           JSON.stringify({
             id: requestId.current,
             brief,
             recipients,
-            recipientDraft,
-          }),
+            recipientDraft
+          })
         )
       else sessionStorage.removeItem(draftKey)
     } catch {
@@ -403,9 +371,7 @@ export default function CoachView() {
     let cancelled = false
     const frame = requestAnimationFrame(async () => {
       const reveal = briefField.current?.closest('.qt-reveal')
-      await Promise.allSettled(
-        (reveal?.getAnimations() || []).map((animation) => animation.finished),
-      )
+      await Promise.allSettled((reveal?.getAnimations() || []).map((animation) => animation.finished))
       if (!cancelled && live.current) {
         briefField.current?.focus()
         focusComposer.current = false
@@ -424,20 +390,17 @@ export default function CoachView() {
       const payload = {
         id: requestId.current,
         brief,
-        recipients: collectRecipients(recipients, recipientDraft),
+        recipients: collectRecipients(recipients, recipientDraft)
       }
       validateCoachRequest(payload)
       setSending(true)
       const job = await api('requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload)
       })
       if (!live.current) return
-      setJobs((current) => [
-        job,
-        ...current.filter((item) => item.id !== job.id),
-      ])
+      setJobs((current) => [job, ...current.filter((item) => item.id !== job.id)])
       setBrief('')
       setRecipients([])
       setRecipientDraft(emptyRecipient())
@@ -446,18 +409,12 @@ export default function CoachView() {
       setAccepted((value) => !value)
       requestAnimationFrame(async () => {
         const reveal = document.getElementById('coach-composer')
-        await Promise.allSettled(
-          (reveal?.getAnimations() || []).map(
-            (animation) => animation.finished,
-          ),
-        )
+        await Promise.allSettled((reveal?.getAnimations() || []).map((animation) => animation.finished))
         if (!live.current) return
         heading.current?.focus({ preventScroll: true })
         heading.current?.scrollIntoView({
           block: 'start',
-          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
-            ? 'instant'
-            : 'smooth',
+          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'
         })
       })
     } catch (failure) {
@@ -489,18 +446,26 @@ export default function CoachView() {
       const updated = await api('requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ retryRequestId: job.id }),
+        body: JSON.stringify({ retryRequestId: job.id })
       })
       if (!live.current) return
-      setJobs((current) =>
-        current.map((item) => (item.id === job.id ? updated : item)),
-      )
+      setJobs((current) => current.map((item) => (item.id === job.id ? updated : item)))
       setAccepted((value) => !value)
     } catch (failure) {
       if (live.current) setError(failure.message)
     } finally {
       if (live.current) setRetrying(null)
     }
+  }
+  const review = async (job, input) => {
+    const updated = await api('requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reviewRequestId: job.id, headSha: job.headSha, ...input })
+    })
+    if (!live.current) return
+    setJobs((current) => current.map((item) => (item.id === job.id ? updated : item)))
+    setAccepted((value) => !value)
   }
   const editBrief = (value) => {
     setBrief(value)
@@ -513,11 +478,7 @@ export default function CoachView() {
         <h1>Coach’s desk</h1>
         <div className="pb-coach-gate-card">
           <Icon name="pencil" size={26} />
-          <h2>
-            {config && !config.configured
-              ? 'Assistant setup is pending'
-              : 'Sign in to coach'}
-          </h2>
+          <h2>{config && !config.configured ? 'Assistant setup is pending' : 'Sign in to coach'}</h2>
           {checkingAccess && !error ? (
             <p role="status">Checking coach access…</p>
           ) : config?.configured || signIn ? (
@@ -548,9 +509,7 @@ export default function CoachView() {
           {error}
         </Notice>
       )}
-      {config?.paused && (
-        <Notice title="Coach requests are paused">Your draft is saved.</Notice>
-      )}
+      {config?.paused && <Notice title="Coach requests are paused">Your draft is saved.</Notice>}
       {jobs.length > 0 && (
         <button
           className="pb-coach-compose-toggle"
@@ -567,11 +526,7 @@ export default function CoachView() {
           {!composerOpen && brief && <small>Draft saved</small>}
         </button>
       )}
-      <Reveal
-        open={composerOpen}
-        id="coach-composer"
-        className="pb-coach-composer"
-      >
+      <Reveal open={composerOpen} id="coach-composer" className="pb-coach-composer">
         <form onSubmit={submit} className="pb-coach-form">
           <label className="qt-field">
             <span>What should the player work on?</span>
@@ -609,28 +564,14 @@ export default function CoachView() {
             disabled={sending}
           />
           {error && (
-            <Notice
-              title={
-                signIn ? 'Coach sign-in needed' : 'Request needs attention'
-              }
-              tone="error"
-            >
+            <Notice title={signIn ? 'Coach sign-in needed' : 'Request needs attention'} tone="error">
               {error}
             </Notice>
           )}
-          <Button
-            type="submit"
-            icon="arrow"
-            disabled={
-              sending || !config?.configured || config?.paused || signIn
-            }
-          >
+          <Button type="submit" icon="arrow" disabled={sending || !config?.configured || config?.paused || signIn}>
             {sending ? 'Creating practice…' : 'Create practice'}
           </Button>
-          {(brief ||
-            recipients.length ||
-            recipientDraft.address ||
-            recipientDraft.name) && (
+          {(brief || recipients.length || recipientDraft.address || recipientDraft.name) && (
             <button
               type="button"
               className="pb-coach-clear"
@@ -649,10 +590,7 @@ export default function CoachView() {
         </form>
       </Reveal>
       {jobs.length > 0 && (
-        <section
-          className="pb-coach-requests"
-          aria-label="Your coaching requests"
-        >
+        <section className="pb-coach-requests" aria-label="Your coaching requests">
           <h2 ref={heading} tabIndex={-1}>
             Your requests
           </h2>
@@ -663,9 +601,20 @@ export default function CoachView() {
               onRevise={revise}
               onRetry={retryRevision}
               retrying={retrying === job.id}
+              onReview={(job) => setReviewId(job.id)}
             />
           ))}
         </section>
+      )}
+      {reviewId && jobs.some((job) => job.id === reviewId) && (
+        <CoachReviewDesk
+          key={reviewId}
+          job={jobs.find((job) => job.id === reviewId)}
+          canReview={coach?.canReview}
+          paused={config?.paused}
+          onReview={review}
+          onClose={() => setReviewId(null)}
+        />
       )}
     </div>
   )
