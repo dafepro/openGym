@@ -16,4 +16,4 @@
 - Club Elite Android handoff: verified dashboard intent with official store fallback. A direct external barcode route remains unverified; keep dynamic codes in the official app (ADR 008).
 
 - Implemented: full-screen night ball overlay with goals, scores, drag-to-kick and
-  tap-to-dismiss. Removed tilt and visible controls (ADR 016).
+  tap-to-dismiss. Removed tilt and visible controls (ADR 018).

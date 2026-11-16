@@ -60,4 +60,4 @@ channel alongside upstream's downloader. See ADR 009 and the upstream integratio
 The home ball opens a full-screen dark overlay with two goals and scores inside
 those goals. Drag to kick and tap the ball to close. No visible copy, pitch drawing,
 directional controls or phone tilt. Keep the game separate from training records
-(ADR 016).
+(ADR 018).

@@ -1,4 +1,4 @@
-# 016 — Full-screen night ball overlay
+# 018 — Full-screen night ball overlay
 
 Supersedes ADR 015 presentation and controls. The owner requested a full-screen
 faded dark background with luminous goals and scores inside the goals, without a

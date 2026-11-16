@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { advanceBall, centeredBall, kickFromPull, tiltForce } from './ball-game.js'
+import { advanceBall, centeredBall, kickFromPull } from './ball-game.js'
 
 const size = { width: 320, height: 440 }
 describe('flat-pitch ball physics', () => {
@@ -39,24 +39,5 @@ describe('flat-pitch ball physics', () => {
     expect(kickFromPull(0, 3)).toBeNull()
     expect(kickFromPull(0, 200)).toEqual({ x: -0, y: -1, power: 1 })
     expect(kickFromPull(-50, 0)).toMatchObject({ x: 1, power: 0.5 })
-  })
-})
-
-describe('calibrated screen-relative tilt', () => {
-  const neutral = { beta: 30, gamma: 5 }
-  it('treats the current hold as flat and ignores small sensor noise', () => {
-    expect(tiltForce(30, 5, neutral)).toEqual({ x: 0, y: 0 })
-    expect(tiltForce(31, 5.5, neutral)).toEqual({ x: 0, y: 0 })
-    expect(tiltForce(null, 5, neutral)).toEqual({ x: 0, y: 0 })
-  })
-  it('maps rightward portrait tilt to the correct landscape direction', () => {
-    expect(tiltForce(30, 15, neutral)).toEqual({ x: 260, y: 0 })
-    const rotated = tiltForce(30, 15, neutral, 90)
-    expect(rotated.x).toBeCloseTo(0)
-    expect(rotated.y).toBeCloseTo(-260)
-  })
-  it('bounds extreme tilt and handles the beta angle wrapping around', () => {
-    expect(tiltForce(90, 85, neutral)).toEqual({ x: 520, y: 520 })
-    expect(tiltForce(-179, 0, { beta: 179, gamma: 0 }).y).toBe(52)
   })
 })

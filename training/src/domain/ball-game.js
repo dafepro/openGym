@@ -10,21 +10,9 @@ export function kickFromPull(dx, dy) {
   return { x: -dx / distance, y: -dy / distance, power }
 }
 
-// Relative to the chosen neutral hold, then rotated into screen coordinates.
-// No device-heading/magnetometer access is needed.
-export function tiltForce(beta, gamma, neutral, screenAngle = 0) {
-  if (![beta, gamma, neutral?.beta, neutral?.gamma, screenAngle].every(Number.isFinite)) return { x: 0, y: 0 }
-  const delta = (value, baseline) => ((value - baseline + 540) % 360) - 180
-  const axis = (value) => (Math.abs(value) < 1.5 ? 0 : clamp(value, -20, 20) * 26)
-  const x = axis(delta(gamma, neutral.gamma)),
-    y = axis(delta(beta, neutral.beta))
-  const angle = (screenAngle * Math.PI) / 180
-  return { x: x * Math.cos(angle) + y * Math.sin(angle), y: y * Math.cos(angle) - x * Math.sin(angle) }
-}
-
 // Small bounded steps prevent fast shots tunnelling through a wall or goal.
 // A goal requires the whole ball's width to fit between the posts.
-export function advanceBall(previous, elapsed, size, force = { x: 0, y: 0 }) {
+export function advanceBall(previous, elapsed, size) {
   const ball = { ...previous }
   const radius = BALL_RADIUS
   const mouthLeft = (size.width - goalWidth(size.width)) / 2 + radius
@@ -33,10 +21,10 @@ export function advanceBall(previous, elapsed, size, force = { x: 0, y: 0 }) {
   const steps = Math.max(1, Math.ceil(total / (1 / 120)))
   const dt = total / steps
   for (let step = 0; step < steps; step++) {
-    ball.vx = clamp((ball.vx + force.x * dt) * Math.exp(-1.35 * dt), -900, 900)
-    ball.vy = clamp((ball.vy + force.y * dt) * Math.exp(-1.35 * dt), -900, 900)
-    if (Math.abs(ball.vx) < 2 && !force.x) ball.vx = 0
-    if (Math.abs(ball.vy) < 2 && !force.y) ball.vy = 0
+    ball.vx = clamp(ball.vx * Math.exp(-1.35 * dt), -900, 900)
+    ball.vy = clamp(ball.vy * Math.exp(-1.35 * dt), -900, 900)
+    if (Math.abs(ball.vx) < 2) ball.vx = 0
+    if (Math.abs(ball.vy) < 2) ball.vy = 0
     const oldX = ball.x,
       oldY = ball.y
     ball.x += ball.vx * dt
