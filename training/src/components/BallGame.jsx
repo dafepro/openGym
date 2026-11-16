@@ -62,7 +62,7 @@ export default function BallGame({ score, setScore, onClose }) {
   }, [setScore])
   useLayoutEffect(() => {
     if (!closing) return
-    const timer = setTimeout(onClose, 320)
+    const timer = setTimeout(onClose, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 320)
     return () => clearTimeout(timer)
   }, [closing, onClose])
   return createPortal(
@@ -77,10 +77,10 @@ export default function BallGame({ score, setScore, onClose }) {
       }}
     >
       <div className="pb-night-goal pb-night-goal--blue" aria-label={`Blue goal: ${score.blue}`}>
-        <strong>{score.blue}</strong>
+        <strong key={score.blue}>{score.blue}</strong>
       </div>
       <div className="pb-night-goal pb-night-goal--gold" aria-label={`Gold goal: ${score.gold}`}>
-        <strong>{score.gold}</strong>
+        <strong key={score.gold}>{score.gold}</strong>
       </div>
       <button
         ref={ball}

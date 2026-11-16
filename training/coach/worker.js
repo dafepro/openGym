@@ -6,12 +6,7 @@ import { publishedPractice } from './publication.js'
 import { json, digest, readLimited } from '../worker/http.js'
 import { coachProfile, verifyReadySignature } from './auth.js'
 import { researchPractice } from './agent.js'
-import {
-  notificationChannels,
-  sendReady,
-  smsReadyMessage,
-  textSender,
-} from './notifications.js'
+import { notificationChannels, sendReady, smsReadyMessage, textSender } from './notifications.js'
 import { validateCoachRequest } from '../src/domain/coach-request.js'
 import { readPracticeCode } from '../src/domain/practice-code.js'
 
@@ -321,20 +316,6 @@ export class CoachRequests {
         if (!edition.ok) throw new Error('Edition unavailable')
         return edition.json()
       })
-      if (
-        job.recipients.some((recipient) => recipient.channel === 'sms') &&
-        smsReadyMessage({
-          ...job,
-          practiceUrl: url.href,
-          publishedTitle: published.title
-        }).length > 1600
-      )
-        return json(
-          {
-            error: 'Use a shorter catalog-based practice pass for text notifications.'
-          },
-          400
-        )
       return this.ctx.blockConcurrencyWhile(async () => {
         const latest = await this.ctx.storage.get(`job:${id}`)
         if (!latest) return json({ error: 'This practice request has expired.' }, 409)

@@ -19,9 +19,42 @@ const PrivatePreviewShell = __TRAINING_PRIVATE_PREVIEW__
 
 export default function App() {
   const route = useHashRoute()
-  if (PrivatePreviewShell) return <Suspense fallback={<TrainingShell page={route} localPreview><LoadingState label="Opening local preview…" /></TrainingShell>}><PrivatePreviewShell route={route} /></Suspense>
-  if (DemoShell) return <Suspense fallback={<TrainingShell page={route} sample><LoadingState label="Opening sample practice…" /></TrainingShell>}><DemoShell route={route} /></Suspense>
-  if (route === 'texts') return <TrainingShell page={route} sourceUrl={APP_CONFIG.sourceUrl} onNavigate={page => { window.location.hash = ROUTES[page] }}><TextAlertsView /></TrainingShell>
+  if (PrivatePreviewShell)
+    return (
+      <Suspense
+        fallback={
+          <TrainingShell page={route} localPreview>
+            <LoadingState label="Opening local preview…" />
+          </TrainingShell>
+        }
+      >
+        <PrivatePreviewShell route={route} />
+      </Suspense>
+    )
+  if (DemoShell)
+    return (
+      <Suspense
+        fallback={
+          <TrainingShell page={route} sample>
+            <LoadingState label="Opening sample practice…" />
+          </TrainingShell>
+        }
+      >
+        <DemoShell route={route} />
+      </Suspense>
+    )
+  if (route === 'texts')
+    return (
+      <TrainingShell
+        page={route}
+        sourceUrl={APP_CONFIG.sourceUrl}
+        onNavigate={(page) => {
+          window.location.hash = ROUTES[page]
+        }}
+      >
+        <TextAlertsView />
+      </TrainingShell>
+    )
   return <TrainingApplication route={route} />
 }
 

@@ -24,7 +24,18 @@ const subscribe = (notify) => {
   return () => window.removeEventListener('hashchange', notify)
 }
 const routeSubscribe = (notify) => {
-  const order = { today: 0, coach: 2, texts: 2, assignments: 2, 'assignments-coach': 3, me: 2, history: 2, build: 1, shared: 2, practice: 3 }
+  const order = {
+    today: 0,
+    coach: 2,
+    texts: 2,
+    assignments: 2,
+    'assignments-coach': 3,
+    me: 2,
+    history: 2,
+    build: 1,
+    shared: 2,
+    practice: 3
+  }
   let previous = routeFromHash(window.location.hash)
   const change = () => {
     const next = routeFromHash(window.location.hash)

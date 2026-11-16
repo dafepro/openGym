@@ -170,7 +170,7 @@ export default function PracticeActionDock({
         />
       )}
       {fieldMode && (
-        <p className="pb-field-phase">
+        <p className="pb-field-phase" key={`${phase}-${paused}`}>
           {review
             ? 'CHECK & RECORD'
             : rest

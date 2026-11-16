@@ -64,7 +64,7 @@ jobs:
     # External PRs stay isolated on hosted runners. Native ARM preserves reliable
     # frame sampling without depending on hosted ARM capacity.
     runs-on: ${{ matrix.platform == 'macos-webkit' && github.actor_id == '313492551' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: training

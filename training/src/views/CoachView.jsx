@@ -265,7 +265,9 @@ function RequestCard({ job, onRevise, onRetry, retrying, onReview }) {
       )}
       {job.practiceUrl && job.status === 'notification_attention' && (
         <small>
-          {job.notifications?.some((item) => item.status === 'opt_in_required') ? 'A recipient hasn’t opted in to texts. Share the link yourself.' : 'Some notifications need attention. You can share the link above.'}
+          {job.notifications?.some((item) => item.status === 'opt_in_required')
+            ? 'A recipient hasn’t opted in to texts. Share the link yourself.'
+            : 'Some notifications need attention. You can share the link above.'}
         </small>
       )}
     </article>

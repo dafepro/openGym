@@ -149,6 +149,7 @@ function Assignment({ record, coach, sessions, busy, mutate, onStart, onRepeat }
       s.coachAssignmentId === record.id &&
       JSON.stringify(s.assignment) === JSON.stringify(record.practice)
   )
+  const selectedId = sessionId || (matches.length === 1 ? matches[0].id : '')
   const action = (type, extra = {}) => mutate({ id: record.id, revision: record.revision, action: type, ...extra })
   return (
     <article className="pb-assignment-card">
@@ -207,7 +208,7 @@ function Assignment({ record, coach, sessions, busy, mutate, onStart, onRepeat }
             <>
               <label className="qt-field">
                 Completed session
-                <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
+                <select value={selectedId} onChange={(e) => setSessionId(e.target.value)}>
                   <option value="">Choose a session</option>
                   {matches.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -221,8 +222,8 @@ function Assignment({ record, coach, sessions, busy, mutate, onStart, onRepeat }
                 <textarea maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
               </label>
               <Button
-                disabled={busy || !sessionId}
-                onClick={() => action('submit', { session: matches.find((s) => s.id === sessionId), note })}
+                disabled={busy || !selectedId}
+                onClick={() => action('submit', { session: matches.find((s) => s.id === selectedId), note })}
               >
                 Send to coach
               </Button>
