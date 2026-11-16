@@ -54,3 +54,46 @@ branch. Focus uses the existing workout controller; Drive and Garmin remain sepa
 around the same local store. Phone and watch share finished-record construction and commit;
 warm-up-only sessions preserve their routine's place. Native updates use a fork-owned release
 channel alongside upstream's downloader. See ADR 009 and the upstream integration review.
+
+## Individual soccer coaching
+
+The owner approved the player–coach assignment loop described in ADR 012. Support
+one coach and a few individual players, signed-in assignment acceptance, optional
+due dates, explicit sharing of finished work, coach feedback and fresh assignments
+for repeats or revisions. Other player history remains local and private.
+
+Playbook uses purposeful copy, accessible visual state and restrained motion.
+Do not duplicate the practice player or history for each entry point. Regression
+checks protect real user outcomes rather than preserving incidental UI structure
+(ADR 019).
+
+## Soccer practice preparation
+
+Before starting, show concise setup requirements and honestly bounded timing from
+the supplied practice. Keep missing setup explicit and preserve a direct Start
+action. Creation, importing and creating an individual drill have distinct labels
+(ADR 014).
+
+## Soccer offline recovery
+
+Playbook opens previously downloaded practices and local progress when connectivity
+fails. Keep device-only saving distinct from cloud sharing, label an older or recovered
+library, and preserve exact active/history snapshots during reconnection. Videos and
+coach/player services remain connection-dependent. See ADR 013.
+
+Soccer practice publication supports review inside the coach desk: a player preview,
+explicit target edits, video review, revision feedback and exact-version approval.
+Keep infrastructure details behind an optional disclosure and retain the existing
+publishing-owner, CI and live-publication boundaries (ADR 017).
+
+Soccer practice offers optional field-side large controls, local audible cues and
+supported screen-awake behavior. Timer expiry requires explicit actual-time
+confirmation, regardless of page visibility; unattended time never proves work
+(ADR 016).
+
+## Optional soccer ball game
+
+The home ball opens a full-screen dark overlay with two goals and scores inside
+those goals. Drag to kick and tap the ball to close. No visible copy, pitch drawing,
+directional controls or phone tilt. Keep the game separate from training records
+(ADR 018).

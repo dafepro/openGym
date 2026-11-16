@@ -41,7 +41,7 @@ reserved for a step as big as the new exercise database (v1.4.0).
 
 ---
 
-## v1.3.2 and v1.3.3: Cleaner workout  (released 2026-09-05)
+## v1.3.2 and v1.3.3: Cleaner workout (released 2026-09-05)
 
 **Theme: the workout screen gets out of the way.** Fewer things to tap, the things you tap every set
 stay where they are, everything else moves one tap away. Compared with Hevy or Strong the screen was
@@ -84,7 +84,7 @@ Left over from this block:
 - A real pause for the workout timers (#29 asked for it)
 - Discord announcement (owner)
 
-## v1.3.6 and v1.3.7: Sync, push and the phone  (released 2026-09-12)
+## v1.3.6 and v1.3.7: Sync, push and the phone (released 2026-09-12)
 
 Signed in, the server's profile is the truth: sign-in adopts it, two devices merge on a server
 revision instead of overwriting each other, the app polls for changes and works offline with a
@@ -96,7 +96,7 @@ the phone, nginx resolver, custom-exercise equipment, per-side data, warm-up res
 QA sweep of every screen. Left over: routine reordering (#142), the Smith-bar "no bar" option
 (#138), two decimals (#139), delete user in the admin (#107).
 
-## v1.3.8: Promised items  (released 2026-09-20, a week early)
+## v1.3.8: Promised items (released 2026-09-20, a week early)
 
 All four promises, plus the iOS keyboard, the assisted machines and a QA sweep of every screen:
 twenty-four reports in total. See the changelog for the full list.
@@ -110,7 +110,7 @@ twenty-four reports in total. See the changelog for the full list.
 - The small open pull requests: unknown-path redirect (#185), manifest behind an auth proxy (#184),
   standard ß (#190); the distance mode (#177, #178) moves to a later release
 
-## v1.3.9: Editing history  (released 2026-09-28, two weeks early)
+## v1.3.9: Editing history (released 2026-09-28, two weeks early)
 
 Edit a saved workout, its date, start time and duration, with photos and videos on it, plus the
 two Discord reports (a paired phone that silently stopped syncing, a plan that opened at the wrong
@@ -127,7 +127,7 @@ Structural Balance, Ukrainian and Arabic. Thirty-nine community pull requests. S
   focus (#133); extra passkeys and the device link (PR #95); body measurements (PR #82) move
   to v1.3.10
 
-## v1.3.10: New design, rotation & safer sync  (released 2026-10-07)
+## v1.3.10: New design, rotation & safer sync (released 2026-10-07)
 
 Bigger than planned, on purpose: the queue and rotation from this block, the redesign that was
 pencilled in for v1.3.11, and a sync rework so no device loses data again. See the changelog for
@@ -146,7 +146,7 @@ the full list.
 - Still to come from the old block: undo finish (GitLab !130), relabelling an "Unknown" exercise
   after an import, body measurements (PR #82), drag-and-drop on touch (#114)
 
-## v1.4.0: A new exercise database, plus everything planned for v1.3.11 and v1.3.12  (released 2026-10-09)
+## v1.4.0: A new exercise database, plus everything planned for v1.3.11 and v1.3.12 (released 2026-10-09)
 
 v1.3.11 and v1.3.12 never shipped on their own: their release candidate grew into this one, so a
 single update brings the new catalogue and two rounds of community work. **No data changes:**
@@ -173,27 +173,27 @@ server.
 - Still open from the old v1.3.12 list: the timer rework (#165), a home-screen widget (#299) and
   distance for cardio (#177), now in their own milestones below
 
-## v1.4.1: Programmes & phases  (2026-11-29)
+## v1.4.1: Programmes & phases (2026-11-29)
 
 - Programmes: routines grouped into a named block over weeks, with deload and rest weeks, several
   per profile (#159, GitLab !98; Discord "Programme mode", "folders", "major good ideas" 1)
 - Session phases (mobility / work / accessory / cooldown) with completion-only exercises for
   stretching that stay out of volume and PRs (#57, #140; Discord "non-typed exercises")
 
-## v1.4.2: Progression engine I  (2026-12-13)
+## v1.4.2: Progression engine I (2026-12-13)
 
 - Rep or set ranges per set and AMRAP targets beyond the "to failure" flag (#154; Discord "More
   types of sets"); the flag itself and triple progression came early in v1.4.0 (#179)
 - Assisted exercises as negative added weight (#176); the multi-formula 1RM came in v1.4.0 (#155)
 
-## v1.4.3: Progression engine II  (2026-12-27)
+## v1.4.3: Progression engine II (2026-12-27)
 
 - Load as %1RM or auto with a stored training max, target RPE/RIR (#153)
 - Wave / percentage progression, 5/3/1 style (#70; PR #168)
 - A warm-up generator that picks the ramp from load and lift (#156)
 - Periodisation extras on top: mesocycle blocks, auto-regulation on RPE (#120)
 
-## v1.4.4: Cardio, alternatives, groups  (2027-01-10)
+## v1.4.4: Cardio, alternatives, groups (2027-01-10)
 
 - Cardio: intervals (rounds × work/rest), interval programmes such as C25k, rucking as distance +
   pace + load, distance for cardio (#132, #169, #177; Discord "cardio programs", "rucking");
@@ -202,7 +202,7 @@ server.
   (#110)
 - Complexes and interval groups beside supersets (Discord)
 
-## v1.4.5: Sharing, gyms, admin  (2027-01-24)
+## v1.4.5: Sharing, gyms, admin (2027-01-24)
 
 - Search itself was rebuilt in v1.4.0 (#192); left here: searching your own history and import
   aliases by name
@@ -211,13 +211,13 @@ server.
   shared (Discord "How to deal with different gyms")
 - Admin: per-user export, invite management, audit log filters
 
-## v1.4.6: Accounts: password & OIDC  (2027-02-07)
+## v1.4.6: Accounts: password & OIDC (2027-02-07)
 
 - Optional username + password login next to passkeys (#118; Discord "Basic login", the
   password-manager thread), shipped early in v1.3.9, behind `PASSWORD_LOGIN`
 - OIDC login for PocketID / Authelia-style setups (#130, #72; GitLab !132 is the candidate)
 
-## v1.4.7: Trainer & MCP write  (2027-02-21)
+## v1.4.7: Trainer & MCP write (2027-02-21)
 
 - Personal-trainer role: invite students by code, open a student read-only, write their plan (#119,
   GitLab !79; Discord "Trainer & Student Management")
@@ -225,13 +225,13 @@ server.
   for hosted AI clients (GitLab !88)
 - Switching kg ↔ lb converts stored values instead of relabelling them (#22)
 
-## v1.4.8: iOS app  (2027-03-07)
+## v1.4.8: iOS app (2027-03-07)
 
 - App Store / TestFlight build of the existing Capacitor target, HealthKit weight and workout
   export, the Home Screen icon and timer-sound issues gone for good (#90; Discord "Google Health")
 - Apple Watch rest timer later, once the app is in the store
 
-## v1.4.9: Android & health  (2027-03-21)
+## v1.4.9: Android & health (2027-03-21)
 
 - Health Connect for weight and sessions (Discord "Use health connect", pulled forward into v1.3.11); Withings and other scales
   (#127)
@@ -245,7 +245,7 @@ server.
 - Firefox-on-Windows QR and third-party passkey providers stay documented, not fixed: platform
   behaviour (#103, #101)
 
-## v1.4.10: Looks, social, plugins  (2027-04-04)
+## v1.4.10: Looks, social, plugins (2027-04-04)
 
 - Skins alongside the accent colour, backgrounds as part of a skin, a big-screen layout (#129,
   #134, #135)
@@ -269,3 +269,19 @@ An issue sits in exactly one milestone; a milestone is a Sunday, and whatever is
 tested on gym-test by the Friday before rolls into the next one, and the date stays. Contributor pull requests from returning contributors get their pipeline started here
 automatically; a first PR is started by hand after a look at the diff. Anything in review is on gym-test.duarte-santos.ch. Releases
 bundle whatever has passed that test, with a changelog section per contributor.
+
+## Soccer assignment loop
+
+Implementation branch: individual player assignments, explicit acceptance/result
+submission and coach review. Deployment qualification requires a separate player
+Google Access audience and proxy routing, separate-account checks and SQLite
+backup/restart verification (ADR 012). Team management and media submissions are
+outside this increment.
+
+## Soccer offline recovery
+
+Implemented on the offline recovery branch: public app-shell caching, a last-valid
+local catalog, recovery from existing saved/session snapshots, and reconnect/retry
+without replacing active work (ADR 013). Rollout requires the deploy controller
+to accept the audited `assets/sw.js` artifact. Field-device validation remains;
+offline videos and offline coach-result submission are outside this increment.

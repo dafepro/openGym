@@ -17,11 +17,12 @@
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:build": "node scripts/check-build.mjs",
     "test:private-preview": "node --test scripts/private-preview.test.mjs",
-    "test:release": "python3 -m unittest discover -s scripts -p test_release.py && node --test scripts/source-notice.test.mjs",
+    "test:release": "python3 -m unittest discover -s scripts -p test_release.py && node --test scripts/source-notice.test.mjs && node --test scripts/offline-shell.test.mjs",
     "test:e2e": "playwright test",
     "test:coach:node": "node --test coach/node/*.test.mjs",
     "start:coach": "node coach/node/server.mjs",
-    "test:coach": "vitest run --config coach/vitest.config.js"
+    "test:coach": "vitest run --config coach/vitest.config.js",
+    "test:offline": "playwright test --config playwright.offline.config.js"
   },
   "dependencies": {
     "qrcode": "1.5.4",

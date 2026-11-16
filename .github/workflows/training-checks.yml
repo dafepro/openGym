@@ -1,5 +1,5 @@
 name: QuickTrack Training checks
-"on":
+'on':
   pull_request:
     paths:
       - training/**
@@ -50,6 +50,7 @@ jobs:
           - platform: linux-chromium
             os: ubuntu-24.04
             engines: chromium
+            offlineProject: chromium
             projects: --project=mobile-chromium --project=desktop-chromium --project=reduced-motion --project=compact-mobile --project=short-landscape
           # Native WebKit provides Safari-platform media and animation timing.
           # Linux's software WebKit skips complete short composited transitions.
@@ -57,9 +58,13 @@ jobs:
             # macOS 14 silently falls back to frozen WebKit r2251.
             os: macos-26
             engines: webkit
+            offlineProject: webkit
             projects: --project=mobile-webkit
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    # Only owner-triggered, same-repository code may use the existing private Mac.
+    # External PRs stay isolated on hosted runners. Native ARM preserves reliable
+    # frame sampling without depending on hosted ARM capacity.
+    runs-on: ${{ matrix.platform == 'macos-webkit' && github.actor_id == '313492551' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || matrix.os }}
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: training
@@ -77,6 +82,8 @@ jobs:
         run: npx playwright install --with-deps ${{ matrix.engines }}
       - name: Exercise synthetic practice flows
         run: npm run test:e2e -- ${{ matrix.projects }}
+      - name: Reopen the production app without connectivity
+        run: npm run test:offline -- --project=${{ matrix.offlineProject }}
       - name: Retain screenshots and failure traces for review
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

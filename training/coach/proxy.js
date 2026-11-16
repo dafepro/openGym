@@ -7,8 +7,8 @@ export default {
     if (
       url.origin !== 'https://train.quicktrack.cc' ||
       url.search ||
-      !/^\/api\/coach\/(config|login|requests|ready\/[a-f0-9]{64}\/[a-f0-9-]{36})$/.test(
-        url.pathname,
+      !/^\/api\/(?:coach\/(?:config|login|requests|assignments|assignment-login|ready\/[a-f0-9]{64}\/[a-f0-9-]{36})|player\/(?:assignments|login))$/.test(
+        url.pathname
       ) ||
       !['GET', 'POST'].includes(request.method)
     )
@@ -23,30 +23,30 @@ export default {
         'Content-Type',
         'Sec-Fetch-Site',
         'X-QuickTrack-Timestamp',
-        'X-QuickTrack-Signature',
+        'X-QuickTrack-Signature'
       ]) {
         const value = request.headers.get(name)
         if (value) headers.set(name, value)
       }
-      const response = await (env.TEST_FETCH || fetch)(
-        env.COACH_ORIGIN + url.pathname,
-        {
-          method: request.method,
-          headers,
-          redirect: 'manual',
-          ...(request.method === 'POST'
-            ? { body: await readLimited(request.body, 16000) }
-            : {}),
-          signal: AbortSignal.timeout(25000),
-        },
-      )
+      const response = await (env.TEST_FETCH || fetch)(env.COACH_ORIGIN + url.pathname, {
+        method: request.method,
+        headers,
+        redirect: 'manual',
+        ...(request.method === 'POST'
+          ? { body: await readLimited(request.body, url.pathname.endsWith('/assignments') ? 262144 : 16000) }
+          : {}),
+        signal: AbortSignal.timeout(25000)
+      })
       if (response.status >= 300 && response.status < 400) {
         if (
-          url.pathname === '/api/coach/login' &&
-          response.headers.get('Location') ===
-            'https://train.quicktrack.cc/#/coach'
+          ['/api/coach/login', '/api/coach/assignment-login', '/api/player/login'].includes(url.pathname) &&
+          [
+            'https://train.quicktrack.cc/#/coach',
+            'https://train.quicktrack.cc/#/assignments',
+            'https://train.quicktrack.cc/#/assignments-coach'
+          ].includes(response.headers.get('Location'))
         )
-          return Response.redirect('https://train.quicktrack.cc/#/coach', 303)
+          return Response.redirect(response.headers.get('Location'), 303)
         return json({ error: 'Coach service unavailable.' }, 502)
       }
       const result = new Response(response.body, response)
@@ -56,5 +56,5 @@ export default {
     } catch {
       return json({ error: 'Coach service unavailable.' }, 503)
     }
-  },
+  }
 }

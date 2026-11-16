@@ -1,27 +1,17 @@
 import { importApprovedIssue } from './approved-issues.js'
-import {
-  writePracticePR,
-  inspectPracticePR,
-  inspectPublication,
-  github,
-} from './github.js'
+import { writePracticePR, inspectPracticePR, inspectPublication, github, verifyDeskRevision } from './github.js'
+import { canReview, reviewChange, deskApproved } from './desk-review.js'
+import { compilePractice } from './compiler.js'
 import { publishedPractice } from './publication.js'
 import { json, digest, readLimited } from '../worker/http.js'
 import { coachProfile, verifyReadySignature } from './auth.js'
 import { researchPractice } from './agent.js'
-import {
-  notificationChannels,
-  sendReady,
-  readyMessage,
-} from './notifications.js'
+import { notificationChannels, sendReady, smsReadyMessage, textSender } from './notifications.js'
 import { validateCoachRequest } from '../src/domain/coach-request.js'
 import { readPracticeCode } from '../src/domain/practice-code.js'
 
 const PREFIX = '/api/coach'
-const uuid = (value) =>
-  /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
-    value || '',
-  )
+const uuid = (value) => /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value || '')
 const publicJob = (job) => ({
   id: job.id,
   brief: job.brief,
@@ -29,12 +19,12 @@ const publicJob = (job) => ({
   createdAt: job.createdAt,
   reason: job.reason,
   revisionFailure: job.revisionFailure,
-  canRetryRevision:
-    job.status === 'attention' &&
-    !!job.revisionFeedback &&
-    (job.revisionRetries || 0) < 1,
+  canRetryRevision: job.status === 'attention' && !!job.revisionFeedback && (job.revisionRetries || 0) < 1,
   progress: job.progress,
   plan: job.plan,
+  headSha: job.headSha,
+  reviewPractice: job.plan && job.videos ? compilePractice(job).assignment : undefined,
+  deskApproved: deskApproved(job),
   publishedTitle: job.publishedTitle,
   issueUrl: job.issueUrl,
   prUrl: job.prUrl,
@@ -44,8 +34,8 @@ const publicJob = (job) => ({
   recipientCount: job.recipients?.length || job.recipientCount || 0,
   notifications: job.delivery?.map(({ channel, status }) => ({
     channel,
-    status,
-  })),
+    status
+  }))
 })
 const configured = (env) =>
   !!(
@@ -57,56 +47,43 @@ const configured = (env) =>
     env.COACH_ACCESS_AUD &&
     env.COACH_REQUESTS
   )
-const body = async (request) =>
-  JSON.parse(new TextDecoder().decode(await readLimited(request.body, 16000)))
+const body = async (request) => JSON.parse(new TextDecoder().decode(await readLimited(request.body, 16000)))
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
-    if (url.origin !== env.APP_ORIGIN || url.search)
-      return json({ error: 'not_found' }, 404)
+    if (url.origin !== env.APP_ORIGIN || url.search) return json({ error: 'not_found' }, 404)
     try {
       if (url.pathname === `${PREFIX}/config` && request.method === 'GET')
         return json({
           configured: configured(env),
           channels: notificationChannels(env),
+          smsSender: textSender(env),
           build: env.APP_SOURCE_SHA || 'local',
           auth: 'google',
-          paused: !!env.COACH_PAUSED?.(),
+          paused: !!env.COACH_PAUSED?.()
         })
-      if (!configured(env))
-        return json({ error: 'Coach requests are not configured yet.' }, 503)
-      const ready = url.pathname.match(
-        /^\/api\/coach\/ready\/([a-f0-9]{64})\/([a-f0-9-]{36})$/,
-      )
+      if (!configured(env)) return json({ error: 'Coach requests are not configured yet.' }, 503)
+      const ready = url.pathname.match(/^\/api\/coach\/ready\/([a-f0-9]{64})\/([a-f0-9-]{36})$/)
       if (ready && request.method === 'POST') {
-        const text = new TextDecoder().decode(
-          await readLimited(request.body, 16000),
-        )
-        if (
-          !uuid(ready[2]) ||
-          !(await verifyReadySignature(request, text, env))
-        )
+        const text = new TextDecoder().decode(await readLimited(request.body, 16000))
+        if (!uuid(ready[2]) || !(await verifyReadySignature(request, text, env)))
           return json({ error: 'unauthorized' }, 401)
-        return await env.COACH_REQUESTS.get(
-          env.COACH_REQUESTS.idFromName(ready[1]),
-        ).fetch(
+        return await env.COACH_REQUESTS.get(env.COACH_REQUESTS.idFromName(ready[1])).fetch(
           new Request(`https://internal/ready/${ready[2]}`, {
             method: 'POST',
-            body: text,
-          }),
+            body: text
+          })
         )
       }
       const profile = await coachProfile(request, env)
-      if (!profile)
-        return json({ error: 'Sign in as a coach to request a practice.' }, 401)
+      if (!profile) return json({ error: 'Sign in as a coach to request a practice.' }, 401)
       if (url.pathname === `${PREFIX}/login` && request.method === 'GET')
         return Response.redirect(`${env.APP_ORIGIN}/#/coach`, 303)
       if (
         request.method === 'POST' &&
         (request.headers.get('Origin') !== env.APP_ORIGIN ||
-          request.headers.get('Content-Type')?.split(';')[0] !==
-            'application/json' ||
+          request.headers.get('Content-Type')?.split(';')[0] !== 'application/json' ||
           request.headers.get('Sec-Fetch-Site') === 'cross-site')
       )
         return json({ error: 'Invalid request origin.' }, 403)
@@ -116,55 +93,57 @@ export default {
         await stub.fetch(
           new Request('https://internal/profile', {
             method: 'POST',
-            body: JSON.stringify({ owner, email: profile.email }),
-          }),
+            body: JSON.stringify({ owner, email: profile.email })
+          })
         )
         const response = await stub.fetch('https://internal/requests')
         return json({
           ...(await response.json()),
-          coach: { email: profile.email },
+          coach: { email: profile.email, canReview: canReview(profile) }
         })
       }
       if (url.pathname === `${PREFIX}/requests` && request.method === 'POST') {
         let input
         try {
           const value = await body(request)
-          if (
-            value &&
-            Object.keys(value).length === 1 &&
-            uuid(value.retryRequestId)
-          )
+          if (value?.reviewRequestId) {
+            if (!uuid(value.reviewRequestId)) return json({ error: 'Invalid request identifier.' }, 400)
+            if (!canReview(profile)) return json({ error: 'Only the publishing coach can review this practice.' }, 403)
+            return await stub.fetch(
+              new Request(`https://internal/review/${value.reviewRequestId}`, {
+                method: 'POST',
+                body: JSON.stringify({ ...value, reviewer: { email: profile.email } })
+              })
+            )
+          }
+          if (value && Object.keys(value).length === 1 && uuid(value.retryRequestId))
             return await stub.fetch(
               new Request(`https://internal/retry/${value.retryRequestId}`, {
-                method: 'POST',
-              }),
+                method: 'POST'
+              })
             )
           input = validateCoachRequest(value)
         } catch (error) {
           return json({ error: error.message }, 400)
         }
-        if (!uuid(input.id))
-          return json({ error: 'Invalid request identifier.' }, 400)
+        if (!uuid(input.id)) return json({ error: 'Invalid request identifier.' }, 400)
         return await stub.fetch(
           new Request('https://internal/requests', {
             method: 'POST',
             body: JSON.stringify({
               ...input,
               owner,
-              submitterEmail: profile.email,
-            }),
-          }),
+              submitterEmail: profile.email
+            })
+          })
         )
       }
       return json({ error: 'not_found' }, 404)
     } catch (error) {
       if (error.status === 429) return json({ error: error.message }, 429)
-      return json(
-        { error: 'The coaching service is temporarily unavailable.' },
-        503,
-      )
+      return json({ error: 'The coaching service is temporarily unavailable.' }, 503)
     }
-  },
+  }
 }
 
 // One private queue per authenticated coach; requests survive browser closures.
@@ -178,6 +157,31 @@ export class CoachRequests {
   }
   async fetch(request) {
     const path = new URL(request.url).pathname
+    if (path.startsWith('/review/') && request.method === 'POST') {
+      return this.ctx.blockConcurrencyWhile(async () => {
+        if (this.running) return json({ error: 'This practice is being checked. Try again in a moment.' }, 409)
+        this.running = true
+        try {
+          const key = `job:${path.slice('/review/'.length)}`
+          const job = await this.ctx.storage.get(key)
+          if (!job) return json({ error: 'Request not found.' }, 404)
+          const input = await request.json()
+          if (input.action === 'revise' && this.env.COACH_PAUSED?.())
+            return json({ error: 'Research is paused. Your feedback stays in the editor.' }, 409)
+          const updated = reviewChange(job, input, input.reviewer)
+          await verifyDeskRevision(job, this.env)
+          await this.ctx.storage.transaction(async (tx) => {
+            await tx.put(key, updated)
+            await tx.setAlarm(Date.now() + 1000)
+          })
+          return json(publicJob(updated), 202)
+        } catch (error) {
+          return json({ error: error.message }, 409)
+        } finally {
+          this.running = false
+        }
+      })
+    }
     if (path === '/profile' && request.method === 'POST') {
       const profile = await request.json(),
         previous = await this.ctx.storage.get('profile')
@@ -188,9 +192,7 @@ export class CoachRequests {
     if (path === '/requests' && request.method === 'GET') {
       const jobs = await this.ctx.storage.list({ prefix: 'job:' })
       return json({
-        requests: [...jobs.values()]
-          .sort((a, b) => b.createdAt - a.createdAt)
-          .map(publicJob),
+        requests: [...jobs.values()].sort((a, b) => b.createdAt - a.createdAt).map(publicJob)
       })
     }
     if (path.startsWith('/retry/') && request.method === 'POST') {
@@ -200,20 +202,13 @@ export class CoachRequests {
           job = await this.ctx.storage.get(key)
         if (!job) return json({ error: 'Request not found.' }, 404)
         if (job.status === 'retrying_revision') return json(publicJob(job))
-        if (
-          job.status !== 'attention' ||
-          !job.revisionFeedback ||
-          (job.revisionRetries || 0) >= 1
-        )
-          return json(
-            { error: 'This revision needs review in its existing PR.' },
-            409,
-          )
+        if (job.status !== 'attention' || !job.revisionFeedback || (job.revisionRetries || 0) >= 1)
+          return json({ error: 'This revision needs review in its existing PR.' }, 409)
         const updated = {
           ...job,
           status: 'retrying_revision',
           revisionRetries: (job.revisionRetries || 0) + 1,
-          reason: undefined,
+          reason: undefined
         }
         await this.ctx.storage.put(key, updated)
         await this.ctx.storage.setAlarm(Date.now() + 1000)
@@ -223,39 +218,33 @@ export class CoachRequests {
     if (path === '/requests' && request.method === 'POST') {
       const input = await request.json()
       return this.ctx.blockConcurrencyWhile(async () => {
-        const requestHash = await digest(
-          JSON.stringify({ brief: input.brief, recipients: input.recipients }),
-        )
+        const requestHash = await digest(JSON.stringify({ brief: input.brief, recipients: input.recipients }))
         const existing = await this.ctx.storage.get(`job:${input.id}`)
         if (existing)
           return (existing.requestHash ||
             (await digest(
               JSON.stringify({
                 brief: existing.brief,
-                recipients: existing.recipients,
-              }),
+                recipients: existing.recipients
+              })
             ))) === requestHash
             ? json(publicJob(existing))
             : json({ error: 'This request identifier was already used.' }, 409)
         const jobs = await this.ctx.storage.list({ prefix: 'job:' })
         const now = Date.now()
-        if (
-          [...jobs.values()].filter((job) => job.createdAt > now - 86400000)
-            .length >= 10 ||
-          jobs.size >= 100
-        )
+        if ([...jobs.values()].filter((job) => job.createdAt > now - 86400000).length >= 10 || jobs.size >= 100)
           return json(
             {
-              error: 'The request limit has been reached. Try again tomorrow.',
+              error: 'The request limit has been reached. Try again tomorrow.'
             },
-            429,
+            429
           )
         const job = {
           ...input,
           requestHash,
           status: 'queued',
           createdAt: now,
-          recipientCount: input.recipients.length,
+          recipientCount: input.recipients.length
         }
         await this.ctx.storage.transaction(async (tx) => {
           await tx.put(`job:${input.id}`, job)
@@ -276,19 +265,9 @@ export class CoachRequests {
       const job = await this.ctx.storage.get(`job:${id}`)
       if (
         !job ||
-        ![
-          'submitted',
-          'publishing',
-          'ready',
-          'notifying',
-          'notified',
-          'notification_attention',
-        ].includes(job.status)
+        !['submitted', 'publishing', 'ready', 'notifying', 'notified', 'notification_attention'].includes(job.status)
       )
-        return json(
-          { error: 'The practice request is not awaiting publication.' },
-          409,
-        )
+        return json({ error: 'The practice request is not awaiting publication.' }, 409)
       if (job.practiceUrl)
         return job.practiceUrl === input.practiceUrl
           ? json(publicJob(job))
@@ -303,85 +282,52 @@ export class CoachRequests {
       )
         return json(
           {
-            error:
-              'Use a published QuickTrack practice link and exact source SHA.',
+            error: 'Use a published QuickTrack practice link and exact source SHA.'
           },
-          400,
+          400
         )
       if (
         job.recipients.some((recipient) => recipient.channel === 'sms') &&
-        readyMessage({ ...job, practiceUrl: url.href }).length > 1600
+        smsReadyMessage({ ...job, practiceUrl: url.href }).length > 1600
       )
         return json(
           {
             error:
-              'This practice link is too long for a text. Create a compact catalog-based practice pass before marking it ready.',
+              'This practice link is too long for a text. Create a compact catalog-based practice pass before marking it ready.'
           },
-          400,
+          400
         )
       const fetcher = this.env.TEST_FETCH || fetch
       const source = await fetcher(`${this.env.APP_ORIGIN}/source.html`, {
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(15000)
       })
-      if (
-        !source.ok ||
-        !(await source.text()).includes(`/tree/${input.sourceSha}/training`)
-      )
-        return json(
-          { error: 'The selected application version is not live.' },
-          409,
-        )
+      if (!source.ok || !(await source.text()).includes(`/tree/${input.sourceSha}/training`))
+        return json({ error: 'The selected application version is not live.' }, 409)
       const response = await fetcher(`${this.env.APP_ORIGIN}/api/catalog`, {
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(15000)
       })
-      if (!response.ok)
-        return json({ error: 'The player catalog is unavailable.' }, 409)
+      if (!response.ok) return json({ error: 'The player catalog is unavailable.' }, 409)
       const catalog = await response.json()
-      const published = await readPracticeCode(
-        url.hash.slice('#/shared/'.length),
-        catalog,
-        async (revision) => {
-          if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(revision))
-            throw new Error('Invalid edition')
-          const edition = await fetcher(
-            `${this.env.APP_ORIGIN}/api/catalogs/${revision}`,
-            { signal: AbortSignal.timeout(15000) },
-          )
-          if (!edition.ok) throw new Error('Edition unavailable')
-          return edition.json()
-        },
-      )
-      if (
-        job.recipients.some((recipient) => recipient.channel === 'sms') &&
-        readyMessage({
-          ...job,
-          practiceUrl: url.href,
-          publishedTitle: published.title,
-        }).length > 1600
-      )
-        return json(
-          {
-            error:
-              'Use a shorter catalog-based practice pass for text notifications.',
-          },
-          400,
-        )
+      const published = await readPracticeCode(url.hash.slice('#/shared/'.length), catalog, async (revision) => {
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(revision)) throw new Error('Invalid edition')
+        const edition = await fetcher(`${this.env.APP_ORIGIN}/api/catalogs/${revision}`, {
+          signal: AbortSignal.timeout(15000)
+        })
+        if (!edition.ok) throw new Error('Edition unavailable')
+        return edition.json()
+      })
       return this.ctx.blockConcurrencyWhile(async () => {
         const latest = await this.ctx.storage.get(`job:${id}`)
-        if (!latest)
-          return json({ error: 'This practice request has expired.' }, 409)
+        if (!latest) return json({ error: 'This practice request has expired.' }, 409)
         if (latest.practiceUrl)
           return latest.practiceUrl === input.practiceUrl
             ? json(publicJob(latest))
-            : json(
-                { error: 'A different practice was already published.' },
-                409,
-              )
+            : json({ error: 'A different practice was already published.' }, 409)
         await this.ctx.storage.put(`job:${id}`, {
           ...latest,
           practiceUrl: url.href,
           publishedTitle: published.title,
-          status: 'ready',
+          status: 'ready'
         })
         await this.ctx.storage.setAlarm(Date.now() + 1000)
         return json({ status: 'ready' })
@@ -397,7 +343,7 @@ export class CoachRequests {
       if (profile && (profile.nextIssuePoll || 0) <= Date.now()) {
         await this.ctx.storage.put('profile', {
           ...profile,
-          nextIssuePoll: Date.now() + 60000,
+          nextIssuePoll: Date.now() + 60000
         })
         try {
           await importApprovedIssue(this, profile)
@@ -406,30 +352,21 @@ export class CoachRequests {
         }
       }
       const jobs = await this.ctx.storage.list({ prefix: 'job:' })
-      for (const [key, job] of [...jobs].sort(
-        (a, b) => a[1].createdAt - b[1].createdAt,
-      )) {
+      for (const [key, job] of [...jobs].sort((a, b) => a[1].createdAt - b[1].createdAt)) {
         if (job.createdAt < Date.now() - 30 * 86400000) {
           await this.ctx.storage.delete(key)
           continue
         }
-        if (
-          ['processing', 'revising', 'notifying', 'creating_issue'].includes(
-            job.status,
-          )
-        ) {
+        if (['processing', 'revising', 'notifying', 'creating_issue'].includes(job.status)) {
           await this.ctx.storage.put(key, {
             ...job,
             status: 'attention',
             reason:
-              'The previous operation was interrupted. Check the pull request or delivery provider before submitting again.',
+              'The previous operation was interrupted. Check the pull request or delivery provider before submitting again.'
           })
           continue
         }
-        if (
-          ['creating_pr', 'submitted', 'publishing'].includes(job.status) &&
-          (job.nextPollAt || 0) <= Date.now()
-        ) {
+        if (['creating_pr', 'submitted', 'publishing'].includes(job.status) && (job.nextPollAt || 0) <= Date.now()) {
           await this.follow(job)
           break
         }
@@ -450,11 +387,9 @@ export class CoachRequests {
       this.running = false
       await this.ctx.blockConcurrencyWhile(async () => {
         const jobs = await this.ctx.storage.list({ prefix: 'job:' })
-        const pending = [...jobs.values()].some((job) =>
-          ['queued', 'ready', 'retrying_revision'].includes(job.status),
-        )
+        const pending = [...jobs.values()].some((job) => ['queued', 'ready', 'retrying_revision'].includes(job.status))
         const watched = [...jobs.values()].filter((job) =>
-          ['creating_pr', 'submitted', 'publishing'].includes(job.status),
+          ['creating_pr', 'submitted', 'publishing'].includes(job.status)
         )
         const profile = await this.ctx.storage.get('profile')
         if (profile) await this.ctx.storage.setAlarm(Date.now() + 60000)
@@ -464,37 +399,29 @@ export class CoachRequests {
               (pending
                 ? 1000
                 : watched.length
-                  ? Math.max(
-                      1000,
-                      Math.min(
-                        60000,
-                        ...watched.map(
-                          (job) => (job.nextPollAt || 0) - Date.now(),
-                        ),
-                      ),
-                    )
+                  ? Math.max(1000, Math.min(60000, ...watched.map((job) => (job.nextPollAt || 0) - Date.now())))
                   : profile
                     ? 60000
-                    : 86400000),
+                    : 86400000)
           )
       })
     }
   }
   async prepare(job, feedback) {
+    job = { ...job, deskApproval: undefined }
     const key = `job:${job.id}`,
       fetcher = this.env.TEST_FETCH || fetch
     await this.ctx.storage.put(key, {
       ...job,
       status: feedback ? 'revising' : 'processing',
-      progress: undefined,
+      progress: undefined
     })
     try {
       let brief = job.brief
       for (const recipient of job.recipients || []) {
         if (recipient.name?.length > 1) {
           brief = brief.split(recipient.name).join('[player]')
-          if (feedback)
-            feedback = feedback.split(recipient.name).join('[player]')
+          if (feedback) feedback = feedback.split(recipient.name).join('[player]')
         }
       }
       const context = feedback ? { previousPractice: job.plan, feedback } : {}
@@ -504,7 +431,7 @@ export class CoachRequests {
           ...job,
           status: feedback ? 'attention' : 'rejected',
           reason: result.reason,
-          nextPollAt: Date.now() + 60000,
+          nextPollAt: Date.now() + 60000
         })
         return
       }
@@ -517,7 +444,7 @@ export class CoachRequests {
         revisionFeedback: undefined,
         revisionFailure: undefined,
         progress: undefined,
-        nextPollAt: Date.now(),
+        nextPollAt: Date.now()
       }
       await this.ctx.storage.put(key, job)
       await this.follow(job)
@@ -528,7 +455,7 @@ export class CoachRequests {
         incomplete_response:
           'Research returned an unfinished response. Your feedback and existing PR are saved. Retry this revision.',
         provider_limit:
-          'The research provider reached a usage limit. Your feedback is saved. Retry when the limit clears.',
+          'The research provider reached a usage limit. Your feedback is saved. Retry when the limit clears.'
       }
       await this.ctx.storage.put(key, {
         ...job,
@@ -537,14 +464,14 @@ export class CoachRequests {
         revisionFailure: {
           code: error.code || 'research_failed',
           stage: error.stage || 'research',
-          at: Date.now(),
+          at: Date.now()
         },
         reason:
           reasons[error.code] ||
           (feedback
             ? 'The revision could not be verified. Your feedback and existing PR are saved. Retry this revision.'
             : 'Research could not be verified. Your brief is saved; revise it to try again.'),
-        nextPollAt: Date.now() + 60000,
+        nextPollAt: Date.now() + 60000
       })
     }
   }
@@ -552,12 +479,11 @@ export class CoachRequests {
     const key = `job:${job.id}`
     try {
       let update
-      if (job.status === 'creating_pr')
-        update = await writePracticePR(job, this.env)
+      if (job.status === 'creating_pr') update = await writePracticePR(job, this.env)
       else if (job.status === 'publishing')
         update = (await publishedPractice(job, this.env)) || {
           status: 'publishing',
-          ...(await inspectPublication(job, this.env)),
+          ...(await inspectPublication(job, this.env))
         }
       else update = await inspectPracticePR(job, this.env)
       if (update.feedback) {
@@ -565,20 +491,16 @@ export class CoachRequests {
           await this.ctx.storage.put(key, {
             ...job,
             status: 'attention',
-            reason:
-              'Three revisions are complete. Review this PR manually or start a new brief.',
+            reason: 'Three revisions are complete. Review this PR manually or start a new brief.'
           })
           return
         }
         job = {
           ...job,
           revisions: (job.revisions || 0) + 1,
-          feedbackIds: [
-            ...(job.feedbackIds || []),
-            ...update.feedback.consumed,
-          ],
+          feedbackIds: [...(job.feedbackIds || []), ...update.feedback.consumed],
           revisionFeedback: update.feedback.text,
-          revisionRetries: 0,
+          revisionRetries: 0
         }
         // Checkpoint the feedback before any paid work, so a poll cannot charge twice.
         await this.ctx.storage.put(key, { ...job, status: 'revising' })
@@ -588,14 +510,10 @@ export class CoachRequests {
       if (update.retryCI) {
         job = {
           ...job,
-          ciRetriedRunIds: [...(job.ciRetriedRunIds || []), update.retryCI],
+          ciRetriedRunIds: [...(job.ciRetriedRunIds || []), update.retryCI]
         }
         await this.ctx.storage.put(key, job)
-        await github(
-          this.env,
-          `/actions/runs/${update.retryCI}/rerun-failed-jobs`,
-          'POST',
-        )
+        await github(this.env, `/actions/runs/${update.retryCI}/rerun-failed-jobs`, 'POST')
         delete update.retryCI
       }
       await this.ctx.storage.put(key, {
@@ -603,14 +521,14 @@ export class CoachRequests {
         ...update,
         reason: update.reason,
         pollFailures: 0,
-        nextPollAt: Date.now() + 60000,
+        nextPollAt: Date.now() + 60000
       })
       if (update.status === 'ready' && job.sourceIssueNumber) {
         // Closing is idempotent and happens only after HTTPS publication qualification.
         try {
           await github(this.env, `/issues/${job.sourceIssueNumber}`, 'PATCH', {
             state: 'closed',
-            state_reason: 'completed',
+            state_reason: 'completed'
           })
         } catch {
           /* The ready practice link remains available even if GitHub is temporarily down. */
@@ -626,7 +544,7 @@ export class CoachRequests {
           failures >= 10
             ? 'Publishing needs attention. Check the linked PR and deployment; research has not been repeated.'
             : 'Waiting for GitHub or publication. Your practice is preserved.',
-        nextPollAt: Date.now() + Math.min(900000, 60000 * failures),
+        nextPollAt: Date.now() + Math.min(900000, 60000 * failures)
       })
     }
   }
@@ -642,46 +560,41 @@ export class CoachRequests {
       await this.ctx.storage.put(key, {
         ...job,
         status: 'notifying',
-        delivery,
+        delivery
       })
       if (!notificationChannels(this.env)[recipient.channel]) {
         delivery[index] = {
           channel: recipient.channel,
-          status: 'not_configured',
+          status: 'not_configured'
         }
         continue
       }
       try {
         delivery[index] = {
           channel: recipient.channel,
-          ...(await sendReady(
-            recipient,
-            job,
-            this.env,
-            this.env.TEST_FETCH || fetch,
-          )),
+          ...(await sendReady(recipient, job, this.env, this.env.TEST_FETCH || fetch))
         }
       } catch {
         delivery[index] = {
           channel: recipient.channel,
-          status: 'needs_review',
+          status: 'needs_review'
         }
       }
       await this.ctx.storage.put(key, {
         ...job,
         status: 'notifying',
-        delivery,
+        delivery
       })
     }
     await this.ctx.storage.put(key, {
       ...job,
       status: delivery.some((item) => item.status === 'not_configured')
         ? 'notification_setup'
-        : delivery.some((item) => item.status === 'needs_review')
+        : delivery.some((item) => item.status !== 'accepted')
           ? 'notification_attention'
           : 'notified',
       delivery,
-      recipients: job.recipients,
+      recipients: job.recipients
     })
   }
 }

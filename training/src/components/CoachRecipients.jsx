@@ -1,36 +1,20 @@
 import { useRef, useState } from 'react'
 import Icon from './Icon.jsx'
-import {
-  collectRecipients,
-  displayContact,
-  parseRecipients,
-} from '../domain/coach-request.js'
+import { collectRecipients, displayContact, parseRecipients } from '../domain/coach-request.js'
 
 export const emptyRecipient = () => ({
   channel: 'email',
   name: '',
-  address: '',
+  address: ''
 })
-export default function CoachRecipients({
-  recipients,
-  onChange,
-  draft,
-  onDraft,
-  channels = {},
-  email,
-  disabled,
-}) {
+export default function CoachRecipients({ recipients, onChange, draft, onDraft, channels = {}, email, disabled }) {
   const [error, setError] = useState(''),
     [message, setMessage] = useState('')
   const field = useRef(null)
   const add = () => {
     try {
       const next = collectRecipients(recipients, draft)
-      setMessage(
-        next.length === recipients.length
-          ? 'Already added.'
-          : 'Recipient added.',
-      )
+      setMessage(next.length === recipients.length ? 'Already added.' : 'Recipient added.')
       onChange(next)
       onDraft({ ...emptyRecipient(), channel: draft.channel })
       setError('')
@@ -61,7 +45,7 @@ export default function CoachRecipients({
       onDraft({
         ...emptyRecipient(),
         channel,
-        ...(!draft.address.trim() ? { name: draft.name } : {}),
+        ...(!draft.address.trim() ? { name: draft.name } : {})
       })
       setError('')
       setMessage(draft.address.trim() ? 'Contact added.' : '')
@@ -99,14 +83,10 @@ export default function CoachRecipients({
           </button>
         )}
       </div>
-      <div
-        className="pb-recipient-channel"
-        role="group"
-        aria-label="Contact method"
-      >
+      <div className="pb-recipient-channel" role="group" aria-label="Contact method">
         {[
           ['email', 'Email'],
-          ['sms', 'Text'],
+          ['sms', 'Text']
         ].map(([channel, label]) => (
           <button
             key={channel}
@@ -140,9 +120,7 @@ export default function CoachRecipients({
           />
         </label>
         <label className="qt-field">
-          <span>
-            {draft.channel === 'email' ? 'Email address' : 'Phone number'}
-          </span>
+          <span>{draft.channel === 'email' ? 'Email address' : 'Phone number'}</span>
           <input
             ref={field}
             type={draft.channel === 'email' ? 'email' : 'tel'}
@@ -161,27 +139,16 @@ export default function CoachRecipients({
                 add()
               }
             }}
-            placeholder={
-              draft.channel === 'email'
-                ? 'parent@example.com'
-                : '(202) 555-0146'
-            }
+            placeholder={draft.channel === 'email' ? 'parent@example.com' : '(202) 555-0146'}
           />
         </label>
-        <button
-          className="pb-recipient-add"
-          type="button"
-          disabled={disabled || !draft.address.trim()}
-          onClick={add}
-        >
+        <button className="pb-recipient-add" type="button" disabled={disabled || !draft.address.trim()} onClick={add}>
           <Icon name="plus" size={16} />
           Add
         </button>
       </div>
       <p id="recipient-help" className="qt-fine-print">
-        {draft.channel === 'email'
-          ? 'Paste a list with commas or new lines.'
-          : 'Outside US/Canada? Include + and country code.'}
+        {draft.channel === 'email' ? 'Paste a list with commas or new lines.' : 'Use a US or Canadian mobile number.'}
       </p>
       {error && (
         <p id="recipient-error" className="pb-recipient-error" role="alert">
@@ -196,19 +163,11 @@ export default function CoachRecipients({
           {recipients.map((item, index) => (
             <li key={`${item.channel}:${item.address}`}>
               <span className="pb-recipient-avatar" aria-hidden="true">
-                {item.name
-                  ? item.name.slice(0, 2).toUpperCase()
-                  : String(index + 1).padStart(2, '0')}
+                {item.name ? item.name.slice(0, 2).toUpperCase() : String(index + 1).padStart(2, '0')}
               </span>
               <div>
                 <strong>{item.name || displayContact(item)}</strong>
-                <small>
-                  {item.name
-                    ? displayContact(item)
-                    : item.channel === 'email'
-                      ? 'Email'
-                      : 'Text message'}
-                </small>
+                <small>{item.name ? displayContact(item) : item.channel === 'email' ? 'Email' : 'Text message'}</small>
               </div>
               <button
                 type="button"
@@ -226,11 +185,19 @@ export default function CoachRecipients({
         </ul>
       )}
       <p className="pb-recipient-delivery">
-        {channels[draft.channel]
-          ? 'Send the link when ready.'
-          : draft.channel === 'sms'
-            ? 'Text the practice yourself once it’s ready.'
-            : 'Email isn’t connected. Share the ready link yourself.'}
+        {draft.channel === 'sms' && channels.sms ? (
+          <>
+            Players or guardians must{' '}
+            <a href="#/texts" target="_blank" rel="noreferrer">
+              opt in to texts
+            </a>{' '}
+            before publication.
+          </>
+        ) : channels[draft.channel] ? (
+          'Send the link when ready.'
+        ) : (
+          `${draft.channel === 'email' ? 'Email' : 'Text'} isn’t connected. Share the ready link yourself.`
+        )}
       </p>
     </section>
   )

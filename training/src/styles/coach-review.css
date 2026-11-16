@@ -1,0 +1,116 @@
+.pb-review-dialog {
+  max-width: 760px;
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+}
+.pb-review-dialog .qt-dialog-inner {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 34px);
+}
+.pb-review-dialog .qt-dialog-inner > header {
+  flex: none;
+}
+.pb-review-dialog .qt-dialog-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.pb-review-desk {
+  display: grid;
+  gap: 24px;
+}
+.pb-review-desk header h2 {
+  font-size: 26px;
+  margin: 4px 0 10px;
+}
+.pb-review-desk p {
+  line-height: 1.6;
+}
+.pb-review-drills {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 20px;
+}
+.pb-review-drills > li {
+  border: 1px solid var(--qt-border);
+  border-radius: 16px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+.pb-review-targets {
+  margin: 4px 0;
+  border: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.pb-review-targets legend {
+  padding: 0 0 10px;
+  font-size: 13px;
+}
+.pb-review-targets input,
+.pb-review-targets select {
+  min-width: 0;
+  width: 100%;
+}
+.pb-review-desk summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.pb-review-desk form {
+  display: grid;
+  gap: 12px;
+}
+.pb-review-approve {
+  display: grid;
+  gap: 14px;
+  padding-top: 20px;
+  border-top: 1px solid var(--qt-border);
+}
+.pb-review-approve label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  line-height: 1.5;
+  min-height: 44px;
+}
+.pb-review-approve input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+
+.pb-review-unsaved {
+  color: var(--qt-warning);
+  animation: review-change 180ms ease both;
+}
+.pb-review-targets input {
+  transition:
+    border-color 180ms,
+    background 180ms;
+}
+@keyframes review-change {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-review-unsaved {
+    animation: none;
+  }
+  .pb-review-targets input {
+    transition: none;
+  }
+}
