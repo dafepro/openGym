@@ -324,7 +324,7 @@ export default function AssignmentsView({
         </span>
       )}
       {error && (
-        <Notice title="Coach connection unavailable" tone="warning" action="Retry" onAction={refresh}>
+        <Notice title="Coach connection unavailable" tone="warning" action="Reconnect coach" onAction={refresh}>
           {error}
         </Notice>
       )}
