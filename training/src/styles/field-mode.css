@@ -76,3 +76,41 @@
 .qt-workout-controls[data-layout='playbook'][data-field] .qt-count-stepper input {
   font-size: clamp(48px, 14vw, 96px);
 }
+
+.pb-field-options button {
+  transition:
+    background 180ms,
+    color 180ms,
+    transform 180ms;
+}
+.pb-field-options button:active {
+  transform: scale(0.94);
+}
+.pb-field-options button[aria-pressed='true'] {
+  box-shadow: inset 0 -3px var(--qt-lime);
+}
+.pb-field-settings[open] .pb-field-options {
+  animation: field-options-in 180ms ease both;
+}
+.pb-field-phase {
+  animation: field-options-in 180ms ease both;
+}
+@keyframes field-options-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-field-options button {
+    transition: none;
+  }
+  .pb-field-settings[open] .pb-field-options,
+  .pb-field-phase {
+    animation: none;
+  }
+}

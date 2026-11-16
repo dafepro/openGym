@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
+import Icon from './Icon.jsx'
 import { fieldCue } from '../domain/field-cues.js'
 
 export default function FieldControls({ large, onLarge, phase, paused, seconds, countdown, identity, active }) {
@@ -145,25 +146,55 @@ export default function FieldControls({ large, onLarge, phase, paused, seconds, 
   }, [awake, active])
   return (
     <details className="pb-field-settings">
-      <summary>Field settings{large ? ' · large display' : ''}</summary>
+      <summary>Field settings</summary>
       <div className="pb-field-options">
-        <button type="button" aria-pressed={large} onClick={() => onLarge(!large)}>
-          Large display
+        <button
+          type="button"
+          aria-label="Large display"
+          title="Large display"
+          aria-pressed={large}
+          onClick={() => onLarge(!large)}
+        >
+          <Icon name="expand" />
         </button>
-        <button type="button" aria-pressed={sound} onClick={toggleSound}>
-          Audible cues
+        <button type="button" aria-label="Audible cues" title="Audible cues" aria-pressed={sound} onClick={toggleSound}>
+          <Icon name={sound ? 'volume' : 'muted'} />
         </button>
-        <button type="button" aria-pressed={awake} disabled={!active} onClick={() => setAwake(!awake)}>
-          Keep screen awake
+        <button
+          type="button"
+          aria-label="Keep screen awake"
+          title="Keep screen awake"
+          aria-pressed={awake}
+          disabled={!active}
+          onClick={() => setAwake(!awake)}
+        >
+          <svg
+            className="qt-icon"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            aria-hidden="true"
+          >
+            <rect x="6" y="2" width="12" height="20" rx="2" />
+            <circle cx="12" cy="11" r="3" />
+            <path d="M10 19h4" />
+          </svg>
         </button>
       </div>
-      <p role="status">
+      <p
+        role="status"
+        className={
+          /unavailable|unsupported|suspended|released/i.test(`${audioStatus} ${wakeStatus}`)
+            ? undefined
+            : 'qt-visually-hidden'
+        }
+      >
         {audioStatus} · {wakeStatus}
       </p>
-      <p>
-        Sound on plays a test cue. Rising tones: work. Falling tones: rest. Three beeps: timer ended; return to check
-        and record. Final 3 seconds tick. Check your volume before stepping away. Cues need this page visible.
-      </p>
+      {sound && <p>Keep this page visible for sound.</p>}
     </details>
   )
 }
