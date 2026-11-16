@@ -319,3 +319,11 @@
     animation: none;
   }
 }
+.pb-duration {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--qt-muted);
+  font-size: 13px;
+  margin: 8px 0 0;
+}

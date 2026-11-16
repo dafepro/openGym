@@ -141,6 +141,7 @@ function PracticeAssignment({
                 <Icon name="user" size={16} />
                 {coach ? record.email : record.coachEmail}
               </p>
+              <PracticePreparation practice={record.practice} compact />
             </div>
             {!coach && <PracticeSketch />}
           </div>
