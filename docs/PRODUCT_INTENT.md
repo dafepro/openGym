@@ -61,3 +61,8 @@ The owner approved the player–coach assignment loop described in ADR 012. Supp
 one coach and a few individual players, signed-in assignment acceptance, optional
 due dates, explicit sharing of finished work, coach feedback and fresh assignments
 for repeats or revisions. Other player history remains local and private.
+
+Playbook uses purposeful copy, accessible visual state and restrained motion.
+Do not duplicate the practice player or history for each entry point. Regression
+checks protect real user outcomes rather than preserving incidental UI structure
+(ADR 019).

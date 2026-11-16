@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { consent } from './model.js'
-import { Button, Notice } from '../components/ui.jsx'
+import Icon from '../components/Icon.jsx'
+import './assignments.css'
+import { Button, Notice, prescriptionLabel } from '../components/ui.jsx'
 export default function AssignmentsView({ coach, practices, sessions, onStart }) {
   const [records, setRecords] = useState([]),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
-    [signedIn, setSignedIn] = useState(false)
+    [signedIn, setSignedIn] = useState(false),
+    [loading, setLoading] = useState(true)
   const [email, setEmail] = useState(''),
     [due, setDue] = useState(''),
     [selected, setSelected] = useState('')
@@ -14,12 +17,16 @@ export default function AssignmentsView({ coach, practices, sessions, onStart })
     const response = await fetch(endpoint, { redirect: 'error' })
     const data = await response.json()
     if (!response.ok) throw new Error(data.error || 'Assignments unavailable')
+    setError('')
     setRecords(data.records)
     setSignedIn(true)
   }
   useEffect(() => {
     setSignedIn(false)
-    refresh().catch((e) => setError(e.message))
+    setLoading(true)
+    refresh()
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
   }, [endpoint])
   async function mutate(input) {
     setBusy(true)
@@ -41,10 +48,16 @@ export default function AssignmentsView({ coach, practices, sessions, onStart })
     }
   }
   return (
-    <section className="qt-view">
+    <section className="qt-view pb-assignments" aria-busy={busy || loading}>
       <h1>{coach ? 'Player assignments' : 'My assignments'}</h1>
       <p>
-        <a href={coach ? '#/coach' : '#/today'}>Back to {coach ? 'coach’s desk' : 'practice'}</a>
+        <a
+          className="pb-assignment-back"
+          href={coach ? '#/coach' : '#/today'}
+          aria-label={coach ? 'Back to coach’s desk' : 'Back to practice'}
+        >
+          <Icon name="back" />
+        </a>
       </p>
       {error && (
         <Notice title="Assignments need attention" tone="warning">
@@ -52,11 +65,20 @@ export default function AssignmentsView({ coach, practices, sessions, onStart })
         </Notice>
       )}
       {signedIn && (
-        <Button variant="secondary" disabled={busy} onClick={() => refresh().catch((e) => setError(e.message))}>
-          Refresh assignments
-        </Button>
+        <Button
+          icon="replay"
+          aria-label="Refresh assignments"
+          title="Refresh assignments"
+          variant="secondary"
+          disabled={busy}
+          onClick={() => refresh().catch((e) => setError(e.message))}
+        />
       )}
-      {!signedIn ? (
+      {loading ? (
+        <span className="pb-assignment-loading" role="status" aria-label="Loading assignments">
+          <Icon name="replay" />
+        </span>
+      ) : !signedIn ? (
         <a href={coach ? '/api/coach/assignment-login' : '/api/player/login'}>Continue with Google</a>
       ) : (
         <>
@@ -73,12 +95,12 @@ export default function AssignmentsView({ coach, practices, sessions, onStart })
                 <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
               </label>
               <label className="qt-field">
-                Practice version
+                Practice
                 <select required value={selected} onChange={(e) => setSelected(e.target.value)}>
                   <option value="">Choose a practice</option>
                   {practices.map((p) => (
                     <option key={`${p.id}:${p.revision}`} value={`${p.id}:${p.revision}`}>
-                      {p.title} · {p.revision}
+                      {p.title} · {p.assignedOn || p.revision}
                     </option>
                   ))}
                 </select>
@@ -91,8 +113,7 @@ export default function AssignmentsView({ coach, practices, sessions, onStart })
                 Assign practice
               </Button>
               <p>
-                Ask the player to open My assignments and sign in with the email above. Creating an assignment does not
-                send a message.
+                No notification is sent. Share <a href="#/assignments">My assignments</a> with the player.
               </p>
             </form>
           )}
@@ -130,28 +151,44 @@ function Assignment({ record, coach, sessions, busy, mutate, onStart, onRepeat }
   )
   const action = (type, extra = {}) => mutate({ id: record.id, revision: record.revision, action: type, ...extra })
   return (
-    <article className="qt-assignment-card" style={{ padding: 20, marginTop: 20 }}>
+    <article className="pb-assignment-card">
       <h2>{record.practice.title}</h2>
       {!coach && <p>From {record.coachEmail}</p>}
       <details>
-        <summary>Practice preview · {record.practice.drills.length} drills</summary>
+        <summary>{record.practice.drills.length} drills</summary>
         <ol>
           {record.practice.drills.map((d) => (
             <li key={d.id}>
               <strong>{d.title}</strong>
               <p>{d.instructions}</p>
               <p>
-                {d.sets} sets · {d.reps ?? d.durationSec ?? 'Self-paced'} {d.mode} · {d.restSec ?? 0}s rest
+                {prescriptionLabel(d)}
+                {d.restSec > 0 ? ` · ${d.restSec}s rest` : ''}
               </p>
             </li>
           ))}
         </ol>
       </details>
-      <p>
-        {record.status}
-        {record.due ? ` · Due ${record.due}` : ''}
-        {coach ? ` · ${record.email}` : ''}
-      </p>
+      <ol className="pb-assignment-progress" aria-label={`Assignment ${record.status}`}>
+        {['pending', 'accepted', 'submitted', 'reviewed'].map((status, index) => (
+          <li
+            key={status}
+            title={status}
+            aria-current={record.status === status ? 'step' : undefined}
+            data-done={index <= ['pending', 'accepted', 'submitted', 'reviewed'].indexOf(record.status)}
+          >
+            <Icon name={['clock', 'play', 'share', 'check'][index]} />
+            <span className="qt-visually-hidden">{status}</span>
+          </li>
+        ))}
+      </ol>
+      {(record.due || coach) && (
+        <p>
+          {record.due ? `Due ${record.due}` : ''}
+          {record.due && coach ? ' · ' : ''}
+          {coach ? record.email : ''}
+        </p>
+      )}
       {!coach && record.status === 'pending' && (
         <>
           <p>{consent}</p>
@@ -165,28 +202,32 @@ function Assignment({ record, coach, sessions, busy, mutate, onStart, onRepeat }
           <Button disabled={busy} onClick={() => onStart(record.practice, record.id)}>
             Start assigned practice
           </Button>
-          <p>Finish a session locally, then choose it here to send to your coach.</p>
-          <label className="qt-field">
-            Completed session
-            <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
-              <option value="">Choose a session</option>
-              {matches.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.status} · {new Date(s.endedAt || s.startedAt).toLocaleString()}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="qt-field">
-            Note to coach (optional)
-            <textarea maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
-          </label>
-          <Button
-            disabled={busy || !sessionId}
-            onClick={() => action('submit', { session: matches.find((s) => s.id === sessionId), note })}
-          >
-            Send to coach
-          </Button>
+
+          {matches.length > 0 && (
+            <>
+              <label className="qt-field">
+                Completed session
+                <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
+                  <option value="">Choose a session</option>
+                  {matches.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.status} · {new Date(s.endedAt || s.startedAt).toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="qt-field">
+                Note to coach (optional)
+                <textarea maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
+              </label>
+              <Button
+                disabled={busy || !sessionId}
+                onClick={() => action('submit', { session: matches.find((s) => s.id === sessionId), note })}
+              >
+                Send to coach
+              </Button>
+            </>
+          )}
         </>
       )}
       {record.result && (
@@ -216,14 +257,14 @@ function Assignment({ record, coach, sessions, busy, mutate, onStart, onRepeat }
             <textarea maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
           </label>
           <Button disabled={busy} onClick={() => action('review', { comment: note })}>
-            Mark reviewed and send feedback
+            Send feedback
           </Button>
         </>
       )}
-      {record.reviewedAt && <p>Coach reviewed{record.comment ? `: ${record.comment}` : '.'}</p>}
+      {record.comment && <blockquote className="pb-assignment-feedback">{record.comment}</blockquote>}
       {coach && (
         <Button variant="secondary" disabled={busy} onClick={onRepeat}>
-          Assign again or choose another practice
+          Assign again
         </Button>
       )}
     </article>

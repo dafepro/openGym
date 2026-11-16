@@ -1,0 +1,97 @@
+.pb-assignments form {
+  display: grid;
+  gap: 14px;
+  margin-block: 20px;
+}
+.pb-assignment-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+}
+.pb-assignment-card {
+  padding: 20px;
+  margin-top: 20px;
+  border: 1px solid var(--qt-border);
+  border-radius: 18px;
+  display: grid;
+  gap: 14px;
+  animation: assignment-enter 220ms ease both;
+}
+.pb-assignment-card summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+}
+.pb-assignment-progress {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  gap: 8px;
+}
+.pb-assignment-progress li {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  padding: 10px;
+  color: var(--qt-muted);
+  border-bottom: 2px solid var(--qt-border);
+  transition:
+    color 180ms,
+    border-color 180ms,
+    background 180ms;
+}
+.pb-assignment-progress [data-done='true'] {
+  color: var(--qt-mint);
+  border-color: var(--qt-mint);
+}
+.pb-assignment-progress [aria-current='step'] {
+  background: var(--qt-surface-2);
+  border-radius: 8px 8px 0 0;
+  animation: assignment-step 220ms ease;
+}
+.pb-assignment-feedback {
+  margin: 0;
+  padding: 12px;
+  border-left: 2px solid var(--qt-mint);
+}
+.pb-assignment-loading {
+  display: inline-flex;
+  animation: assignment-spin 1s linear infinite;
+}
+@keyframes assignment-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes assignment-step {
+  from {
+    opacity: 0.5;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes assignment-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-assignment-card,
+  .pb-assignment-progress [aria-current='step'],
+  .pb-assignment-loading {
+    animation: none;
+  }
+  .pb-assignment-progress li {
+    transition: none;
+  }
+}
