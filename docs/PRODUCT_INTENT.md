@@ -53,4 +53,4 @@ Track `upstream/main` and merge its changes into Uplift's `main` and established
 branch. Focus uses the existing workout controller; Drive and Garmin remain separate adapters
 around the same local store. Phone and watch share finished-record construction and commit;
 warm-up-only sessions preserve their routine's place. Native updates use a fork-owned release
-channel alongside upstream's downloader. See ADR 009 and the upstream integration review.
+channel alongside upstream's downloader. See ADRs 009/012 and the upstream integration review. Per-exercise units and gym equipment flow through upstream domain helpers; the profile unit remains the storage convention.

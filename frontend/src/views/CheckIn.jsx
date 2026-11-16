@@ -4,13 +4,15 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { uid } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
-import { canRenderFmt } from '../lib/qr.js'
-import { scanCode, importCodeFromImage } from '../lib/scan.js'
-import { MOBILE } from '../lib/mobile.js'
+import { nameIn, said } from '../lib/a11y-name.js'
+import { canRenderFmt, normalizeFmt } from '../lib/qr.js'
+import { encodeBars } from '../lib/barcode.js'
+import { TYPED_FMTS, checkTyped, hasCheckDigit } from '../lib/checkin-typed.js'
+import { scanCode, importCodeFromImage, webScanner, MODULE_MISSING } from '../lib/scan.js'
 import Icon from '../components/Icon.jsx'
 import QrCanvas from '../components/QrCanvas.jsx'
 import CameraScan from '../components/CameraScan.jsx'
-import { Button, TextField } from '../components/ui.jsx'
+import { Button, TextField, MenuButton } from '../components/ui.jsx'
 import { confirmSheet } from '../sheets.jsx'
 import { CLUB_ELITE, gymAppUrl, gymAppDestination } from '../lib/gym-app.js'
 
@@ -28,25 +30,28 @@ export function moveGymCard(cards, from, to) {
 }
 
 // Gym check-in (reached from the Home "Check in" card; app and PWA alike). Shows each saved
-// membership code as a QR the turnstile can read, swiped through horizontally, with a trailing
-// "+" to add another. We only ever store the code's value + symbology; the QR is regenerated from
-// it here every time (see lib/qr.js), so nothing sensitive is kept as an image.
+// membership code as a QR or barcode the turnstile can read, swiped through horizontally, with a
+// trailing "+" to add another. We only ever store the code's value + symbology; the picture is
+// regenerated from it here every time (see lib/qr.js, lib/barcode.js), so nothing sensitive is
+// kept as an image.
 //
 // The rail reopens on the card you used last (lastGymCardId) and remembers the one you settle on,
 // so a member with two gyms lands on the right code without swiping. Cards are added by scanning
-// or importing a photo only — never by typing a code, which is too easy to fat-finger into a
-// code that silently fails at the turnstile. An existing card can be edited (rename, re-scan), and
+// or importing a photo. Typing a code is too easy to fat-finger into one that silently fails at
+// the turnstile, so it is only the way out after a scan or photo found nothing (TypedCode below),
+// with a check digit or a second entry and a big preview. An existing card can be edited (rename, re-scan), and
 // with more than one card each carries ◀ ▶ buttons to nudge its position along the rail.
 // Use the real slide pitch, including the gap and rail insets.
-const slideStep = rail => (rail.children[1]?.offsetLeft - rail.children[0]?.offsetLeft) || rail.clientWidth
+const slideStep = (rail) => rail.children[1]?.offsetLeft - rail.children[0]?.offsetLeft || rail.clientWidth
 
 export default function CheckIn() {
   const nav = useNavigate()
-  const cards = useStore(s => s.S.gymCards) || []
-  const lastId = useStore(s => s.S.lastGymCardId)
-  const update = useStore(s => s.update)
-  const railRef = useRef(null), rememberedHere = useRef(null)
-  const cardOrder = JSON.stringify(cards.map(c => c.id))
+  const cards = useStore((s) => s.S.gymCards) || []
+  const lastId = useStore((s) => s.S.lastGymCardId)
+  const update = useStore((s) => s.update)
+  const railRef = useRef(null),
+    rememberedHere = useRef(null)
+  const cardOrder = JSON.stringify(cards.map((c) => c.id))
   const [active, setActive] = useState(0)
   const hideSubtitle = cards.length > 0 && (active >= cards.length || cards[active]?.kind === 'app')
 
@@ -60,7 +65,10 @@ export default function CheckIn() {
     rememberedHere.current = null
     // Remembering a swipe must not interrupt the browser's drag/snap animation.
     if (local?.id === lastId && local.order === cardOrder) return
-    const idx = Math.max(0, cards.findIndex(c => c.id === lastId))
+    const idx = Math.max(
+      0,
+      cards.findIndex((c) => c.id === lastId)
+    )
     rail.scrollLeft = idx * slideStep(rail)
     setActive(idx)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -79,86 +87,181 @@ export default function CheckIn() {
     const card = cards[i]
     if (card && card.id !== lastId) {
       rememberedHere.current = { id: card.id, order: cardOrder }
-      update(s => { s.lastGymCardId = card.id }, false)
+      update((s) => {
+        s.lastGymCardId = card.id
+      }, false)
     }
   }
 
-  return <div className="narrow">
-    <div className="hdr">
-      <button className="iconbtn" onClick={() => nav('/home')} aria-label={t('Home')}><Icon name="chevronLeft" /></button>
-      <div style={{ flex: 1 }}>
-        <h1 style={{ fontSize: 28 }}>{t('Check in')}</h1>
-        <div className="sub ci-sub" style={{ visibility: hideSubtitle ? 'hidden' : undefined }} aria-hidden={hideSubtitle || undefined}>{cards.length ? t('Show this at the gym') : t('Add your gym card')}</div>
+  return (
+    <div className="narrow">
+      <div className="hdr">
+        <button className="iconbtn" data-back="/home" onClick={() => nav('/home')} aria-label={t('Home')}>
+          <Icon name="chevronLeft" />
+        </button>
+        <div style={{ flex: 1, marginInlineStart: 12 }}>
+          <h1>{t('Check in')}</h1>
+          <div
+            className="sub ci-sub"
+            style={{ visibility: hideSubtitle ? 'hidden' : undefined }}
+            aria-hidden={hideSubtitle || undefined}
+          >
+            {cards.length ? t('Show this at the gym') : t('Add your gym card')}
+          </div>
+        </div>
       </div>
+
+      <Button
+        icon="link"
+        variant="tinted"
+        onClick={() => useUI.getState().openSheet((close) => <GymAppSheet close={close} />)}
+      >
+        {t('Add gym app')}
+      </Button>
+
+      <div className="ci-rail" ref={railRef} onScroll={onScroll}>
+        {cards.map((card, i) => (
+          <CardFace key={card.id} card={card} index={i} count={cards.length} />
+        ))}
+        <button className="ci-add" onClick={openAddCard}>
+          <Icon name="plus" />
+          <span className="ci-add-t">{t('Add a card')}</span>
+        </button>
+      </div>
+
+      {cards.length > 0 && (
+        <div className="ci-dots">
+          {cards.map((c, i) => (
+            <span key={c.id} className={'ci-dot' + (i === active ? ' on' : '')} />
+          ))}
+          {/* the add card is a slide too, so it gets a dot */}
+          <span className={'ci-dot' + (active >= cards.length ? ' on' : '')} />
+        </div>
+      )}
+
+      {!cards.length && (
+        <div className="muted small" style={{ textAlign: 'center', marginTop: 18, lineHeight: 1.5 }}>
+          {t('Use your gym app for a changing QR code. Save a card here only when its code stays the same.')}
+        </div>
+      )}
     </div>
-
-    <Button icon="link" variant="tinted" onClick={() => useUI.getState().openSheet(close => <GymAppSheet close={close} />)}>{t('Add gym app')}</Button>
-
-    <div className="ci-rail" ref={railRef} onScroll={onScroll}>
-      {cards.map((card, i) => <CardFace
-        key={card.id}
-        card={card}
-        index={i}
-        count={cards.length}
-      />)}
-      <button className="ci-add" onClick={openAddCard}>
-        <Icon name="plus" />
-        <span className="ci-add-t">{t('Add a card')}</span>
-      </button>
-    </div>
-
-    {(cards.length > 0) && <div className="ci-dots">
-      {cards.map((c, i) => <span key={c.id} className={'ci-dot' + (i === active ? ' on' : '')} />)}
-      {/* the add card is a slide too, so it gets a dot */}
-      <span className={'ci-dot' + (active >= cards.length ? ' on' : '')} />
-    </div>}
-
-    {!cards.length && <div className="muted small" style={{ textAlign: 'center', marginTop: 18, lineHeight: 1.5 }}>
-      {t('Use your gym app for a changing QR code. Save a card here only when its code stays the same.')}
-    </div>}
-  </div>
+  )
 }
 
-// One saved card: its label centered above the QR, and the raw value underneath (handy when a
+// One saved card: its label centered above the code, and the raw value underneath (handy when a
 // reader is fussy and a staff member types it in). The edit button opens the same sheet used to
 // add a card, pre-filled; the trash button removes it after a confirm. With more than one card, a
 // row of ◀ ▶ buttons nudges this card one slot along the rail — a plain, reliable reorder that
 // doesn't fight the rail's horizontal scroll the way a drag gesture did.
 function CardFace({ card, index, count }) {
-  const update = useStore(s => s.update)
+  const update = useStore((s) => s.update)
   const appUrl = card.kind === 'app' ? gymAppDestination(card) : null
   const appIntent = appUrl?.startsWith('intent:')
-  const remove = () => confirmSheet({
-    title: t('Remove this card?'),
-    message: card.label,
-    confirmText: t('Remove'),
-    danger: true,
-    onConfirm: () => update(s => {
-      s.gymCards = (s.gymCards || []).filter(c => c.id !== card.id)
-      if (s.lastGymCardId === card.id) s.lastGymCardId = (s.gymCards[0]?.id) || null
-    }),
-  })
-  const move = to => update(s => { s.gymCards = moveGymCard(s.gymCards, index, to) })
-  return <div className="ci-card">
-    <div className="ci-card-hd">
-      <button className="iconbtn ci-card-btn" onClick={() => card.kind === 'app' ? useUI.getState().openSheet(close => <GymAppSheet card={card} close={close} />) : openEditCard(card)} aria-label={t('Edit')}><Icon name="pencil" /></button>
-      <div className="ci-label" title={card.label}>{card.label}</div>
-      <button className="iconbtn ci-card-btn" style={{ color: 'var(--red)' }} onClick={remove} aria-label={t('Remove')}><Icon name="trash" /></button>
+  const remove = () =>
+    confirmSheet({
+      title: t('Remove this card?'),
+      message: card.label,
+      confirmText: t('Remove'),
+      danger: true,
+      onConfirm: () =>
+        update((s) => {
+          s.gymCards = (s.gymCards || []).filter((c) => c.id !== card.id)
+          if (s.lastGymCardId === card.id) s.lastGymCardId = s.gymCards[0]?.id || null
+        })
+    })
+  const move = (to) =>
+    update((s) => {
+      s.gymCards = moveGymCard(s.gymCards, index, to)
+    })
+  return (
+    <div className="ci-card">
+      <div className="ci-card-hd">
+        <button
+          className="iconbtn ci-card-btn"
+          onClick={() =>
+            card.kind === 'app'
+              ? useUI.getState().openSheet((close) => <GymAppSheet card={card} close={close} />)
+              : openEditCard(card)
+          }
+          aria-label={nameIn(card.label, t('Edit'))}
+        >
+          <Icon name="pencil" />
+        </button>
+        <div className="ci-label" title={card.label}>
+          {card.label}
+        </div>
+        <button
+          className="iconbtn ci-card-btn"
+          style={{ color: 'var(--red)' }}
+          onClick={remove}
+          aria-label={card.label ? t('Remove {0}', said(card.label)) : t('Remove')}
+        >
+          <Icon name="trash" />
+        </button>
+      </div>
+      {card.kind === 'app' ? (
+        <div className="ci-card-body ci-app">
+          <Icon name="link" />
+          <p>{t('Get the current check-in code in your gym app.')}</p>
+          {appUrl && (
+            <a className="btn primary" href={appUrl} target={appIntent ? '_self' : '_blank'} rel="noopener noreferrer">
+              {t(card.provider === 'club-elite' && !appIntent ? 'Open app / store' : 'Open gym app')}
+              <Icon name="chevronRight" />
+            </a>
+          )}
+        </div>
+      ) : (
+        <div className="ci-card-body">
+          <div className="ci-qr-plate">
+            <QrCanvas value={card.value} fmt={card.fmt} size={230} />
+          </div>
+          <div className="ci-value">{card.value}</div>
+          {card.typed && (
+            <div className="ci-typed">
+              <Icon name="info" />
+              <span>{t('Typed in by hand. Give it one test run at the turnstile.')}</span>
+              <Button
+                size="xs"
+                variant="plain"
+                aria-label={nameIn(card.label, t('It works'))}
+                onClick={() =>
+                  update((s) => {
+                    const c = (s.gymCards || []).find((x) => x.id === card.id)
+                    if (c) delete c.typed
+                  })
+                }
+              >
+                {t('It works')}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+      {count > 1 && (
+        <div className="ci-reorder">
+          <button
+            className="iconbtn ci-card-btn"
+            onClick={() => move(index - 1)}
+            disabled={index === 0}
+            aria-label={nameIn(card.label, t('Move left'))}
+          >
+            <Icon name="chevronLeft" />
+          </button>
+          <span className="ci-pos">
+            {index + 1} / {count}
+          </span>
+          <button
+            className="iconbtn ci-card-btn"
+            onClick={() => move(index + 1)}
+            disabled={index === count - 1}
+            aria-label={nameIn(card.label, t('Move right'))}
+          >
+            <Icon name="chevronRight" />
+          </button>
+        </div>
+      )}
     </div>
-    {card.kind === 'app' ? <div className="ci-card-body ci-app">
-      <Icon name="link" />
-      <p>{t('Get the current check-in code in your gym app.')}</p>
-      {appUrl && <a className="btn primary" href={appUrl} target={appIntent ? '_self' : '_blank'} rel="noopener noreferrer">{t(card.provider === 'club-elite' && !appIntent ? 'Open app / store' : 'Open gym app')}<Icon name="chevronRight" /></a>}
-    </div> : <div className="ci-card-body">
-      <div className="ci-qr-plate"><QrCanvas value={card.value} size={230} /></div>
-      <div className="ci-value">{card.value}</div>
-    </div>}
-    {count > 1 && <div className="ci-reorder">
-      <button className="iconbtn ci-card-btn" onClick={() => move(index - 1)} disabled={index === 0} aria-label={t('Move left')}><Icon name="chevronLeft" /></button>
-      <span className="ci-pos">{index + 1} / {count}</span>
-      <button className="iconbtn ci-card-btn" onClick={() => move(index + 1)} disabled={index === count - 1} aria-label={t('Move right')}><Icon name="chevronRight" /></button>
-    </div>}
-  </div>
+  )
 }
 
 function GymAppSheet({ card, close }) {
@@ -168,25 +271,57 @@ function GymAppSheet({ card, close }) {
   const [error, setError] = useState('')
   const save = () => {
     const safe = gymAppUrl(url)
-    if (!safe) { setError(t('Use a secure https:// link.')); return }
-    if (card && !useStore.getState().S.gymCards?.some(c => c.id === card.id)) { setError(t('That card was removed on another device')); return }
-    useStore.getState().update(s => {
+    if (!safe) {
+      setError(t('Use a secure https:// link.'))
+      return
+    }
+    if (card && !useStore.getState().S.gymCards?.some((c) => c.id === card.id)) {
+      setError(t('That card was removed on another device'))
+      return
+    }
+    useStore.getState().update((s) => {
       const value = { id: card?.id || uid(), kind: 'app', label: label.trim() || t('Gym app'), url: safe, provider }
-      s.gymCards = card ? s.gymCards.map(c => c.id === card.id ? value : c) : [...(s.gymCards || []), value]
+      s.gymCards = card ? s.gymCards.map((c) => (c.id === card.id ? value : c)) : [...(s.gymCards || []), value]
       s.lastGymCardId = value.id
     })
     close()
   }
-  return <>
-    <h3>{t('Gym app')}</h3>
-    <p className="small muted">{t('Dynamic codes stay in your gym app. Uplift saves a shortcut, not your gym login or QR code.')}</p>
-    <Button variant="tinted" onClick={() => { setProvider('club-elite'); setLabel(CLUB_ELITE.label); setUrl(CLUB_ELITE.url) }}>Club Elite + / Club Fitness</Button>
-    <label>{t('Label')}</label><TextField value={label} onChange={e => setLabel(e.target.value)} />
-    <label>{t('App or website link')}</label><TextField type="url" value={url} onChange={e => { setUrl(e.target.value); setProvider('custom') }} />
-    {error && <p role="alert">{error}</p>}
-    <Button variant="primary" onClick={save}>{t('Save')}</Button>
-    <Button variant="ghost" onClick={close}>{t('Cancel')}</Button>
-  </>
+  return (
+    <>
+      <h3>{t('Gym app')}</h3>
+      <p className="small muted">
+        {t('Dynamic codes stay in your gym app. Uplift saves a shortcut, not your gym login or QR code.')}
+      </p>
+      <Button
+        variant="tinted"
+        onClick={() => {
+          setProvider('club-elite')
+          setLabel(CLUB_ELITE.label)
+          setUrl(CLUB_ELITE.url)
+        }}
+      >
+        Club Elite + / Club Fitness
+      </Button>
+      <label>{t('Label')}</label>
+      <TextField value={label} onChange={(e) => setLabel(e.target.value)} />
+      <label>{t('App or website link')}</label>
+      <TextField
+        type="url"
+        value={url}
+        onChange={(e) => {
+          setUrl(e.target.value)
+          setProvider('custom')
+        }}
+      />
+      {error && <p role="alert">{error}</p>}
+      <Button variant="primary" onClick={save}>
+        {t('Save')}
+      </Button>
+      <Button variant="ghost" onClick={close}>
+        {t('Cancel')}
+      </Button>
+    </>
+  )
 }
 
 /* ------------------------------------------------------------- add/edit sheet -- */
@@ -194,50 +329,67 @@ function GymAppSheet({ card, close }) {
 // Opens the add-card sheet. Co-located with the view (not sheets.jsx) because it pulls in the
 // scanner paths — keeping it here keeps them out of the shared sheets module.
 export function openAddCard() {
-  useUI.getState().openSheet(close => <CardSheet close={close} />)
+  useUI.getState().openSheet((close) => <CardSheet close={close} />)
 }
 
 // Opens the same sheet on an existing card to rename it or re-scan its code.
 export function openEditCard(card) {
-  useUI.getState().openSheet(close => <CardSheet close={close} card={card} />)
+  useUI.getState().openSheet((close) => <CardSheet close={close} card={card} />)
 }
 
 // Shared sheet for adding and editing a card. Without `card` it creates a new one; with `card` it
-// updates that entry in place. The code always comes from a scan or a photo — there is no text
-// field for it — so an edit that only renames keeps the existing scanned code untouched.
+// updates that entry in place. The code comes from a scan or a photo, or, once those found
+// nothing, from TypedCode; an edit that only renames keeps the existing code untouched.
 function CardSheet({ close, card }) {
   const editing = !!card
   const [label, setLabel] = useState(card?.label || '')
   const [value, setValue] = useState(card?.value || '')
+  const [fmt, setFmt] = useState(normalizeFmt(card?.fmt) || 'qrcode')
   const [busy, setBusy] = useState(false)
+  // Typing the code is the way out once a scan or photo found nothing, never the first offer.
+  const [failed, setFailed] = useState(false)
+  const [typing, setTyping] = useState(false)
+  const [typed, setTyped] = useState(!!card?.typed)
   const fileRef = useRef(null)
-  const toast = useUI(s => s.toast)
+  const toast = useUI((s) => s.toast)
 
   const commit = () => {
     const trimmed = value.trim()
-    if (!trimmed) { toast(t('Scan or import a code first')); return }
+    if (!trimmed) {
+      toast(t('Scan or import a code first'))
+      return
+    }
     const update = useStore.getState().update
     if (editing) {
       // The card can be removed on another device while this sheet is open. Checking inside the
       // mutator returned from the MUTATOR, not from here, so the sheet still said "Card updated",
       // closed, and pushed a write that changed nothing. Look first, and say what happened.
-      if (!(useStore.getState().S.gymCards || []).some(x => x.id === card.id)) {
+      if (!(useStore.getState().S.gymCards || []).some((x) => x.id === card.id)) {
         toast(t('That card was removed on another device'))
         close()
         return
       }
-      update(s => {
-        const c = (s.gymCards || []).find(x => x.id === card.id)
+      update((s) => {
+        const c = (s.gymCards || []).find((x) => x.id === card.id)
         if (!c) return
         c.label = label.trim() || t('Gym card')
         c.value = trimmed
+        c.fmt = fmt
+        if (typed) c.typed = true
+        else delete c.typed
       })
       toast(t('Card updated'))
     } else {
-      update(s => {
+      update((s) => {
         if (!Array.isArray(s.gymCards)) s.gymCards = []
         const id = uid()
-        s.gymCards.push({ id, label: label.trim() || t('Gym card'), value: trimmed, fmt: 'qrcode' })
+        s.gymCards.push({
+          id,
+          label: label.trim() || t('Gym card'),
+          value: trimmed,
+          fmt,
+          ...(typed ? { typed: true } : {})
+        })
         s.lastGymCardId = id
       })
       toast(t('Card added'))
@@ -245,64 +397,237 @@ function CardSheet({ close, card }) {
     close()
   }
 
-  // Camera scan: in the app, hands off to the native scanner; in a browser, opens our own camera
-  // sheet on top of this one. Either way the value drops straight into the form so the user can
-  // still name it before saving.
+  // A scanned or imported code goes into the form only if we can draw it back exactly as read:
+  // a known symbology, and a value that symbology can carry. Otherwise the card would look fine
+  // and fail at the turnstile.
+  const take = (code) => {
+    const f = normalizeFmt(code.fmt)
+    if (!canRenderFmt(f) || (f !== 'qrcode' && !encodeBars(code.value, f))) {
+      toast(t('That code type is not supported. Use a QR code or a barcode'))
+      setFailed(true)
+      return
+    }
+    setValue(code.value)
+    setFmt(f)
+    setTyped(false)
+    setTyping(false)
+  }
+
+  // Camera scan: in the app, hands off to the native scanner; in a browser (and the F-Droid build,
+  // which has no ML Kit), opens our own camera sheet on top of this one. Either way the value
+  // drops straight into the form so the user can still name it before saving.
   const doScan = async () => {
-    if (!MOBILE) {
-      useUI.getState().openSheet(closeCam => <CameraScan
-        onCancel={closeCam}
-        onFound={code => {
-          closeCam()
-          if (!canRenderFmt(code.fmt)) { toast(t("That's not a QR code. Only QR cards can be shown here")); return }
-          setValue(code.value)
-        }} />)
+    const camera = () =>
+      useUI.getState().openSheet((closeCam) => (
+        <CameraScan
+          onCancel={closeCam}
+          onFound={(code) => {
+            closeCam()
+            take(code)
+          }}
+        />
+      ))
+    if (await webScanner()) {
+      camera()
       return
     }
     setBusy(true)
     try {
       const code = await scanCode()
-      if (!code) return                       // user backed out
-      if (!canRenderFmt(code.fmt)) { toast(t("That's not a QR code. Only QR cards can be shown here")); return }
-      setValue(code.value)
+      if (!code) return // user backed out
+      take(code)
     } catch (e) {
+      // Google's scanner isn't on this phone yet (a Play services download): our own camera instead.
+      if (e && e.message === MODULE_MISSING) {
+        camera()
+        return
+      }
       toast(scanErrorMessage(e))
-    } finally { setBusy(false) }
+      setFailed(true)
+    } finally {
+      setBusy(false)
+    }
   }
 
-  const onFile = async ev => {
+  const onFile = async (ev) => {
     const file = ev.target.files && ev.target.files[0]
-    ev.target.value = ''                       // let the same file be picked again later
+    ev.target.value = '' // let the same file be picked again later
     if (!file) return
     setBusy(true)
     try {
       const code = await importCodeFromImage(file)
-      if (!code) { toast(t('No QR code found in that image')); return }
-      if (!canRenderFmt(code.fmt)) { toast(t("That's not a QR code. Only QR cards can be shown here")); return }
-      setValue(code.value)
+      if (!code) {
+        toast(t('No code found in that image'))
+        setFailed(true)
+        return
+      }
+      take(code)
     } catch (e) {
       toast(t('Could not read that image'))
-    } finally { setBusy(false) }
+      setFailed(true)
+    } finally {
+      setBusy(false)
+    }
   }
 
-  return <>
-    <h3>{editing ? t('Edit card') : t('Add a card')}</h3>
-    <div className="muted small" style={{ marginBottom: 14 }}>{t('Scan it with the camera or import a photo.')}</div>
+  return (
+    <>
+      <h3>{editing ? t('Edit card') : t('Add a card')}</h3>
+      <div className="muted small" style={{ marginBottom: 14 }}>
+        {t('Scan it with the camera or import a photo.')}
+      </div>
 
-    <div className="row" style={{ gap: 8, marginBottom: 16 }}>
-      <Button variant="tinted" icon="camera" onClick={doScan} disabled={busy}>{editing ? t('Re-scan') : t('Scan')}</Button>
-      <Button variant="tinted" icon="image" onClick={() => fileRef.current?.click()} disabled={busy}>{t('Import photo')}</Button>
+      <div className="row" style={{ gap: 8, marginBottom: 16 }}>
+        <Button variant="tinted" icon="camera" onClick={doScan} disabled={busy}>
+          {editing ? t('Re-scan') : t('Scan')}
+        </Button>
+        <Button variant="tinted" icon="image" onClick={() => fileRef.current?.click()} disabled={busy}>
+          {t('Import photo')}
+        </Button>
+      </div>
+
+      {failed && !typing && (
+        <div className="ci-fallback">
+          <span>{t('No luck reading it? Type the number instead.')}</span>
+          <Button size="sm" variant="plain" icon="pencil" onClick={() => setTyping(true)}>
+            {t('Type it in')}
+          </Button>
+        </div>
+      )}
+      {typing && (
+        <TypedCode
+          initialFmt={fmt === 'qrcode' && !value ? 'ean13' : fmt}
+          onCancel={() => setTyping(false)}
+          onUse={(v, f) => {
+            setValue(v)
+            setFmt(f)
+            setTyped(true)
+            setTyping(false)
+          }}
+        />
+      )}
+
+      <label className="sect-t">{t('Label')}</label>
+      <TextField
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder={t('e.g. FitZone downtown')}
+        style={{ marginBottom: 16 }}
+      />
+
+      {value.trim() && (
+        <div className="ci-qr-plate" style={{ alignSelf: 'center', marginBottom: 16 }}>
+          <QrCanvas value={value.trim()} fmt={fmt} size={150} />
+        </div>
+      )}
+
+      <Button variant="primary" onClick={commit} disabled={busy || !value.trim()}>
+        {editing ? t('Save card') : t('Save card')}
+      </Button>
+
+      <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+    </>
+  )
+}
+
+const FMT_LABEL = { ean13: 'EAN-13', upca: 'UPC-A', ean8: 'EAN-8', code128: 'Code 128', code39: 'Code 39' }
+const fmtLabel = (f) => FMT_LABEL[f] || t('QR code')
+
+// What a typed code still needs, in words (lib/checkin-typed.js checkTyped's `why`).
+function typedHint(r) {
+  switch (r.why) {
+    case 'digits':
+      return t('Digits only for this one.')
+    case 'length':
+      return t('This one has {0} digits.', r.want)
+    case 'check':
+      return t('That doesn’t add up. The last digit checks the others, so one of them is off.')
+    case 'chars':
+      return t('This format can’t carry some of those characters. Check the type above.')
+    case 'long':
+      return t('That’s longer than this format takes ({0} at most).', r.max)
+    case 'mismatch':
+      return t('The two don’t match. One of them has a typo.')
+    case 'again':
+      return t('Once more below, to be sure.')
+    default:
+      return ''
+  }
+}
+
+// Typing the code off the card: the format, the number (twice where there is no check digit), and
+// the code drawn big to hold against the card before it goes in.
+function TypedCode({ initialFmt, onUse, onCancel }) {
+  const [fmt, setFmt] = useState(TYPED_FMTS.includes(initialFmt) ? initialFmt : 'ean13')
+  const [a, setA] = useState('')
+  const [b, setB] = useState('')
+  const r = checkTyped(a, fmt, b)
+  const digits = hasCheckDigit(fmt)
+  // A hint only once there is something to judge: no scolding before the first key.
+  const hint = !a.trim() || (r.why === 'length' && a.replace(/\D/g, '').length < r.want) ? '' : typedHint(r)
+  return (
+    <div className="ci-typedform">
+      <div className="ci-typed-row">
+        <span className="sect-t">{t('Code type')}</span>
+        <MenuButton
+          title={t('Code type')}
+          value={fmt}
+          options={TYPED_FMTS.map((f) => ({ value: f, label: fmtLabel(f) }))}
+          onChange={(f) => {
+            setFmt(f)
+            setB('')
+          }}
+        />
+      </div>
+      <TextField
+        className="ci-typed-in"
+        value={a}
+        onChange={(e) => setA(e.target.value)}
+        aria-label={t('The number on your card')}
+        placeholder={t('The number on your card')}
+        inputMode={digits ? 'numeric' : 'text'}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize={fmt === 'code39' ? 'characters' : 'off'}
+        spellCheck={false}
+        autoFocus
+      />
+      {!digits && (
+        <TextField
+          className="ci-typed-in"
+          value={b}
+          onChange={(e) => setB(e.target.value)}
+          aria-label={t('Once more, to be sure')}
+          placeholder={t('Once more, to be sure')}
+          inputMode="text"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize={fmt === 'code39' ? 'characters' : 'off'}
+          spellCheck={false}
+        />
+      )}
+      <div className={'ci-typed-hint' + (hint && r.why !== 'again' ? ' bad' : '')} aria-live="polite">
+        {r.ok ? t('Looks right. Hold it next to your card: same digits, same bars?') : hint}
+      </div>
+      {r.ok && (
+        <>
+          <div className="ci-qr-plate ci-typed-big">
+            <QrCanvas value={r.value} fmt={fmt} size={280} />
+          </div>
+          <div className="ci-value ci-typed-v">{r.value}</div>
+          <div className="muted small ci-typed-note">{t('Test it at the turnstile once before you count on it.')}</div>
+        </>
+      )}
+      <div className="row ci-typed-act">
+        <Button variant="plain" onClick={onCancel}>
+          {t('Cancel')}
+        </Button>
+        <Button variant="tinted" icon="check" disabled={!r.ok} onClick={() => onUse(r.value, fmt)}>
+          {t('Use this code')}
+        </Button>
+      </div>
     </div>
-
-    <label className="sect-t">{t('Label')}</label>
-    <TextField value={label} onChange={e => setLabel(e.target.value)} placeholder={t('e.g. FitZone downtown')} style={{ marginBottom: 16 }} />
-
-    {value.trim() && <div className="ci-qr-plate" style={{ alignSelf: 'center', marginBottom: 16 }}><QrCanvas value={value.trim()} size={150} /></div>}
-
-    <Button variant="primary" onClick={commit} disabled={busy || !value.trim()}>{editing ? t('Save card') : t('Save card')}</Button>
-
-    <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
-  </>
+  )
 }
 
 // Map the thrown reasons from lib/scan.js to something a person can act on.

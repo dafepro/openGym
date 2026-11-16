@@ -1,4 +1,6 @@
-# Garmin companion in openGym
+# Uplift Garmin companion
+
+This guide describes the existing Uplift relay. The separate [upstream native Garmin guide](GARMIN_UPSTREAM.md) documents openGym's native integration; it is not the setup path for this PWA.
 
 **Settings → Data & backup → Garmin watch** connects the existing Uplift Connect IQ app on the Forerunner 245 Music. The phone and watch interfaces are both branded Uplift; the phone is powered by openGym.
 

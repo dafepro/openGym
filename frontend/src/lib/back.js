@@ -12,33 +12,70 @@
 import { MOBILE } from './mobile.js'
 import { useUI } from '../store/useUI.js'
 import { t } from './i18n.js'
+import { tourBack } from './tour.js'
 
 // How long a first back press stays armed as "press again to exit" (the toast shows 2.2s).
 export const EXIT_WINDOW = 2000
 
 // What a back press means, given what is on screen. Pure, so the table below is testable.
-export function decideBack({ top, canGoBack, exitArmed }) {
-  if (top) return top.locked ? 'ignore' : 'sheet'   // a locked sheet swallows back on purpose
-  if (canGoBack) return 'history'                   // a page/tab we pushed ourselves
+export function decideBack({ top, pathname, canGoBack, exitArmed }) {
+  if (top) return top.locked ? 'ignore' : 'sheet' // a locked sheet swallows back on purpose
+  // A root tab must not replay older tabs or abandoned detail pages before it can exit.
+  const atRoot = pathname === '/' || /^\/(home|plan|stats|library)\/?$/i.test(pathname)
+  if (canGoBack && !atRoot) return 'history'
   return exitArmed ? 'exit' : 'arm-exit'
 }
 
-export function makeBackHandler({ getSheets, closeSheet, dismissFocus = () => false, toast, goBack, exit, now = Date.now }) {
-  let armedAt = -Infinity
+export function makeBackHandler({
+  getSheets,
+  getLocation = () => ({}),
+  closeSheet,
+  dismissFocus = () => false,
+  toast,
+  goBack,
+  exit,
+  now = Date.now
+}) {
+  let armedAt = -Infinity,
+    armedKey
   return (ev = {}) => {
     const sheets = getSheets()
-    if (!sheets.length && dismissFocus()) { armedAt = -Infinity; return 'focus' }
+    const { pathname, key } = getLocation()
+    if (!sheets.length && dismissFocus()) {
+      armedAt = -Infinity
+      return 'focus'
+    }
     const action = decideBack({
       top: sheets[sheets.length - 1],
+      pathname,
       canGoBack: !!ev.canGoBack,
-      exitArmed: now() - armedAt < EXIT_WINDOW,
+      // A tab switch, even away and back, cancels the warning from the previous entry.
+      exitArmed: key === armedKey && now() - armedAt < EXIT_WINDOW
     })
     if (action !== 'arm-exit') armedAt = -Infinity
     if (action === 'sheet') closeSheet(sheets[sheets.length - 1].id)
     else if (action === 'history') goBack()
-    else if (action === 'arm-exit') { armedAt = now(); toast(t('Press back again to exit')) }
-    else if (action === 'exit') exit()
+    else if (action === 'arm-exit') {
+      armedAt = now()
+      armedKey = key
+      toast(t('Press back again to exit'))
+    } else if (action === 'exit') exit()
     return action
+  }
+}
+
+// A full-screen layer that is not a sheet (the circuit player, components/CircuitPlayer.jsx) takes a
+// back press while it is up and no sheet sits on it: `fn` closes it and answers true.
+let overlayBack = null
+export function setOverlayBack(fn) {
+  overlayBack = typeof fn === 'function' ? fn : null
+}
+export function overlayTakesBack() {
+  if (!overlayBack || useUI.getState().sheets.length) return false
+  try {
+    return overlayBack() === true
+  } catch {
+    return false
   }
 }
 
@@ -50,15 +87,22 @@ export async function initBackButton() {
     const { App } = await import('@capacitor/app')
     const handler = makeBackHandler({
       getSheets: () => useUI.getState().sheets,
-      closeSheet: id => useUI.getState().closeSheet(id),
+      getLocation: () => ({
+        pathname: window.location.hash.slice(1).split('?')[0] || '/',
+        key: window.history.state?.key ?? window.location.hash
+      }),
+      closeSheet: (id) => useUI.getState().closeSheet(id),
       dismissFocus: () => useUI.getState().dismissFocus(),
-      toast: msg => useUI.getState().toast(msg),
+      toast: (msg) => useUI.getState().toast(msg),
       goBack: () => window.history.back(),
-      exit: () => App.exitApp(),
+      exit: () => App.exitApp()
     })
-    const sub = await App.addListener('backButton', handler)
+    // The app tour takes a back press first: it closes (lib/tour.js).
+    const sub = await App.addListener('backButton', (ev) =>
+      tourBack() ? 'tour' : overlayTakesBack() ? 'overlay' : handler(ev)
+    )
     return () => sub.remove()
   } catch (e) {
-    return () => {}   // no plugin (older install): leave back to the default behaviour
+    return () => {} // no plugin (older install): leave back to the default behaviour
   }
 }

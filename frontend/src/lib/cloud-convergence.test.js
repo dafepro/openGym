@@ -47,3 +47,22 @@ it('stops writing after opposite-order peers with tied edits agree', async () =>
   await run('b'); await run('a')
   expect(writes).toBe(before)
 })
+
+it.each(['first', 'last', 'avg'])('converges multi-reading weigh-ins and deletions in %s mode', mode => {
+  const day = { d: '2026-11-15', t: 100, w: 70, ins: [
+    { id: 'morning', at: '08:00', w: 70, t: 100 },
+    { id: 'evening', at: '20:00', w: 72, t: 100 },
+  ] }
+  const a = s({ bwDaily: mode, bodyweight: [day] })
+  const b = structuredClone(a)
+  b.bodyweight[0].ins[0].w = 71
+  const c = structuredClone(a)
+  c.bodyweight[0].gone = { evening: 101 }
+  c.bodyweight[0].t = 101
+  const ab = merge(a, b), ba = merge(b, a)
+  expect(cloudContent(ab)).toBe(cloudContent(ba))
+  const left = merge(ab, c), right = merge(c, ba)
+  expect(cloudContent(left)).toBe(cloudContent(right))
+  expect(left.bodyweight[0].ins.map(x => x.id)).toEqual(['morning'])
+  expect(left.bodyweight[0].gone.evening).toBe(101)
+})

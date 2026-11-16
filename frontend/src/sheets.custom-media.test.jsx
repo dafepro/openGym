@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 
 const h = vi.hoisted(() => ({ ingest: null }))
-vi.mock('./lib/media-ingest.js', () => ({ ingestMediaFile: (...a) => h.ingest(...a) }))
+vi.mock('./lib/media-ingest.js', async original => ({ ...await original(), ingestMediaFile: (...a) => h.ingest(...a) }))
 
 import { registerCustom } from './lib/exercises.js'
 import { DEF, useStore } from './store/useStore.js'
@@ -129,7 +129,7 @@ describe('custom exercise photo, GIF or video, and link', () => {
     customExSheet(S().customEx[0])
     const form = renderTop()
     await settle()
-    act(() => { form.querySelector('button[aria-label="Remove"]').click() })
+    act(() => { form.querySelector('button[aria-label$=": Remove"]').click() })
     expect(form.querySelector('.cmf-thumb')).toBeNull()
     click(form, 'button', 'Save')
     expect(S().customEx[0].media).toBeUndefined()

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { lazyAssets, stampSw } from './scripts/sw-stamp.mjs'
+import { mobileViewport } from './src/lib/viewport-zoom.js'
 
 const backend = process.env.API_TARGET || 'http://127.0.0.1:3000'
 // The API refuses a state-changing request that a browser sent from anywhere other than its own
@@ -23,12 +24,15 @@ const catalogueMedia = {
     const dirs = { '/exercise-media/still/': ['still', '.webp'], '/exercise-media/clip/': ['clip', '.mp4'] }
     const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '../catalogue/media')
     server.middlewares.use((req, res, next) => {
-      const prefix = Object.keys(dirs).find(p => req.url.startsWith(p))
+      const prefix = Object.keys(dirs).find((p) => req.url.startsWith(p))
       if (!prefix) return next()
       const [dir, ext] = dirs[prefix]
       const name = decodeURIComponent(req.url.slice(prefix.length).split('?')[0])
       const file = join(root, dir, name)
-      if (!/^\d{4,5}\.(webp|mp4)$/.test(name) || !name.endsWith(ext) || !existsSync(file)) { res.statusCode = 404; return res.end() }
+      if (!/^\d{4,5}\.(webp|mp4)$/.test(name) || !name.endsWith(ext) || !existsSync(file)) {
+        res.statusCode = 404
+        return res.end()
+      }
       res.setHeader('Content-Type', ext === '.mp4' ? 'video/mp4' : 'image/webp')
       res.end(readFileSync(file))
     })
@@ -45,11 +49,13 @@ const umami = {
   name: 'opengym-umami',
   transformIndexHtml() {
     if (!umamiSrc || !umamiId) return
-    return [{
-      tag: 'script',
-      attrs: { defer: true, src: umamiSrc, 'data-website-id': umamiId },
-      injectTo: 'head'
-    }]
+    return [
+      {
+        tag: 'script',
+        attrs: { defer: true, src: umamiSrc, 'data-website-id': umamiId },
+        injectTo: 'head'
+      }
+    ]
   }
 }
 
@@ -66,10 +72,15 @@ let lazy = []
 const swStamp = {
   name: 'opengym-sw-stamp',
   apply: 'build',
-  configResolved(config) { outDir = resolve(config.root, config.build.outDir) },
-  generateBundle(_, bundle) { lazy = lazyAssets(bundle) },
+  configResolved(config) {
+    outDir = resolve(config.root, config.build.outDir)
+  },
+  generateBundle(_, bundle) {
+    lazy = lazyAssets(bundle)
+  },
   closeBundle() {
-    const html = join(outDir, 'index.html'), sw = join(outDir, 'sw.js')
+    const html = join(outDir, 'index.html'),
+      sw = join(outDir, 'sw.js')
     if (!existsSync(html) || !existsSync(sw)) return
     const stamp = createHash('sha256').update(readFileSync(html)).digest('hex').slice(0, 10)
     writeFileSync(sw, stampSw(readFileSync(sw, 'utf8'), { stamp, lazy }))
@@ -80,11 +91,16 @@ const swStamp = {
 // the mobile build and `cap sync` (two builds in one worktree) shipped the web shell inside an
 // APK: no Android-only settings, a service worker, the passkey login. scripts/check-mobile-bundle.mjs
 // reads this tag in the synced copy after `cap sync` and fails the build without it.
+// The phone flavour also keeps zooming off (src/lib/viewport-zoom.js): the web build lets people
+// pinch, the Capacitor apps stay as they were.
 const flavor = {
   name: 'opengym-flavor',
-  transformIndexHtml() {
+  transformIndexHtml(html) {
     if (process.env.VITE_MOBILE !== '1') return
-    return [{ tag: 'meta', attrs: { name: 'opengym-flavor', content: 'mobile' }, injectTo: 'head' }]
+    return {
+      html: mobileViewport(html),
+      tags: [{ tag: 'meta', attrs: { name: 'opengym-flavor', content: 'mobile' }, injectTo: 'head' }]
+    }
   }
 }
 
@@ -101,7 +117,12 @@ const pkgVersion = JSON.parse(readFileSync(new URL('./package.json', import.meta
 const appVersion = process.env.APP_BUILD ? `${pkgVersion}+${process.env.APP_BUILD}` : pkgVersion
 
 export default defineConfig({
-  define: { __APP_VERSION__: JSON.stringify(appVersion) },
+  // __SEASON_CLOCK__: the seasonal QA date hook (src/lib/season-clock.js), only in a build made
+  // with VITE_SEASON_CLOCK=1 for screenshots. false everywhere else, so the hook is compiled out.
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+    __SEASON_CLOCK__: JSON.stringify(process.env.VITE_SEASON_CLOCK === '1')
+  },
   plugins: [react(), umami, flavor, swStamp, catalogueMedia],
   base: './',
   server: {
@@ -110,12 +131,24 @@ export default defineConfig({
     // server needs to be told the workspace is wider than frontend/.
     fs: { allow: ['..'] },
     proxy: {
-      '/api/garmin': { target: process.env.GARMIN_TARGET || 'http://127.0.0.1:8788', changeOrigin: true, headers: { Origin: process.env.GARMIN_TARGET || 'http://127.0.0.1:8788' } },
+      '/api/garmin': {
+        target: process.env.GARMIN_TARGET || 'http://127.0.0.1:8788',
+        changeOrigin: true,
+        headers: { Origin: process.env.GARMIN_TARGET || 'http://127.0.0.1:8788' }
+      },
       '/api': { target: backend, changeOrigin: true, headers: { Origin: apiOrigin } },
-      ...(media ? {
-        '/exercise-media': { target: media, changeOrigin: true }
-      } : {})
+      ...(media
+        ? {
+            '/exercise-media': { target: media, changeOrigin: true }
+          }
+        : {})
     }
   },
-  build: { chunkSizeWarningLimit: 1500 }
+  // The iOS app's deployment target is 15.5 (ios/App), so its WebView is Safari 15.5, and the web
+  // app follows the same floor. Vite's own default is Safari 16.4: syntax newer than 15.5 went out
+  // unlowered and one regex lookbehind kept 1.4.2 on its splash there. What the transpiler cannot
+  // lower, scripts/check-bundle-syntax.mjs catches (its test builds the bundle).
+  build: { chunkSizeWarningLimit: 1500, target: ['safari15', 'chrome100', 'firefox100', 'edge100'] },
+  // Gives happy-dom tests a working localStorage on Node 24+ (#733).
+  test: { setupFiles: [fileURLToPath(new URL('./src/test-setup.js', import.meta.url))] }
 })

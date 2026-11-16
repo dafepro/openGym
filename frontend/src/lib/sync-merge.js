@@ -9,7 +9,7 @@
  * Rules, by field:
  *   - scalars and settings, `week`, `dayPlan`, `wc`, `reminder`, `queue`, `rotation`, …: each from
  *     the copy that changed it last by its own stamp in `edited` (stampEdits; `week`, `dayPlan`,
- *     exNotes and barWeights per day or per exercise), from the copy with the newer `_ts` when
+ *     exNotes and barWeights per day or per exercise, `programmes` per programme, `modules` per module), from the copy with the newer `_ts` when
  *     neither side stamped it or on a tie
  *   - equipProfiles, gymCards: union by id; of an id that both have, field by field as below
  *   - workouts, routines, customEx, equipProfiles, gymCards: of an id that both have, each field
@@ -36,10 +36,12 @@
  *     is the exception: the edit may have taken away the set the kept weight came from, so it
  *     is the best of the merged history and of the editing copy's own, and the other copy's
  *     can no longer bring a corrected typo back. exNotes, barWeights: key union
- *   - balanceOverrides, loadKind, plates, dbLoad, dumbbells, dayNotes: key union; of a key both
+ *   - balanceOverrides, loadKind, plates, dbLoad, dumbbells, stackWeights, exUnit, dayNotes, dayPhotos: key union; of a key both
  *     have, the entry set last by its own `_ts`, a clear included (mergeStampedMap), the newer
  *     copy's on a tie. For plates and dumbbells the key is the unit, so the inventory of one unit
  *     is kept whole, as last edited; for dayNotes the key is the date, so each day's note is its own
+ *   - advent: of the same year, the union of the doors opened and the challenges done (mergeAdvent)
+ *   - challenges: per month, the picks made first and the union of the ones done (mergeChallenges)
  *   - `_ts`: the later of the two; `_rev` dropped (the server sets it); `active` left to the caller
  *
  * Two rules come before all of these:
@@ -78,37 +80,77 @@ import { bestWeightForEntry } from './history.js'
 import { convertStateUnit, convertBodyWeight } from './units.js'
 import { sanitizeAccent } from './accent.js'
 import { readDayNote as readNote } from './day-notes.js'
+import { mergeAdvent } from './advent.js'
+import { mergeChallenges } from './challenges.js'
+import { mergeDay, dailyModeOf, settleAll } from './weigh-ins.js'
+import { applyExerciseMerges } from './exercise-merge.js'
 
-const clone = o => JSON.parse(JSON.stringify(o))
-const list = v => (Array.isArray(v) ? v : [])
+const clone = (o) => JSON.parse(JSON.stringify(o))
+const list = (v) => (Array.isArray(v) ? v : [])
 // Cloud peers have no authoritative server copy on equal clocks. Stable values
 // break those ties. Missing stamps remain zero: an unrelated document clock
 // must never outrank a real field edit. Zero markers retain that distinction.
-const stableValue = v => v === undefined ? '' : JSON.stringify(v, (_, x) => x && typeof x === 'object' && !Array.isArray(x)
-  ? Object.fromEntries(Object.keys(x).sort().map(k => [k, x[k]])) : x)
+const stableValue = (v) =>
+  v === undefined
+    ? ''
+    : JSON.stringify(v, (_, x) =>
+        x && typeof x === 'object' && !Array.isArray(x)
+          ? Object.fromEntries(
+              Object.keys(x)
+                .sort()
+                .map((k) => [k, x[k]])
+            )
+          : x
+      )
 const winsTie = (a, b) => stableValue(a) > stableValue(b)
 function cloudProvenance(S) {
   if (!S) return S
-  const out = clone(S), edited = { ...(out.edited || {}) }
+  const out = clone(S),
+    edited = { ...(out.edited || {}) }
   for (const k of Object.keys(out)) {
     if (OWN_MERGE.has(k)) continue
     if (PER_KEY.has(k)) {
-      for (const key of Object.keys(isMap(out[k]) ? out[k] : {})) if (!(k + '.' + key in edited)) edited[k + '.' + key] = 0
+      for (const key of Object.keys(isMap(out[k]) ? out[k] : {}))
+        if (!(k + '.' + key in edited)) edited[k + '.' + key] = 0
     } else if (!(k in edited)) edited[k] = 0
   }
   if (!('routineOrder' in edited)) edited.routineOrder = 0
   out.edited = edited
-  for (const key of ['workouts', 'routines', 'customEx', 'equipProfiles', 'gymCards']) for (const entry of list(out[key])) {
-    if (!entry || typeof entry !== 'object') continue
-    const stamps = { ...(entry._f || {}) }
-    for (const k of Object.keys(entry)) if (!ENTRY_META.has(k) && !(k in stamps)) stamps[k] = 0
-    entry._f = stamps
-  }
+  for (const key of ['workouts', 'routines', 'customEx', 'equipProfiles', 'gymCards'])
+    for (const entry of list(out[key])) {
+      if (!entry || typeof entry !== 'object') continue
+      const stamps = { ...(entry._f || {}) }
+      for (const k of Object.keys(entry)) if (!ENTRY_META.has(k) && !(k in stamps)) stamps[k] = 0
+      entry._f = stamps
+    }
   return out
 }
 // The maps whose every entry carries its own edit time (mergeStampedMap). dayNotes is a day's
 // note on a day off (lib/day-notes.js), one entry per date.
-export const STAMPED_MAPS = ['balanceOverrides', 'loadKind', 'plates', 'dbLoad', 'dumbbells', 'dayNotes']
+// dayPhotos is a progress photo filed under a day (lib/day-photos.js), one entry per photo.
+// recoverySessions is a sauna or an ice bath (lib/recovery-sessions.js), one entry per session;
+// gymNotes a note pinned at one gym, journalFolders a saved journal filter (lib/journal.js),
+// activities a run or a football match (lib/activities.js), one entry per session.
+export const STAMPED_MAPS = [
+  'balanceOverrides',
+  'loadKind',
+  'plates',
+  'dbLoad',
+  'dumbbells',
+  'stackWeights',
+  'exUnit',
+  'dayNotes',
+  'dayPhotos',
+  'exMerged',
+  'exGym',
+  'sessionTargets',
+  'exMedia',
+  'recoverySessions',
+  'gymNotes',
+  'journalFolders',
+  'dayForm',
+  'activities'
+]
 
 /** The copy with the later `_ts`; on a tie the first argument (callers pass local first). */
 export const newerOf = (a, b) => ((b?._ts || 0) > (a?._ts || 0) ? b : a)
@@ -117,12 +159,15 @@ export const newerOf = (a, b) => ((b?._ts || 0) > (a?._ts || 0) ? b : a)
  * Entries of `newer` in their order, then those of `older` whose key nothing in `newer` has.
  * Same key → `newer`'s entry. Duplicate keys within one list are dropped (first wins).
  */
-export function unionById(newer = [], older = [], key = x => x?.id) {
+export function unionById(newer = [], older = [], key = (x) => x?.id) {
   const seen = new Set()
   const out = []
   for (const x of [...list(newer), ...list(older)]) {
     const k = key(x)
-    if (k == null) { out.push(x); continue }
+    if (k == null) {
+      out.push(x)
+      continue
+    }
     if (seen.has(k)) continue
     seen.add(k)
     out.push(x)
@@ -136,16 +181,19 @@ export function unionById(newer = [], older = [], key = x => x?.id) {
  * the start when it has none there). Appending them sent a routine that one device put back
  * (Plan's Undo) to the end of the list whenever the other device's copy was the newer one.
  */
-export function unionByNeighbours(newer = [], older = [], key = x => x?.id) {
+export function unionByNeighbours(newer = [], older = [], key = (x) => x?.id) {
   const out = unionById(newer, [], key)
-  const at = new Set(out.map(key).filter(k => k != null))
+  const at = new Set(out.map(key).filter((k) => k != null))
   const keyless = []
   let prev = null
   for (const x of list(older)) {
     const k = key(x)
-    if (k == null) { keyless.push(x); continue }
+    if (k == null) {
+      keyless.push(x)
+      continue
+    }
     if (!at.has(k)) {
-      const i = prev == null ? -1 : out.findIndex(y => key(y) === prev)
+      const i = prev == null ? -1 : out.findIndex((y) => key(y) === prev)
       out.splice(i + 1, 0, x)
       at.add(k)
     }
@@ -154,7 +202,7 @@ export function unionByNeighbours(newer = [], older = [], key = x => x?.id) {
   return out.concat(keyless)
 }
 
-const workoutKey = w => (w?.id != null ? w.id : `${w?.d}|${w?.start}`)
+const workoutKey = (w) => (w?.id != null ? w.id : `${w?.d}|${w?.start}`)
 
 /**
  * The photos and videos of a workout both copies have: `kept`'s list as it stands (its order,
@@ -173,7 +221,7 @@ export function mergeWorkoutMedia(kept, other) {
   const mine = list(kept.media)
   const theirs = list(other?.media)
   if (!theirs.length) return kept
-  const hashOf = m => (m && typeof m === 'object' && typeof m.hash === 'string' ? m.hash : null)
+  const hashOf = (m) => (m && typeof m === 'object' && typeof m.hash === 'string' ? m.hash : null)
   const seen = new Set(mine.map(hashOf).filter(Boolean))
   const extra = []
   for (const m of theirs) {
@@ -187,13 +235,29 @@ export function mergeWorkoutMedia(kept, other) {
 }
 const byDayStart = (a, b) => (a.d === b.d ? (a.start || 0) - (b.start || 0) : a.d < b.d ? -1 : 1)
 
-/** One entry per day; where both have a day, the one edited later (`t`); sorted by day. */
-export function mergeBodyweight(a = [], b = [], deterministic = false) {
+/**
+ * One entry per day; where both have a day, the one edited later (`t`); sorted by day. A day with
+ * several weigh-ins (`ins`, lib/weigh-ins.js) joins both copies' readings instead, each reading
+ * as edited last, and leaves out the ones either copy removed; `mode` (S.bwDaily) picks the day's
+ * value from them.
+ */
+export function mergeBodyweight(a = [], b = [], mode = 'first', deterministic = false) {
+  if (typeof mode === 'boolean') {
+    deterministic = mode
+    mode = 'first'
+  }
   const byDay = new Map()
   for (const e of [...list(a), ...list(b)]) {
     if (!e || e.d == null) continue
     const cur = byDay.get(e.d)
-    if (!cur || (e.t || 0) > (cur.t || 0) || (deterministic && (e.t || 0) === (cur.t || 0) && winsTie(e, cur))) byDay.set(e.d, e)
+    // A weigh-in typed into openGym beats one read from the phone's health hub (`src`, lib/health-read.js)
+    // whichever is newer: the scale's reading is the fallback, never a correction of the user's own.
+    if (!cur) byDay.set(e.d, e)
+    else {
+      const m = mergeDay(cur, e, mode, deterministic ? winsTie : undefined)
+      if (m) byDay.set(e.d, m)
+      else byDay.delete(e.d)
+    }
   }
   return [...byDay.values()].sort((x, y) => (x.d < y.d ? -1 : 1))
 }
@@ -219,7 +283,9 @@ function mergeExWeights(n = {}, o = {}, deterministic = false) {
 // edit was kept. Nothing left to read removes the key, as the edit itself did.
 function correctedExWeight(id, workouts, sources) {
   let best = null
-  const consider = c => { if (c && c.w > 0 && (!best || beatsWeight(id, c.w, best.w))) best = c }
+  const consider = (c) => {
+    if (c && c.w > 0 && (!best || beatsWeight(id, c.w, best.w))) best = c
+  }
   for (const w of workouts) {
     for (const e of list(w?.entries)) if (e?.id === id) consider({ w: bestWeightForEntry(e), d: w.d })
   }
@@ -239,8 +305,101 @@ export function stampWorkout(w, now = Date.now()) {
   return w
 }
 
-const stampOf = v => (v && typeof v === 'object' ? Number(v._ts) || 0 : 0)
-const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
+const stampOf = (v) => (v && typeof v === 'object' ? Number(v._ts) || 0 : 0)
+const isMap = (v) => !!v && typeof v === 'object' && !Array.isArray(v)
+
+// ---- The Coach's history (`coach.chat`, `coach.log`, `coach.snapshots`) -----------------------
+//
+// `coach` is one setting to the stamps (`edited.coach`), so the copy that changed it last used to
+// win it whole: a device that had sat on the Coach screen wrote one line into its older copy, and
+// the other device's messages, log entries and Undo snapshots were gone (#779). These three lists
+// only ever grow at the end, so they are joined instead: every entry of either copy once (by `id`,
+// a snapshot by when it was taken and for which proposal), in the order they were written (`at`),
+// and the newest few kept as lib/coach.js keeps them. The rest of `coach` (consent, profile,
+// cadence) still comes from the copy that changed it last.
+//
+// An Undo takes a snapshot off the ring. Its log entry names the snapshot it used (`snap`, or for
+// an older app the proposal it put back), and a snapshot so named never comes back from the copy
+// that still holds it: that would offer the same Undo twice.
+// The bounds of lib/coach.js (SNAPSHOT_MAX, LOG_MAX, CHAT_MAX, NAMESPACE_MAX), copied rather than
+// imported: coach.js pulls in the plan code, the merge must not. sync-merge.test.js checks them.
+export const COACH_CAPS = { chat: 40, log: 50, snapshots: 3 }
+const COACH_NAMESPACE_MAX = 256 * 1024
+export const snapshotKey = (x) =>
+  isMap(x) ? (x.id != null ? String(x.id) : `${Number(x.at) || 0}|${x.proposalId ?? ''}`) : null
+const coachKey = {
+  chat: (x) => (isMap(x) && x.id != null ? String(x.id) : null),
+  log: (x) => (isMap(x) && x.id != null ? String(x.id) : null),
+  snapshots: snapshotKey
+}
+
+// `xs` then `ys`, each key once (first wins), in the order written: by `at`, and an entry without
+// one where it stood after its predecessor. Keyless entries stay, from `xs` only.
+function unionInTime(xs, ys, key) {
+  const seen = new Set(),
+    out = []
+  let i = 0
+  for (const [from, l] of [
+    [0, list(xs)],
+    [1, list(ys)]
+  ]) {
+    let at = 0
+    for (const x of l) {
+      if (x == null) continue
+      const k = key(x)
+      if (Number(x?.at) > 0) at = Number(x.at)
+      if (k == null) {
+        if (!from) out.push({ x, at, from, i: i++ })
+        continue
+      }
+      if (seen.has(k)) continue
+      seen.add(k)
+      out.push({ x, at, from, i: i++ })
+    }
+  }
+  out.sort((a, b) => a.at - b.at || a.from - b.from || a.i - b.i)
+  return out.map((e) => e.x)
+}
+
+/**
+ * The Coach namespace of two copies: `win`'s (the copy that changed it last), with its chat, log
+ * and Undo snapshots joined with `other`'s (see above). Returns a new object, or `win` as it is
+ * when either side has no namespace to join.
+ */
+export function mergeCoach(win, other) {
+  if (!isMap(win) || !isMap(other)) return win === undefined ? win : clone(win)
+  const out = clone(win)
+  for (const f of ['chat', 'log', 'snapshots']) {
+    if (!Array.isArray(win[f]) && !Array.isArray(other[f])) continue
+    out[f] = clone(unionInTime(win[f], other[f], coachKey[f]))
+  }
+  // Snapshots an Undo on either side already used.
+  const used = new Set(),
+    byProposal = []
+  for (const e of list(out.log)) {
+    if (!isMap(e) || e.kind !== 'revert') continue
+    if (e.snap != null) used.add(String(e.snap))
+    else if (e.proposalId != null) byProposal.push(e)
+  }
+  if (out.snapshots) {
+    out.snapshots = out.snapshots.filter(
+      (x) =>
+        !used.has(snapshotKey(x)) &&
+        !byProposal.some((e) => x?.proposalId === e.proposalId && (Number(x?.at) || 0) <= (Number(e.at) || 0))
+    )
+  }
+  for (const [f, max] of Object.entries(COACH_CAPS))
+    if (Array.isArray(out[f]) && out[f].length > max) out[f] = out[f].slice(-max)
+  // The namespace's own size guard (lib/coach.js trim), the same oldest-first order.
+  let guard = 0
+  while (JSON.stringify(out).length > COACH_NAMESPACE_MAX && guard++ < 60) {
+    if (list(out.chat).length > 8) out.chat.shift()
+    else if (list(out.snapshots).length > 1) out.snapshots.shift()
+    else if (list(out.log).length > 1) out.log.shift()
+    else break
+  }
+  return out
+}
 
 // ---- Entries merged field by field ----------------------------------------------------------
 //
@@ -307,7 +466,8 @@ function settleMarks(marks, stamps, now) {
  * its value before. `before` and `after` are the copies around the change.
  */
 export function undoMarks(before, after) {
-  const eb = isMap(before?.edited) ? before.edited : {}, ea = isMap(after?.edited) ? after.edited : {}
+  const eb = isMap(before?.edited) ? before.edited : {},
+    ea = isMap(after?.edited) ? after.edited : {}
   const out = {}
   for (const [k, at] of Object.entries(ea)) {
     if (Number(at) === Number(eb[k] || 0)) continue
@@ -317,7 +477,7 @@ export function undoMarks(before, after) {
 }
 const editedValue = (S, k) => {
   const dot = k.indexOf('.')
-  return dot < 0 ? S?.[k] : (isMap(S?.[k.slice(0, dot)]) ? S[k.slice(0, dot)][k.slice(dot + 1)] : undefined)
+  return dot < 0 ? S?.[k] : isMap(S?.[k.slice(0, dot)]) ? S[k.slice(0, dot)][k.slice(dot + 1)] : undefined
 }
 /**
  * In an Undo's draft `s`, after it put things back: marks every setting and plan day of `marks`
@@ -354,11 +514,13 @@ export function stampEntry(old, x, now) {
   const f = isMap(old._f) ? { ...old._f } : {}
   for (const k of new Set([...Object.keys(old), ...Object.keys(x)])) {
     if (ENTRY_META.has(k)) continue
-    if ((k in old) !== (k in x) || !sameJSON(old[k], x[k])) f[k] = now
+    if (k in old !== k in x || !sameJSON(old[k], x[k])) f[k] = now
   }
-  if (Object.keys(f).length) x._f = f; else delete x._f
+  if (Object.keys(f).length) x._f = f
+  else delete x._f
   const u = settleMarks(x._u, f, now)
-  if (u) x._u = u; else delete x._u
+  if (u) x._u = u
+  else delete x._u
   return x
 }
 
@@ -375,16 +537,30 @@ export function mergeEntry(a, b, deterministic = false) {
   let bumped = 0
   for (const k of new Set([...Object.keys(n), ...Object.keys(o), ...Object.keys(f)])) {
     if (ENTRY_META.has(k)) continue
-    const tn = fieldTime(n, k), to = fieldTime(o, k)
+    const tn = fieldTime(n, k),
+      to = fieldTime(o, k)
     let [side, at] = undoPick(tn, undoOf(n._u, k, tn), to, undoOf(o._u, k, to))
     if (!side && deterministic) side = winsTie(o[k], n[k]) ? 'y' : 'x'
-    if (side === 'y') { if (k in o) out[k] = clone(o[k]); else delete out[k] }
-    if (at > Math.max(tn, to)) { f[k] = at; bumped = Math.max(bumped, at) }
-    const kept = side === 'y' ? undoOf(o._u, k, at) : side === 'x' ? undoOf(n._u, k, at) : undoOf(n._u, k, at) || undoOf(o._u, k, at)
+    if (side === 'y') {
+      if (k in o) out[k] = clone(o[k])
+      else delete out[k]
+    }
+    if (at > Math.max(tn, to)) {
+      f[k] = at
+      bumped = Math.max(bumped, at)
+    }
+    const kept =
+      side === 'y'
+        ? undoOf(o._u, k, at)
+        : side === 'x'
+          ? undoOf(n._u, k, at)
+          : undoOf(n._u, k, at) || undoOf(o._u, k, at)
     if (kept) u[k] = clone(kept)
   }
-  if (Object.keys(f).length) out._f = f; else delete out._f
-  if (Object.keys(u).length) out._u = u; else delete out._u
+  if (Object.keys(f).length) out._f = f
+  else delete out._f
+  if (Object.keys(u).length) out._u = u
+  else delete out._u
   const ts = Math.max(Number(a?._ts) || 0, Number(b?._ts) || 0, bumped)
   if (ts) out._ts = ts
   return out
@@ -402,13 +578,18 @@ export function mergeStampedMap(newer, older, prefer, deterministic = false) {
   const n = isMap(newer) ? newer : {}
   const o = isMap(older) ? older : {}
   const out = { ...o, ...n }
-  if (!prefer) for (const k of Object.keys(o)) if (k in n && (stampOf(o[k]) > stampOf(n[k]) ||
-    (deterministic && stampOf(o[k]) === stampOf(n[k]) && winsTie(o[k], n[k])))) out[k] = o[k]
+  if (!prefer)
+    for (const k of Object.keys(o))
+      if (
+        k in n &&
+        (stampOf(o[k]) > stampOf(n[k]) || (deterministic && stampOf(o[k]) === stampOf(n[k]) && winsTie(o[k], n[k])))
+      )
+        out[k] = o[k]
   return out
 }
 
-const unitOf = S => (S?.unit === 'lb' ? 'lb' : 'kg')
-const unitStamp = S => Number(S?.unitSet?.at) || 0
+const unitOf = (S) => (S?.unit === 'lb' ? 'lb' : 'kg')
+const unitStamp = (S) => Number(S?.unitSet?.at) || 0
 
 /**
  * `follow` in the unit of `lead`: converted, or only relabelled when `lead`'s last switch kept the
@@ -422,27 +603,33 @@ export function inUnitOf(follow, lead) {
 }
 
 /** When the entries of a copy were made — what sinceReset holds against a reset without ids. */
-const workoutTime = w => Number(w?._ts) || Number(w?.end) || Number(w?.start) || 0
+const workoutTime = (w) => Number(w?._ts) || Number(w?.end) || Number(w?.start) || 0
 
 // What a reset records of the entries it wiped (resetIds), by field: how an entry is named.
-const bodyweightKey = e => `${e?.d}|${e?.t ?? ''}`
+const bodyweightKey = (e) => `${e?.d}|${e?.t ?? ''}`
 const RESET_LISTS = {
-  workouts: workoutKey, routines: x => x?.id, customEx: x => x?.id, bodyweight: bodyweightKey,
-  measurements: bodyweightKey, gymCards: x => x?.id, equipProfiles: x => x?.id, favEx: x => x,
+  workouts: workoutKey,
+  routines: (x) => x?.id,
+  customEx: (x) => x?.id,
+  bodyweight: bodyweightKey,
+  measurements: bodyweightKey,
+  gymCards: (x) => x?.id,
+  equipProfiles: (x) => x?.id,
+  favEx: (x) => x
 }
-const RESET_MAPS = ['exNotes', 'barWeights', ...STAMPED_MAPS]
+const RESET_MAPS = ['exNotes', 'barWeights', 'exAliases', 'exShownName', 'programmes', ...STAMPED_MAPS]
 /** An entry's name in resetIds: a workout's id (or day and start), a weigh-in's day and time, … */
 export const entryKey = (field, x) => String(RESET_LISTS[field](x))
 // Per field, the most names a reset keeps — far more workouts than anyone logs, and a bound on
 // the document all the same. Past it the oldest names go first.
 export const RESET_ID_MAX = 20000
-const capIds = xs => (xs.length > RESET_ID_MAX ? xs.slice(xs.length - RESET_ID_MAX) : xs)
+const capIds = (xs) => (xs.length > RESET_ID_MAX ? xs.slice(xs.length - RESET_ID_MAX) : xs)
 
 /** Every field's names from `a` then `b`, each once, capped (see RESET_ID_MAX). */
 export function mergeResetIds(a, b) {
   const out = {}
   for (const f of [...Object.keys(RESET_LISTS), ...RESET_MAPS]) {
-    const xs = [...new Set([...list(a?.[f]), ...list(b?.[f])].filter(k => k != null).map(String))]
+    const xs = [...new Set([...list(a?.[f]), ...list(b?.[f])].filter((k) => k != null).map(String))]
     if (xs.length) out[f] = capIds(xs)
   }
   return out
@@ -454,7 +641,10 @@ export function resetIdsOf(...copies) {
   for (const S of copies) {
     if (!S || typeof S !== 'object') continue
     const one = {}
-    for (const [f, key] of Object.entries(RESET_LISTS)) one[f] = list(S[f]).filter(x => x != null).map(key)
+    for (const [f, key] of Object.entries(RESET_LISTS))
+      one[f] = list(S[f])
+        .filter((x) => x != null)
+        .map(key)
     for (const f of RESET_MAPS) one[f] = Object.keys(isMap(S[f]) ? S[f] : {})
     out = mergeResetIds(out, one)
   }
@@ -471,24 +661,27 @@ export function sinceReset(S, at, ids) {
   if (ids && typeof ids === 'object') {
     for (const [f, key] of Object.entries(RESET_LISTS)) {
       const gone = new Set(list(ids[f]).map(String))
-      if (Array.isArray(S[f])) out[f] = clone(S[f].filter(x => x == null || !gone.has(String(key(x)))))
+      if (Array.isArray(S[f])) out[f] = clone(S[f].filter((x) => x == null || !gone.has(String(key(x)))))
     }
     for (const f of RESET_MAPS) {
       const gone = new Set(list(ids[f]).map(String))
       if (isMap(S[f])) out[f] = clone(Object.fromEntries(Object.entries(S[f]).filter(([k]) => !gone.has(k))))
     }
   } else {
-    const after = v => (Number(v) || 0) > at
-    out.workouts = list(S.workouts).filter(w => w && after(workoutTime(w)))
-    out.routines = list(S.routines).filter(r => r && after(r._ts))
-    out.customEx = list(S.customEx).filter(c => c && after(c._ts))
-    out.bodyweight = list(S.bodyweight).filter(e => e && after(e.t))
-    out.measurements = list(S.measurements).filter(e => e && after(e.t))
+    const after = (v) => (Number(v) || 0) > at
+    out.workouts = list(S.workouts).filter((w) => w && after(workoutTime(w)))
+    out.routines = list(S.routines).filter((r) => r && after(r._ts))
+    out.customEx = list(S.customEx).filter((c) => c && after(c._ts))
+    out.bodyweight = list(S.bodyweight).filter((e) => e && after(e.t))
+    out.measurements = list(S.measurements).filter((e) => e && after(e.t))
     // No time of their own: taken for what they were before the reset, which cleared them.
     out.equipProfiles = []
     out.gymCards = []
     out.favEx = []
     out.exNotes = {}
+    out.exAliases = {}
+    out.exShownName = {}
+    out.programmes = {}
     out.barWeights = {}
     for (const f of STAMPED_MAPS) {
       out[f] = Object.fromEntries(Object.entries(isMap(S[f]) ? S[f] : {}).filter(([, v]) => after(stampOf(v))))
@@ -503,6 +696,13 @@ export function sinceReset(S, at, ids) {
     }
   }
   out.exWeights = ex
+  // The Coach's history is joined, not replaced (mergeCoach), so what this copy said to the Coach
+  // before the reset goes here: only lines, log entries and snapshots from after it stay.
+  if (isMap(out.coach)) {
+    for (const f of ['chat', 'log', 'snapshots']) {
+      if (Array.isArray(out.coach[f])) out.coach[f] = out.coach[f].filter((x) => (Number(x?.at) || 0) > at)
+    }
+  }
   // The reset copy's settings, plan and unit win whatever this copy's own stamps say (the file's
   // header): stamps from before the reset would otherwise outrank the fresh profile's defaults,
   // a unit switch made long ago would bring the old unit back over the reset's.
@@ -524,20 +724,30 @@ export function sinceReset(S, at, ids) {
 // brings back the workout, routine or custom exercise deleted meanwhile. An edit made after the
 // removal (the entry's own `_ts`, a weigh-in's `t`) keeps it, as does an add-back stamped later.
 const DEL_LISTS = {
-  workouts: workoutKey, routines: x => x?.id, customEx: x => x?.id, bodyweight: e => e?.d,
-  measurements: e => e?.d, gymCards: x => x?.id, equipProfiles: x => x?.id, favEx: x => x,
+  workouts: workoutKey,
+  routines: (x) => x?.id,
+  customEx: (x) => x?.id,
+  bodyweight: (e) => e?.d,
+  measurements: (e) => e?.d,
+  gymCards: (x) => x?.id,
+  equipProfiles: (x) => x?.id,
+  favEx: (x) => x
 }
 // When an entry was last edited, to hold against a removal. Entries with no time of their own
 // (favourites, and cards and profiles saved before they were stamped) count as older than any
 // removal.
 const DEL_TIME = {
-  workouts: workoutTime, routines: x => Number(x?._ts) || 0, customEx: x => Number(x?._ts) || 0,
-  bodyweight: e => Number(e?.t) || 0, measurements: e => Number(e?.t) || 0,
-  gymCards: x => Number(x?._ts) || 0, equipProfiles: x => Number(x?._ts) || 0,
+  workouts: workoutTime,
+  routines: (x) => Number(x?._ts) || 0,
+  customEx: (x) => Number(x?._ts) || 0,
+  bodyweight: (e) => Number(e?.t) || 0,
+  measurements: (e) => Number(e?.t) || 0,
+  gymCards: (x) => Number(x?._ts) || 0,
+  equipProfiles: (x) => Number(x?._ts) || 0
 }
 // Per field, the most stamps kept; past it the oldest go first.
 export const DELETED_MAX = 5000
-const capStamps = m => {
+const capStamps = (m) => {
   const ks = Object.keys(m)
   if (ks.length <= DELETED_MAX) return m
   ks.sort((x, y) => Math.abs(m[x]) - Math.abs(m[y]))
@@ -555,9 +765,10 @@ export function stampDeletions(prev, next, now = Date.now()) {
   const del = isMap(next.deleted) ? next.deleted : {}
   let touched = false
   for (const [f, key] of Object.entries(DEL_LISTS)) {
-    const before = list(prev?.[f]), after = list(next[f])
+    const before = list(prev?.[f]),
+      after = list(next[f])
     if (before === after) continue
-    const have = new Set(after.filter(x => x != null).map(x => String(key(x))))
+    const have = new Set(after.filter((x) => x != null).map((x) => String(key(x))))
     const m = isMap(del[f]) ? del[f] : {}
     let changed = false
     const time = DEL_TIME[f] || (() => 0)
@@ -566,7 +777,10 @@ export function stampDeletions(prev, next, now = Date.now()) {
       const k = String(key(x))
       // Never stamped before the entry's own time: a removal is always after what it removed,
       // whatever this device's clock says (stampChange).
-      if (!have.has(k)) { m[k] = Math.max(now, time(x) + 1); changed = true }
+      if (!have.has(k)) {
+        m[k] = Math.max(now, time(x) + 1)
+        changed = true
+      }
     }
     // Added back: only a key this change brought in, not every key the copy merely still holds.
     // A copy keeps an entry whose removal it has on record when that entry was edited after the
@@ -574,12 +788,18 @@ export function stampDeletions(prev, next, now = Date.now()) {
     // stale copy outrank a later removal from another device, and the entry came back everywhere.
     // A favourite has no edit time of its own, so a star is always stamped: a device that never
     // saw the earlier unstar must still win against it with the star it set later.
-    const had = new Set(before.filter(x => x != null).map(x => String(key(x))))
+    const had = new Set(before.filter((x) => x != null).map((x) => String(key(x))))
     for (const k of have) {
       if (had.has(k)) continue
-      if (k in m ? m[k] > 0 : f === 'favEx') { m[k] = -now; changed = true }
+      if (k in m ? m[k] > 0 : f === 'favEx') {
+        m[k] = -now
+        changed = true
+      }
     }
-    if (changed) { del[f] = capStamps(m); touched = true }
+    if (changed) {
+      del[f] = capStamps(m)
+      touched = true
+    }
   }
   if (touched) next.deleted = del
   return next
@@ -587,14 +807,16 @@ export function stampDeletions(prev, next, now = Date.now()) {
 
 // Whether removal record `v` replaces `cur`: the later stamp, and on a tie the add-back.
 const laterDel = (v, cur) => {
-  const x = Number(v) || 0, y = Number(cur) || 0
+  const x = Number(v) || 0,
+    y = Number(cur) || 0
   return Math.abs(x) > Math.abs(y) || (Math.abs(x) === Math.abs(y) && x < y)
 }
 /** Both copies' records of removals: per entry, the later stamp. */
 export function mergeDeletions(a, b) {
   const out = {}
   for (const f of Object.keys(DEL_LISTS)) {
-    const x = isMap(a?.[f]) ? a[f] : {}, y = isMap(b?.[f]) ? b[f] : {}
+    const x = isMap(a?.[f]) ? a[f] : {},
+      y = isMap(b?.[f]) ? b[f] : {}
     const m = { ...x }
     // On equal stamps the add-back (negative) wins, whichever copy is first: two devices whose
     // clocks were lifted from the same stamp can record an Undo and a removal at the same time,
@@ -616,7 +838,7 @@ function applyDeletions(S, deleted) {
     const m = deleted[f]
     if (!isMap(m) || !Array.isArray(S[f])) continue
     const time = DEL_TIME[f] || (() => 0)
-    S[f] = S[f].filter(x => {
+    S[f] = S[f].filter((x) => {
       if (x == null) return true
       const at = Number(m[String(key(x))]) || 0
       const drop = at > 0 && at >= time(x)
@@ -638,20 +860,79 @@ function applyDeletions(S, deleted) {
 // a rotation pass refilled on the phone survives a setting flipped on the desktop. Fields with a
 // merge of their own are not stamped here; a field nobody stamped follows the newer copy, as before.
 const OWN_MERGE = new Set([
-  '_ts', '_rev', '_wid', '_wids', '_unstamped', '_prior', 'active', 'unit', 'unitSet', 'resetAt', 'resetIds', 'deleted', 'edited', 'undone', 'routineOrder',
-  'workouts', 'routines', 'customEx', 'equipProfiles', 'gymCards', 'bodyweight', 'measurements', 'favEx',
-  'exWeights', 'balanceOverrides', 'loadKind', 'plates', 'dbLoad', 'dumbbells', 'dayNotes',
+  '_ts',
+  '_rev',
+  '_wid',
+  '_wids',
+  '_unstamped',
+  '_prior',
+  'active',
+  'unit',
+  'unitSet',
+  'resetAt',
+  'resetIds',
+  'deleted',
+  'edited',
+  'undone',
+  'routineOrder',
+  'workouts',
+  'routines',
+  'customEx',
+  'equipProfiles',
+  'gymCards',
+  'bodyweight',
+  'measurements',
+  'favEx',
+  'exWeights',
+  'balanceOverrides',
+  'loadKind',
+  'plates',
+  'dbLoad',
+  'dumbbells',
+  'stackWeights',
+  'exUnit',
+  'dayNotes',
+  'dayPhotos',
+  'exMerged',
+  'exGym',
+  'sessionTargets',
+  'exMedia',
+  'recoverySessions',
+  'gymNotes',
+  'journalFolders',
+  'dayForm',
+  'activities'
 ])
-// Stamped per key instead of whole: one day of the plan, one exercise's note or bar.
-const PER_KEY = new Set(['week', 'dayPlan', 'exNotes', 'barWeights'])
+// Stamped per key instead of whole: one day of the plan, one exercise's note or bar, one programme
+// (lib/programmes.js; the running one, `programme`, is a plain setting).
+// `modules` (lib/modules.js): one switch per feature area, so Body off on the phone and Seasonal off
+// on the laptop both hold.
+// bandEx (lib/bands.js): which exercises use bands, per exercise like exNotes.
+const PER_KEY = new Set([
+  'week',
+  'dayPlan',
+  'exNotes',
+  'barWeights',
+  'exAliases',
+  'exShownName',
+  'programmes',
+  'modules',
+  'bandEx'
+])
 // The order of the routines, as the list shows them, is a choice of its own (`edited.routineOrder`):
 // a reorder on one device was lost to the other's whole copy whenever that one was newer.
 export const ORDER_KEY = 'routineOrder'
 // Whether two lists hold the routines both have in a different order (added or removed ones aside).
 export function orderMoved(a, b) {
-  const ida = list(a).map(r => r?.id).filter(id => id != null), idb = list(b).map(r => r?.id).filter(id => id != null)
-  const inA = new Set(ida), inB = new Set(idb)
-  return JSON.stringify(ida.filter(id => inB.has(id))) !== JSON.stringify(idb.filter(id => inA.has(id)))
+  const ida = list(a)
+      .map((r) => r?.id)
+      .filter((id) => id != null),
+    idb = list(b)
+      .map((r) => r?.id)
+      .filter((id) => id != null)
+  const inA = new Set(ida),
+    inB = new Set(idb)
+  return JSON.stringify(ida.filter((id) => inB.has(id))) !== JSON.stringify(idb.filter((id) => inA.has(id)))
 }
 // A per-key stamp of a key neither copy holds any more is dropped after this long.
 const EDIT_KEEP_MS = 180 * 86400000
@@ -667,16 +948,27 @@ export function stampEdits(prev, next, now = Date.now()) {
   let touched = false
   for (const k of new Set([...Object.keys(prev || {}), ...Object.keys(next)])) {
     if (OWN_MERGE.has(k)) continue
-    const p = prev?.[k], n = next[k]
+    const p = prev?.[k],
+      n = next[k]
     if (PER_KEY.has(k)) {
-      const pm = isMap(p) ? p : {}, nm = isMap(n) ? n : {}
+      const pm = isMap(p) ? p : {},
+        nm = isMap(n) ? n : {}
       if (p === n) continue
       for (const s of new Set([...Object.keys(pm), ...Object.keys(nm)])) {
-        if ((s in pm) !== (s in nm) || !same(pm[s], nm[s])) { ed[`${k}.${s}`] = now; touched = true }
+        if (s in pm !== s in nm || !same(pm[s], nm[s])) {
+          ed[`${k}.${s}`] = now
+          touched = true
+        }
       }
-    } else if (p !== n && !same(p, n)) { ed[k] = now; touched = true }
+    } else if (p !== n && !same(p, n)) {
+      ed[k] = now
+      touched = true
+    }
   }
-  if (prev && prev.routines !== next.routines && orderMoved(prev.routines, next.routines)) { ed[ORDER_KEY] = now; touched = true }
+  if (prev && prev.routines !== next.routines && orderMoved(prev.routines, next.routines)) {
+    ed[ORDER_KEY] = now
+    touched = true
+  }
   // An own accent colour is one choice made in two fields: picking a new colour while the own
   // colour is already on changes only accentCustom, and a preset picked earlier on another device
   // then kept `accent` and won (QA 2026-10-06). Either one changed to an own colour stamps both.
@@ -697,14 +989,16 @@ export function stampEdits(prev, next, now = Date.now()) {
   // their setting moved on.
   if ('undone' in next) {
     const u = settleMarks(next.undone, ed, now)
-    if (u) next.undone = u; else delete next.undone
+    if (u) next.undone = u
+    else delete next.undone
   }
   return next
 }
 
 /** Both copies' edit stamps: per key, the later one. */
 export function mergeEdits(a, b) {
-  const x = isMap(a) ? a : {}, y = isMap(b) ? b : {}
+  const x = isMap(a) ? a : {},
+    y = isMap(b) ? b : {}
   const out = { ...x }
   for (const [k, v] of Object.entries(y)) if (!((Number(out[k]) || 0) >= (Number(v) || 0))) out[k] = v
   return Object.keys(out).length ? out : null
@@ -716,17 +1010,20 @@ export function mergeEdits(a, b) {
  * nobody stamped stays as it is.
  */
 function applyEdits(out, n, o, deterministic = false) {
-  const en = isMap(n.edited) ? n.edited : {}, eo = isMap(o.edited) ? o.edited : {}
+  const en = isMap(n.edited) ? n.edited : {},
+    eo = isMap(o.edited) ? o.edited : {}
   const bumps = {}
   for (const k of new Set([...Object.keys(en), ...Object.keys(eo)])) {
-    const tn = Number(en[k]) || 0, to = Number(eo[k]) || 0
-    const un = undoOf(n.undone, k, tn), uo = undoOf(o.undone, k, to)
+    const tn = Number(en[k]) || 0,
+      to = Number(eo[k]) || 0
+    const un = undoOf(n.undone, k, tn),
+      uo = undoOf(o.undone, k, to)
     if (tn === to && !un === !uo && !deterministic) continue
     // An Undo's marker can hand the field to the side whose stamp is older (see "Undo" above).
     let [side, at] = undoPick(tn, un, to, uo)
     if (!side && deterministic) {
       const dot = k.indexOf('.')
-      const value = s => dot < 0 ? s[k] : s[k.slice(0, dot)]?.[k.slice(dot + 1)]
+      const value = (s) => (dot < 0 ? s[k] : s[k.slice(0, dot)]?.[k.slice(dot + 1)])
       side = winsTie(value(o), value(n)) ? 'y' : 'x'
     }
     if (at > Math.max(tn, to)) bumps[k] = at
@@ -734,14 +1031,17 @@ function applyEdits(out, n, o, deterministic = false) {
     const dot = k.indexOf('.')
     if (dot < 0) {
       if (OWN_MERGE.has(k) || PER_KEY.has(k)) continue
-      if (k in src) out[k] = clone(src[k]); else delete out[k]
+      if (k in src) out[k] = clone(src[k])
+      else delete out[k]
       continue
     }
-    const f = k.slice(0, dot), s = k.slice(dot + 1)
+    const f = k.slice(0, dot),
+      s = k.slice(dot + 1)
     if (!PER_KEY.has(f)) continue
     const from = isMap(src[f]) ? src[f] : {}
     const into = isMap(out[f]) ? out[f] : (out[f] = {})
-    if (s in from) into[s] = clone(from[s]); else delete into[s]
+    if (s in from) into[s] = clone(from[s])
+    else delete into[s]
   }
   return bumps
 }
@@ -750,18 +1050,28 @@ function applyEdits(out, n, o, deterministic = false) {
 // on sign-in the server's profile is the truth and the device only contributes the entries it
 // logged while signed out. Without it the newer copy decides, as for a conflict between devices.
 export function mergeStates(a0, b0, { prefer, deterministic = false } = {}) {
-  if (deterministic && !prefer) { a0 = cloudProvenance(a0); b0 = cloudProvenance(b0) }
+  if (deterministic && !prefer) {
+    a0 = cloudProvenance(a0)
+    b0 = cloudProvenance(b0)
+  }
   if (!a0) return b0 ? clone(b0) : b0
   if (!b0) return clone(a0)
-  let a = a0, b = b0
+  let a = a0,
+    b = b0
   // A reset seen by one copy only: the other keeps what was made after it, and the reset copy
   // decides the rest (the file's header).
   let side = prefer === 'a' || prefer === 'b' ? prefer : newerOf(a, b) === a ? 'a' : 'b'
   if (!prefer && deterministic && (a._ts || 0) === (b._ts || 0)) side = winsTie(b, a) ? 'b' : 'a'
-  const ra = Number(a.resetAt) || 0, rb = Number(b.resetAt) || 0
+  const ra = Number(a.resetAt) || 0,
+    rb = Number(b.resetAt) || 0
   if (!prefer) {
-    if (ra > rb) { b = sinceReset(b, ra, a.resetIds); side = 'a' }
-    else if (rb > ra) { a = sinceReset(a, rb, b.resetIds); side = 'b' }
+    if (ra > rb) {
+      b = sinceReset(b, ra, a.resetIds)
+      side = 'a'
+    } else if (rb > ra) {
+      a = sinceReset(a, rb, b.resetIds)
+      side = 'b'
+    }
   }
   // The reset stamp only moves forward, with the names it wiped. With `prefer` it is the
   // preferred side's: a reset made on a guest copy, or on a phone in local mode, wiped that copy,
@@ -769,22 +1079,44 @@ export function mergeStates(a0, b0, { prefer, deterministic = false } = {}) {
   // its unsent settings and plan as if the account had been reset (a backup import keeps the
   // stamp of the copy it replaces on its own, keepReset).
   const resetAt = prefer ? (prefer === 'a' ? ra : rb) : Math.max(ra, rb)
-  const resetIds = prefer ? (prefer === 'a' ? a0 : b0).resetIds || null
-    : ra === rb ? (a0.resetIds || b0.resetIds ? mergeResetIds(a0.resetIds, b0.resetIds) : null)
-    : (ra > rb ? a0 : b0).resetIds || null
+  const resetIds = prefer
+    ? (prefer === 'a' ? a0 : b0).resetIds || null
+    : ra === rb
+      ? a0.resetIds || b0.resetIds
+        ? mergeResetIds(a0.resetIds, b0.resetIds)
+        : null
+      : (ra > rb ? a0 : b0).resetIds || null
   // One unit before anything is compared.
   let lead = null
   if (unitOf(a) !== unitOf(b)) {
-    lead = !prefer && deterministic && unitStamp(a) === unitStamp(b)
-      ? winsTie({ unit: b.unit, unitSet: b.unitSet }, { unit: a.unit, unitSet: a.unitSet }) ? b : a
-      : prefer || unitStamp(a) === unitStamp(b) ? (side === 'a' ? a : b) : unitStamp(a) > unitStamp(b) ? a : b
-    if (lead === a) b = inUnitOf(b, a); else a = inUnitOf(a, b)
+    lead =
+      !prefer && deterministic && unitStamp(a) === unitStamp(b)
+        ? winsTie({ unit: b.unit, unitSet: b.unitSet }, { unit: a.unit, unitSet: a.unitSet })
+          ? b
+          : a
+        : prefer || unitStamp(a) === unitStamp(b)
+          ? side === 'a'
+            ? a
+            : b
+          : unitStamp(a) > unitStamp(b)
+            ? a
+            : b
+    if (lead === a) b = inUnitOf(b, a)
+    else a = inUnitOf(a, b)
   }
   const n = side === 'a' ? a : b
   const o = n === a ? b : a
   const out = clone(n)
   // The unit is the lead's by now; so is the record of choosing it.
-  const unitBy = lead || (deterministic && unitStamp(a) === unitStamp(b) ? winsTie(b.unitSet, a.unitSet) ? b : a : unitStamp(a) >= unitStamp(b) ? a : b)
+  const unitBy =
+    lead ||
+    (deterministic && unitStamp(a) === unitStamp(b)
+      ? winsTie(b.unitSet, a.unitSet)
+        ? b
+        : a
+      : unitStamp(a) >= unitStamp(b)
+        ? a
+        : b)
   if (unitBy.unitSet) out.unitSet = clone(unitBy.unitSet)
   out.workouts = unionById(n.workouts, o.workouts, workoutKey).map(clone)
   // A workout edited after it was logged keeps the version edited last, whichever copy is newer
@@ -794,8 +1126,8 @@ export function mergeStates(a0, b0, { prefer, deterministic = false } = {}) {
   const editedBy = new Map()
   if (!prefer) {
     const mine = new Set(list(n.workouts).map(workoutKey))
-    const other = new Map(list(o.workouts).map(w => [workoutKey(w), w]))
-    out.workouts = out.workouts.map(w => {
+    const other = new Map(list(o.workouts).map((w) => [workoutKey(w), w]))
+    out.workouts = out.workouts.map((w) => {
       const key = workoutKey(w)
       const alt = mine.has(key) ? other.get(key) : null
       if (!alt) return w
@@ -818,25 +1150,45 @@ export function mergeStates(a0, b0, { prefer, deterministic = false } = {}) {
   // `prefer` too: signing in must not drop a photo added while signed out any more than a
   // conflict may.
   {
-    const nBy = new Map(list(n.workouts).map(w => [workoutKey(w), w]))
-    const oBy = new Map(list(o.workouts).map(w => [workoutKey(w), w]))
+    const nBy = new Map(list(n.workouts).map((w) => [workoutKey(w), w]))
+    const oBy = new Map(list(o.workouts).map((w) => [workoutKey(w), w]))
     for (const w of out.workouts) {
       const key = workoutKey(w)
-      const x = nBy.get(key), y = oBy.get(key)
-      if (x && y) { mergeWorkoutMedia(w, x); mergeWorkoutMedia(w, y) }
+      const x = nBy.get(key),
+        y = oBy.get(key)
+      if (x && y) {
+        mergeWorkoutMedia(w, x)
+        mergeWorkoutMedia(w, y)
+      }
     }
   }
   out.workouts.sort(byDayStart)
   for (const f of ['routines', 'customEx', 'equipProfiles', 'gymCards']) {
-    if (list(n[f]).length || list(o[f]).length) out[f] = (f === 'routines' ? unionByNeighbours : unionById)(n[f], o[f]).map(clone)
+    if (list(n[f]).length || list(o[f]).length)
+      out[f] = (f === 'routines' ? unionByNeighbours : unionById)(n[f], o[f]).map(clone)
   }
   // The routines in the order chosen last (`edited.routineOrder`), the newer copy's without a
   // stamp to tell; one only the other copy has still goes next to its neighbour there. Each entry
   // is still the newer copy's version here, merged with the other's below.
-  if (!prefer && out.routines && ((Number(o.edited?.[ORDER_KEY]) || 0) > (Number(n.edited?.[ORDER_KEY]) || 0) ||
-    (deterministic && (o.edited?.[ORDER_KEY] || 0) === (n.edited?.[ORDER_KEY] || 0) && winsTie(list(o.routines).map(r => r.id), list(n.routines).map(r => r.id))))) {
-    const mine = new Map(list(n.routines).filter(r => r?.id != null).map(r => [r.id, r]))
-    out.routines = unionByNeighbours(o.routines, n.routines).map(r => clone(r?.id != null && mine.has(r.id) ? mine.get(r.id) : r))
+  if (
+    !prefer &&
+    out.routines &&
+    ((Number(o.edited?.[ORDER_KEY]) || 0) > (Number(n.edited?.[ORDER_KEY]) || 0) ||
+      (deterministic &&
+        (o.edited?.[ORDER_KEY] || 0) === (n.edited?.[ORDER_KEY] || 0) &&
+        winsTie(
+          list(o.routines).map((r) => r.id),
+          list(n.routines).map((r) => r.id)
+        )))
+  ) {
+    const mine = new Map(
+      list(n.routines)
+        .filter((r) => r?.id != null)
+        .map((r) => [r.id, r])
+    )
+    out.routines = unionByNeighbours(o.routines, n.routines).map((r) =>
+      clone(r?.id != null && mine.has(r.id) ? mine.get(r.id) : r)
+    )
   }
   // A routine edited on both sides keeps the version edited last. Taking the newer copy's
   // version dropped a plan edit made on one device whenever the other had since logged a set or
@@ -848,16 +1200,21 @@ export function mergeStates(a0, b0, { prefer, deterministic = false } = {}) {
   if (!prefer) {
     for (const f of ['routines', 'customEx', 'equipProfiles', 'gymCards']) {
       if (!out[f]) continue
-      const other = new Map(list(o[f]).filter(x => x?.id != null).map(x => [x.id, x]))
-      out[f] = out[f].map(x => {
+      const other = new Map(
+        list(o[f])
+          .filter((x) => x?.id != null)
+          .map((x) => [x.id, x])
+      )
+      out[f] = out[f].map((x) => {
         const alt = x?.id != null && other.get(x.id)
         return alt ? mergeEntry(x, alt, deterministic) : x
       })
     }
   }
-  out.bodyweight = mergeBodyweight(n.bodyweight, o.bodyweight, deterministic).map(clone)
+  out.bodyweight = mergeBodyweight(n.bodyweight, o.bodyweight, dailyModeOf(out), deterministic).map(clone)
   // A day's body measurements are one check-in, kept and merged the way a weigh-in is.
-  if (list(n.measurements).length || list(o.measurements).length) out.measurements = mergeBodyweight(n.measurements, o.measurements, deterministic).map(clone)
+  if (list(n.measurements).length || list(o.measurements).length)
+    out.measurements = mergeBodyweight(n.measurements, o.measurements, 'first', deterministic).map(clone)
   if (list(n.favEx).length || list(o.favEx).length) out.favEx = [...new Set([...list(n.favEx), ...list(o.favEx)])]
   // What either device removed stays removed (the `deleted` section above). A workout taken out
   // this way leaves its exercises' kept loads to be read again, as an edit of it would: from the
@@ -865,10 +1222,12 @@ export function mergeStates(a0, b0, { prefer, deterministic = false } = {}) {
   // With `prefer` only the preferred side's removals count: a guest's are about the guest's own
   // entries, and keyed by day (weigh-ins) or exercise (favourites) they also named the account's
   // weigh-in of that day and its favourite, which the guest never had.
-  const deleted = prefer ? mergeDeletions(prefer === 'a' ? a.deleted : b.deleted, null) : mergeDeletions(a.deleted, b.deleted)
+  const deleted = prefer
+    ? mergeDeletions(prefer === 'a' ? a.deleted : b.deleted, null)
+    : mergeDeletions(a.deleted, b.deleted)
   for (const w of applyDeletions(out, deleted)) {
     const k = String(workoutKey(w))
-    const by = [n, o].filter(S => Number(S.deleted?.workouts?.[k]) > 0).map(S => S.exWeights)
+    const by = [n, o].filter((S) => Number(S.deleted?.workouts?.[k]) > 0).map((S) => S.exWeights)
     for (const e of list(w.entries)) {
       if (e?.id == null) continue
       if (!editedBy.has(e.id)) editedBy.set(e.id, new Set())
@@ -881,7 +1240,7 @@ export function mergeStates(a0, b0, { prefer, deterministic = false } = {}) {
     if (kept) out.exWeights[id] = clone(kept)
     else delete out.exWeights[id]
   }
-  for (const f of ['exNotes', 'barWeights']) {
+  for (const f of ['exNotes', 'barWeights', 'exAliases', 'exShownName', 'programmes', 'modules']) {
     if (n[f] || o[f]) out[f] = clone({ ...(o[f] || {}), ...(n[f] || {}) })
   }
   // The plate-loading choices (lib/plates.js) are stamped the same way: an exercise's loading and
@@ -895,17 +1254,38 @@ export function mergeStates(a0, b0, { prefer, deterministic = false } = {}) {
   if (!prefer) {
     const bumps = applyEdits(out, n, o, deterministic)
     const edited = mergeEdits(n.edited, o.edited)
-    if (edited) { Object.assign(edited, bumps); out.edited = edited } else delete out.edited
+    if (edited) {
+      Object.assign(edited, bumps)
+      out.edited = edited
+    } else delete out.edited
     // An Undo's markers that still describe the merged stamp of their setting.
     const undone = {}
-    for (const k of new Set([...Object.keys(isMap(n.undone) ? n.undone : {}), ...Object.keys(isMap(o.undone) ? o.undone : {})])) {
+    for (const k of new Set([
+      ...Object.keys(isMap(n.undone) ? n.undone : {}),
+      ...Object.keys(isMap(o.undone) ? o.undone : {})
+    ])) {
       const at = Number(edited?.[k]) || 0
       const m = undoOf(n.undone, k, at) || undoOf(o.undone, k, at)
       if (m && !(k in bumps)) undone[k] = clone(m)
     }
-    if (Object.keys(undone).length) out.undone = undone; else delete out.undone
+    if (Object.keys(undone).length) out.undone = undone
+    else delete out.undone
+    // The Coach's conversation, log and Undo snapshots from both copies (mergeCoach), whichever
+    // changed `coach` last.
+    if (isMap(out.coach)) {
+      const other = sameJSON(out.coach, n.coach) ? o.coach : n.coach
+      if (isMap(other)) out.coach = mergeCoach(out.coach, other)
+    }
   }
-  if (deleted) out.deleted = deleted; else delete out.deleted
+  // The advent calendar (lib/advent.js): a door opened on either device stays open, and so does a
+  // ticked challenge, whichever copy changed the field last. A calendar of a later year wins.
+  const advent = mergeAdvent(n.advent, o.advent)
+  if (advent) out.advent = advent
+  // The monthly challenges (lib/challenges.js): a badge earned on either device stays earned.
+  const challenges = mergeChallenges(n.challenges, o.challenges)
+  if (challenges) out.challenges = challenges
+  if (deleted) out.deleted = deleted
+  else delete out.deleted
   out._ts = Math.max(a._ts || 0, b._ts || 0)
   if (resetAt) out.resetAt = resetAt
   if (resetIds) out.resetIds = resetIds
@@ -913,18 +1293,25 @@ export function mergeStates(a0, b0, { prefer, deterministic = false } = {}) {
   delete out._rev
   delete out._wid
   delete out._wids
-  delete out._unstamped   // the server's own notes (api/sync-stamps.js), never a client's
+  delete out._unstamped // the server's own notes (api/sync-stamps.js), never a client's
   delete out._prior
   if (deterministic && !prefer) {
     // Collections with no user-defined order need a stable representation too.
     out.workouts.sort((a, b) => byDayStart(a, b) || String(workoutKey(a)).localeCompare(String(workoutKey(b))))
-    for (const f of ['customEx', 'equipProfiles', 'gymCards']) if (out[f]) out[f].sort((a, b) => String(a.id).localeCompare(String(b.id)))
+    for (const f of ['customEx', 'equipProfiles', 'gymCards'])
+      if (out[f]) out[f].sort((a, b) => String(a.id).localeCompare(String(b.id)))
     if (out.favEx) out.favEx.sort()
     if (out.resetIds) for (const value of Object.values(out.resetIds)) if (Array.isArray(value)) value.sort()
-    for (const w of out.workouts) if (Array.isArray(w.media)) w.media.sort((a, b) => String(a.hash).localeCompare(String(b.hash)))
+    for (const w of out.workouts)
+      if (Array.isArray(w.media)) w.media.sort((a, b) => String(a.hash).localeCompare(String(b.hash)))
   }
   // The accent fields end up in CSS: whatever either copy brought, only a clean value goes on.
   sanitizeAccent(out)
+  // The day's value of a day with several weigh-ins follows the daily-value setting as merged.
+  settleAll(out)
+  // An exercise merged into another on either copy (#656, lib/exercise-merge.js exMerged): what
+  // the other copy still logged against it moves over too.
+  applyExerciseMerges(out)
   return out
 }
 
@@ -936,10 +1323,12 @@ export function mergeStates(a0, b0, { prefer, deterministic = false } = {}) {
  */
 export function keepReset(cur, next) {
   if (!next || typeof next !== 'object') return next
-  const rc = Number(cur?.resetAt) || 0, rn = Number(next.resetAt) || 0
+  const rc = Number(cur?.resetAt) || 0,
+    rn = Number(next.resetAt) || 0
   if (rc > rn) {
     next.resetAt = cur.resetAt
-    if (cur.resetIds) next.resetIds = clone(cur.resetIds); else delete next.resetIds
+    if (cur.resetIds) next.resetIds = clone(cur.resetIds)
+    else delete next.resetIds
   } else if (rc && rc === rn && (cur.resetIds || next.resetIds)) {
     next.resetIds = mergeResetIds(cur.resetIds, next.resetIds)
   }
@@ -971,7 +1360,8 @@ export function stampRestore(next, others = [], now = Date.now()) {
       if (Number(m[k]) > 0) m[k] = -now
     }
   }
-  if (Object.keys(del).length) next.deleted = del; else delete next.deleted
+  if (Object.keys(del).length) next.deleted = del
+  else delete next.deleted
   const ed = isMap(next.edited) ? { ...next.edited } : {}
   for (const k of Object.keys(next)) if (!OWN_MERGE.has(k) && !PER_KEY.has(k)) ed[k] = now
   for (const f of PER_KEY) {
@@ -997,11 +1387,13 @@ export function stampRestore(next, others = [], now = Date.now()) {
 export function stampReplace(next, others = [], now = Date.now()) {
   if (!next || typeof next !== 'object') return next
   const known = {}
-  for (const f of Object.keys(DEL_LISTS)) known[f] = others.flatMap(o => list(o?.[f])).filter(x => x != null)
+  for (const f of Object.keys(DEL_LISTS)) known[f] = others.flatMap((o) => list(o?.[f])).filter((x) => x != null)
   stampDeletions(known, next, now)
   for (const f of ['workouts', 'routines', 'customEx', 'equipProfiles', 'gymCards']) {
     const versions = new Map()
-    for (const o of others) for (const x of list(o?.[f])) if (x && typeof x === 'object' && x.id != null) versions.set(x.id, [...(versions.get(x.id) || []), x])
+    for (const o of others)
+      for (const x of list(o?.[f]))
+        if (x && typeof x === 'object' && x.id != null) versions.set(x.id, [...(versions.get(x.id) || []), x])
     for (const x of list(next[f])) {
       if (!x || typeof x !== 'object' || x.id == null || !versions.has(x.id)) continue
       const fields = isMap(x._f) ? { ...x._f } : {}
@@ -1009,7 +1401,10 @@ export function stampReplace(next, others = [], now = Date.now()) {
       for (const old of versions.get(x.id)) {
         for (const k of new Set([...Object.keys(old), ...Object.keys(x)])) {
           if (ENTRY_META.has(k)) continue
-          if ((k in old) !== (k in x) || !sameJSON(old[k], x[k])) { fields[k] = now; moved = true }
+          if (k in old !== k in x || !sameJSON(old[k], x[k])) {
+            fields[k] = now
+            moved = true
+          }
         }
       }
       if (!moved) continue
@@ -1022,7 +1417,8 @@ export function stampReplace(next, others = [], now = Date.now()) {
     if (!isMap(next[f])) continue
     for (const [k, v] of Object.entries(next[f])) {
       if (!isMap(v)) continue
-      if (others.some(o => isMap(o?.[f]) && k in o[f] && !sameJSON({ ...o[f][k], _ts: 0 }, { ...v, _ts: 0 }))) v._ts = Math.max(stampOf(v), now)
+      if (others.some((o) => isMap(o?.[f]) && k in o[f] && !sameJSON({ ...o[f][k], _ts: 0 }, { ...v, _ts: 0 })))
+        v._ts = Math.max(stampOf(v), now)
     }
   }
   return next
@@ -1040,7 +1436,10 @@ export function stampReplace(next, others = [], now = Date.now()) {
 /** The latest stamp a copy carries: its `_ts`, every setting, removal and entry stamp. */
 export function highestStamp(S) {
   let m = 0
-  const see = v => { const n = Math.abs(Number(v) || 0); if (n > m) m = n }
+  const see = (v) => {
+    const n = Math.abs(Number(v) || 0)
+    if (n > m) m = n
+  }
   if (!S || typeof S !== 'object') return 0
   see(S._ts)
   see(S.unitSet?.at)
@@ -1068,16 +1467,31 @@ export function highestStamp(S) {
 export function stampChange(prev, next, wall = Date.now()) {
   const now = Math.max(Number(wall) || 0, highestStamp(prev) + 1)
   if (!next || typeof next !== 'object') return now
-  const before = new Map(list(prev?.workouts).filter(w => w && w.id != null).map(w => [w.id, w]))
+  const before = new Map(
+    list(prev?.workouts)
+      .filter((w) => w && w.id != null)
+      .map((w) => [w.id, w])
+  )
   for (const w of list(next.workouts)) {
     if (!w || typeof w !== 'object' || w.id == null || w._ts == null) continue
     const old = before.get(w.id)
-    if (old && w._ts !== old._ts) stampEntry(old, w, now)
+    if (!old || w._ts === old._ts) continue
+    // A save that changed nothing is not an edit: it keeps the stamp it had. Re-stamped, the
+    // untouched copy outlived a removal made in between on another device and came back with
+    // whatever field another copy had changed before that removal, but only when those two met
+    // first (sync-merge.property.test.js: three copies, one deleting).
+    if (sameEntry(old, w)) {
+      if (old._ts == null) delete w._ts
+      else w._ts = old._ts
+      continue
+    }
+    stampEntry(old, w, now)
   }
   // Settings maps whose entries carry their own stamp (mergeStampedMap): an entry the change
   // re-stamped takes the change's time.
   for (const f of STAMPED_MAPS) {
-    const p = isMap(prev?.[f]) ? prev[f] : {}, n = isMap(next[f]) ? next[f] : null
+    const p = isMap(prev?.[f]) ? prev[f] : {},
+      n = isMap(next[f]) ? next[f] : null
     if (!n) continue
     for (const [k, v] of Object.entries(n)) if (isMap(v) && v._ts != null && stampOf(v) !== stampOf(p[k])) v._ts = now
   }
@@ -1085,11 +1499,32 @@ export function stampChange(prev, next, wall = Date.now()) {
   // merge (mergeBodyweight), so it takes the change's time like any other stamp. One whose weight
   // only a unit switch converted keeps its own.
   for (const f of ['bodyweight', 'measurements']) {
-    const before = new Map(list(prev?.[f]).filter(e => e && e.d != null).map(e => [e.d, e]))
+    const before = new Map(
+      list(prev?.[f])
+        .filter((e) => e && e.d != null)
+        .map((e) => [e.d, e])
+    )
     for (const e of list(next[f])) {
       if (!e || typeof e !== 'object' || e.d == null || e.t == null) continue
       const old = before.get(e.d)
-      if (!old || old.t !== e.t) e.t = Math.max(Number(e.t) || 0, now)
+      if (old && old.t === e.t) continue
+      const was = Number(e.t) || 0
+      e.t = Math.max(was, now)
+      // A day with several weigh-ins (lib/weigh-ins.js): the readings and removals this change
+      // made take the same time, so the day's `t` stays the one its readings explain (an older
+      // app's edit is told apart by exactly that, absorbLegacyEdit).
+      if (f !== 'bodyweight' || !Array.isArray(e.ins) || e.t === was) continue
+      const prior = new Map(
+        list(old?.ins)
+          .filter((r) => r && r.id != null)
+          .map((r) => [String(r.id), r])
+      )
+      for (const r of e.ins) {
+        const p = r && prior.get(String(r.id))
+        if (r && (!p || p.t !== r.t || p.w !== r.w || p.at !== r.at)) r.t = e.t
+      }
+      if (isMap(e.gone))
+        for (const k of Object.keys(e.gone)) if (Number(e.gone[k]) !== Number(old?.gone?.[k])) e.gone[k] = e.t
     }
   }
   // A routine put back by an Undo keeps the edit time it had: what puts it back is the add-back
@@ -1098,8 +1533,10 @@ export function stampChange(prev, next, wall = Date.now()) {
   // offline was lost to the Undo. Only a routine removed after its last edit counts, and one that
   // never had an edit time (the seed's, a template's, one from before stamps) stays without one.
   const gone = isMap(prev?.deleted?.routines) ? prev.deleted.routines : {}
-  const putBack = r => Number(gone[r.id]) > 0 && (!(Number(r._ts) > 0) || Number(r._ts) < Number(gone[r.id])) &&
-    !list(prev?.routines).some(x => x?.id === r.id)
+  const putBack = (r) =>
+    Number(gone[r.id]) > 0 &&
+    (!(Number(r._ts) > 0) || Number(r._ts) < Number(gone[r.id])) &&
+    !list(prev?.routines).some((x) => x?.id === r.id)
   stampRoutines(prev?.routines, next.routines, now, putBack)
   stampCustomEx(prev?.customEx, next.customEx, now)
   stampEntries(prev?.equipProfiles, next.equipProfiles, now)
@@ -1109,7 +1546,8 @@ export function stampChange(prev, next, wall = Date.now()) {
   return now
 }
 
-const sameRoutine = (a, b) => JSON.stringify({ ...a, _ts: 0, _f: 0, _u: 0 }) === JSON.stringify({ ...b, _ts: 0, _f: 0, _u: 0 })
+const sameRoutine = (a, b) =>
+  JSON.stringify({ ...a, _ts: 0, _f: 0, _u: 0 }) === JSON.stringify({ ...b, _ts: 0, _f: 0, _u: 0 })
 
 /**
  * Stamps `_ts` on every routine of `next` that is new or differs from its version in `prev` — the
@@ -1117,7 +1555,11 @@ const sameRoutine = (a, b) => JSON.stringify({ ...a, _ts: 0, _f: 0, _u: 0 }) ===
  * (useStore update), so no screen that edits a plan has to remember to. Mutates and returns `next`.
  */
 export function stampRoutines(prev = [], next = [], now = Date.now(), putBack = () => false) {
-  const before = new Map(list(prev).filter(r => r?.id != null).map(r => [r.id, r]))
+  const before = new Map(
+    list(prev)
+      .filter((r) => r?.id != null)
+      .map((r) => [r.id, r])
+  )
   for (const r of list(next)) {
     if (!r || r.id == null) continue
     const old = before.get(r.id)
@@ -1127,7 +1569,8 @@ export function stampRoutines(prev = [], next = [], now = Date.now(), putBack = 
   return next
 }
 
-const sameEntry = (a, b) => JSON.stringify({ ...a, _ts: 0, _f: 0, _u: 0 }) === JSON.stringify({ ...b, _ts: 0, _f: 0, _u: 0 })
+const sameEntry = (a, b) =>
+  JSON.stringify({ ...a, _ts: 0, _f: 0, _u: 0 }) === JSON.stringify({ ...b, _ts: 0, _f: 0, _u: 0 })
 
 /**
  * Stamps `_ts` on every custom exercise of `next` that is new or differs from its version in
@@ -1136,7 +1579,11 @@ const sameEntry = (a, b) => JSON.stringify({ ...a, _ts: 0, _f: 0, _u: 0 }) === J
  * `next`.
  */
 export function stampCustomEx(prev = [], next = [], now = Date.now()) {
-  const before = new Map(list(prev).filter(c => c?.id != null).map(c => [c.id, c]))
+  const before = new Map(
+    list(prev)
+      .filter((c) => c?.id != null)
+      .map((c) => [c.id, c])
+  )
   for (const c of list(next)) {
     if (!c || typeof c !== 'object' || c.id == null) continue
     const old = before.get(c.id)
@@ -1146,7 +1593,9 @@ export function stampCustomEx(prev = [], next = [], now = Date.now()) {
 }
 
 /** stampCustomEx for any list of entries with ids: equipment profiles, gym cards. */
-export function stampEntries(prev = [], next = [], now = Date.now()) { return stampCustomEx(prev, next, now) }
+export function stampEntries(prev = [], next = [], now = Date.now()) {
+  return stampCustomEx(prev, next, now)
+}
 
 // What `local` holds that `server` does not: the workouts and weigh-ins a device logged while it
 // was signed out, and the custom exercises they use. Sign-in asks about these before the server's
@@ -1157,28 +1606,47 @@ export function stampEntries(prev = [], next = [], now = Date.now()) { return st
 // being asked. Weights are compared in the server's unit.
 export function localExtras(local, server) {
   const have = new Set(list(server?.workouts).map(workoutKey))
-  const days = new Map(list(server?.bodyweight).filter(e => e && e.d != null).map(e => [e.d, e]))
-  const ex = new Set(list(server?.customEx).map(e => e?.id))
-  const from = unitOf(local), to = unitOf(server)
+  const days = new Map(
+    list(server?.bodyweight)
+      .filter((e) => e && e.d != null)
+      .map((e) => [e.d, e])
+  )
+  const ex = new Set(list(server?.customEx).map((e) => e?.id))
+  const from = unitOf(local),
+    to = unitOf(server)
   const differs = (mine, theirs) =>
     (Number(mine.t) || 0) > (Number(theirs.t) || 0) && Number(convertBodyWeight(mine.w, from, to)) !== Number(theirs.w)
   // Routines, and the rest of what a device sets up (plan days, exercise notes, gym cards,
   // equipment profiles), count too: a guest who only built a plan was never asked, and signing in
   // dropped it. Present only when there are any.
-  const ids = f => new Set(list(server?.[f]).map(x => x?.id))
-  const routines = list(local?.routines).filter(r => r && r.id != null && !ids('routines').has(r.id)).length
-  const keysNew = f => Object.entries(isMap(local?.[f]) ? local[f] : {})
-    .filter(([k, v]) => v != null && !(Array.isArray(v) && !v.length) && !(isMap(server?.[f]) && k in server[f])).length
-  const measured = new Set(list(server?.measurements).map(e => e?.d))
-  const setup = ['gymCards', 'equipProfiles'].reduce((n, f) => n + list(local?.[f]).filter(x => x && x.id != null && !ids(f).has(x.id)).length, 0) +
-    list(local?.measurements).filter(e => e && e.d != null && !measured.has(e.d)).length +
-    Object.entries(isMap(local?.dayNotes) ? local.dayNotes : {}).filter(([k, v]) => readNote(v) && !readNote(server?.dayNotes?.[k])).length +
-    keysNew('week') + keysNew('dayPlan') + keysNew('exNotes')
+  const ids = (f) => new Set(list(server?.[f]).map((x) => x?.id))
+  const routines = list(local?.routines).filter((r) => r && r.id != null && !ids('routines').has(r.id)).length
+  const keysNew = (f) =>
+    Object.entries(isMap(local?.[f]) ? local[f] : {}).filter(
+      ([k, v]) => v != null && !(Array.isArray(v) && !v.length) && !(isMap(server?.[f]) && k in server[f])
+    ).length
+  const measured = new Set(list(server?.measurements).map((e) => e?.d))
+  const setup =
+    ['gymCards', 'equipProfiles'].reduce(
+      (n, f) => n + list(local?.[f]).filter((x) => x && x.id != null && !ids(f).has(x.id)).length,
+      0
+    ) +
+    list(local?.measurements).filter((e) => e && e.d != null && !measured.has(e.d)).length +
+    Object.entries(isMap(local?.dayNotes) ? local.dayNotes : {}).filter(
+      ([k, v]) => readNote(v) && !readNote(server?.dayNotes?.[k])
+    ).length +
+    keysNew('week') +
+    keysNew('dayPlan') +
+    keysNew('exNotes') +
+    keysNew('exAliases') +
+    keysNew('exShownName') +
+    keysNew('programmes')
   return {
-    workouts: list(local?.workouts).filter(w => !have.has(workoutKey(w))).length,
-    bodyweight: list(local?.bodyweight).filter(e => e && e.d != null && (!days.has(e.d) || differs(e, days.get(e.d)))).length,
-    customEx: list(local?.customEx).filter(e => e && !ex.has(e.id)).length,
+    workouts: list(local?.workouts).filter((w) => !have.has(workoutKey(w))).length,
+    bodyweight: list(local?.bodyweight).filter((e) => e && e.d != null && (!days.has(e.d) || differs(e, days.get(e.d))))
+      .length,
+    customEx: list(local?.customEx).filter((e) => e && !ex.has(e.id)).length,
     ...(routines ? { routines } : {}),
-    ...(setup ? { setup } : {}),
+    ...(setup ? { setup } : {})
   }
 }
