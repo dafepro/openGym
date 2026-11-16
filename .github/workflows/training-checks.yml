@@ -1,5 +1,5 @@
 name: QuickTrack Training checks
-"on":
+'on':
   pull_request:
     paths:
       - training/**
@@ -55,7 +55,8 @@ jobs:
           # Linux's software WebKit skips complete short composited transitions.
           - platform: macos-webkit
             # macOS 14 silently falls back to frozen WebKit r2251.
-            os: macos-26
+            # Keep native WebKit coverage without the ARM hosted-runner capacity queue.
+            os: macos-26-intel
             engines: webkit
             projects: --project=mobile-webkit
     runs-on: ${{ matrix.os }}
