@@ -36,6 +36,7 @@ connected. See [private hosting](docs/PRIVATE-HOSTING.md) for local Worker check
 npm --prefix training run test:all
 npm --prefix training run build
 npm --prefix training run check:build
+npm --prefix training run test:offline
 ```
 
 The content-preparation tests need FFmpeg/ffprobe and use only a synthetic clip.
@@ -52,8 +53,10 @@ npm --prefix training run check:build -- --demo
 
 Run the default build and guard again before preparing a release. The sample
 catalog/module and clip are absent from default artifacts; browser URLs/storage
-cannot enable them. `APP_BUILD` may identify a nonsecret build. No service worker
-or offline video cache is installed.
+cannot enable them. `APP_BUILD` may identify a nonsecret build. The production build installs an app-shell service worker and keeps the last
+validated library on this device. Saved progress opens independently of the
+network. Videos and authenticated coach/player requests are not cached. See
+[offline recovery](../docs/decisions/013-playbook-offline-recovery.md) for limits.
 
 ## Contracts and operations
 

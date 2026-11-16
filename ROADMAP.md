@@ -277,3 +277,11 @@ submission and coach review. Deployment qualification requires a separate player
 Google Access audience and proxy routing, separate-account checks and SQLite
 backup/restart verification (ADR 012). Team management and media submissions are
 outside this increment.
+
+## Soccer offline recovery
+
+Implemented on the offline recovery branch: public app-shell caching, a last-valid
+local catalog, recovery from existing saved/session snapshots, and reconnect/retry
+without replacing active work (ADR 013). Rollout requires the deploy controller
+to accept the audited `assets/sw.js` artifact. Field-device validation remains;
+offline videos and offline coach-result submission are outside this increment.

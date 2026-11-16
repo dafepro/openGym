@@ -73,3 +73,10 @@ Before starting, show concise setup requirements and honestly bounded timing fro
 the supplied practice. Keep missing setup explicit and preserve a direct Start
 action. Creation, importing and creating an individual drill have distinct labels
 (ADR 014).
+
+## Soccer offline recovery
+
+Playbook opens previously downloaded practices and local progress when connectivity
+fails. Keep device-only saving distinct from cloud sharing, label an older or recovered
+library, and preserve exact active/history snapshots during reconnection. Videos and
+coach/player services remain connection-dependent. See ADR 013.

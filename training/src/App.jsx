@@ -5,13 +5,17 @@ import TrainingExperience from './components/TrainingExperience.jsx'
 import TrainingShell from './components/TrainingShell.jsx'
 import TextAlertsView from './views/TextAlertsView.jsx'
 import { LoadingState, Notice } from './components/ui.jsx'
-import { fetchTrainingCatalog } from './controllers/training-catalog.js'
+import useOfflineCatalog from './controllers/useOfflineCatalog.js'
+import { prepareOfflineShell } from './controllers/offline-shell.js'
+import { OfflineContext } from './components/OfflineStatus.jsx'
 import { ROUTES } from './lib/routes.js'
 import useTrainingController from './controllers/useTrainingController.js'
 
 // Compile-time branching removes the sample module entirely from the default build.
 const DemoShell = __TRAINING_DEMO__ ? lazy(() => import('./demo/DemoShell.jsx')) : null
-const PrivatePreviewShell = __TRAINING_PRIVATE_PREVIEW__ ? lazy(() => import('./preview/PrivatePreviewShell.jsx')) : null
+const PrivatePreviewShell = __TRAINING_PRIVATE_PREVIEW__
+  ? lazy(() => import('./preview/PrivatePreviewShell.jsx'))
+  : null
 
 export default function App() {
   const route = useHashRoute()
@@ -22,20 +26,58 @@ export default function App() {
 }
 
 function TrainingApplication({ route }) {
-  const [catalog, setCatalog] = useState(null)
-  const [error, setError] = useState(null)
-  const [attempt, setAttempt] = useState(0)
-  const controller = useTrainingController({ databaseName: APP_CONFIG.storageDatabase, suspended: !catalog })
+  const controller = useTrainingController({ databaseName: APP_CONFIG.storageDatabase })
+  const state = useOfflineCatalog(controller, APP_CONFIG.storageDatabase)
+  const { catalog, error, checking, retry } = state
+  const [shellError, setShellError] = useState(null)
   useEffect(() => {
-    const abort = new AbortController()
-    setError(null)
-    fetchTrainingCatalog(fetch, abort.signal).then(content => { if (!abort.signal.aborted) setCatalog(content) }).catch(failure => {
-      if (!abort.signal.aborted) setError(failure.message)
-    })
-    return () => abort.abort()
-  }, [attempt])
-  if (!catalog) return <TrainingShell page={route} sourceUrl={APP_CONFIG.sourceUrl} onNavigate={page => { window.location.hash = ROUTES[page] }}>
-    {error ? <Notice title="Practice could not be loaded" tone="warning" action="Try again" onAction={() => setAttempt(value => value + 1)}>{error}</Notice> : <LoadingState label="Opening your practice…" />}
-  </TrainingShell>
-  return <TrainingExperience route={route} catalog={catalog} controller={controller} sample={catalog.synthetic === true} />
+    // Production only: samples and private previews never install an offline shell.
+    if (!import.meta.env.PROD) return
+    if (!('serviceWorker' in navigator)) {
+      setShellError('This browser cannot reopen the app offline. Keep this tab open while practicing.')
+      return
+    }
+    let disposed = false
+    prepareOfflineShell(navigator.serviceWorker)
+      .then(() => {
+        if (!disposed) setShellError(null)
+      })
+      .catch(() => {
+        if (!disposed)
+          setShellError(
+            'The app could not be prepared for offline reopening. Keep this tab open and reconnect to try again.'
+          )
+      })
+    return () => {
+      disposed = true
+    }
+  }, [state.online, state.retryToken])
+  if (!catalog)
+    return (
+      <TrainingShell
+        page={route}
+        sourceUrl={APP_CONFIG.sourceUrl}
+        onNavigate={(page) => {
+          window.location.hash = ROUTES[page]
+        }}
+      >
+        {error && !checking ? (
+          <Notice title="No practice available offline yet" tone="warning" action="Try again" onAction={retry}>
+            Connect once to load the library. Any existing progress is kept on this device.
+          </Notice>
+        ) : (
+          <LoadingState label="Opening your practice…" />
+        )}
+        {controller.error && (
+          <Notice title="Local progress needs attention" tone="warning">
+            {controller.error}
+          </Notice>
+        )}
+      </TrainingShell>
+    )
+  return (
+    <OfflineContext.Provider value={{ ...state, shellError }}>
+      <TrainingExperience route={route} catalog={catalog} controller={controller} sample={catalog.synthetic === true} />
+    </OfflineContext.Provider>
+  )
 }
