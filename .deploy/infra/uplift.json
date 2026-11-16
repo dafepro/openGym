@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "app": "uplift",
+  "environment": "production",
+  "settings": {
+    "workersDev": true,
+    "previewUrls": true,
+    "pairLimit": 12,
+    "requestLimit": 120
+  }
+}
