@@ -1,0 +1,17 @@
+name: Request app infrastructure
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        type: choice
+        required: true
+        options: [uplift, quicktrack-training, quicktrack-coach]
+permissions:
+  contents: read
+jobs:
+  choose-app-branch:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          echo 'Run this workflow from codex/focused-workout-overlay for Uplift, or codex/quicktrack-training-release for Training and Coach.'
+          exit 1
