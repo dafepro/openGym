@@ -191,7 +191,7 @@ export default function PracticeActionDock({
       <div className="qt-control-top">
         <div className="qt-control-readout">
           <p className="qt-control-caption" key={`${phase}-${paused}`}>
-            {caption}
+            {fieldMode ? caption.replace(/ · (paused|ready)$/, '').replace('Rest paused', 'Rest time left') : caption}
           </p>
           {counting ? (
             <div className="qt-count-stepper">
@@ -244,7 +244,6 @@ export default function PracticeActionDock({
                   {formatClock(seconds)}
                 </strong>
               )}
-              {canStart && <span>{paused ? 'Resume when ready' : free ? 'Self-paced' : 'Start when ready'}</span>}
             </div>
           )}
         </div>
@@ -257,7 +256,6 @@ export default function PracticeActionDock({
             disabled={!playAction || (canStart && disabled)}
           >
             <PlayPauseIcon playing={!!playAction && !canStart && !paused} />
-            <span>{canStart ? (paused ? 'Resume' : 'Start') : paused ? 'Resume' : 'Pause'}</span>
           </button>
         )}
       </div>
@@ -270,7 +268,6 @@ export default function PracticeActionDock({
           aria-label="Quit practice"
         >
           <Icon name="close" size={24} />
-          <span>Exit</span>
         </button>
         <div className="qt-control-context">
           <strong key={`${phase}-${currentSetIndex}`}>{context}</strong>
@@ -293,7 +290,7 @@ export default function PracticeActionDock({
           }
         >
           <Icon name="forward" size={25} />
-          <span>{complete ? 'Save' : rest ? 'Skip rest' : review || watch ? 'Confirm' : workForwardLabel}</span>
+          {(complete || rest || review || watch) && <span>{complete ? 'Save' : rest ? 'Skip rest' : 'Confirm'}</span>}
         </button>
       </div>
       {(rest || review || onUndo) && (

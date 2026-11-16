@@ -56,7 +56,7 @@ test('coach previews the player view, edits quantities and approves the newly re
   page
 }, testInfo) => {
   const state = await desk(page)
-  const review = page.getByRole('dialog', { name: 'Review practice', exact: true })
+  const review = page.getByRole('dialog', { name: reviewJob.plan.title, exact: true })
   await expect(review).toHaveCSS('opacity', '1')
   await capture(page, testInfo, 'coach-review-editor')
   await expect(review.getByRole('button', { name: 'Approve for publishing' })).toBeDisabled()
@@ -99,7 +99,7 @@ test('coach previews the player view, edits quantities and approves the newly re
 test('failed revision preserves feedback and prevents accidental approval', async ({ page }) => {
   const state = await desk(page)
   state.fail(true)
-  const review = page.getByRole('dialog', { name: 'Review practice', exact: true })
+  const review = page.getByRole('dialog', { name: reviewJob.plan.title, exact: true })
   await review.getByLabel('Revision feedback').fill('Use a wall for the passing drill.')
   await expect(review.getByRole('checkbox')).toBeDisabled()
   await review.getByRole('button', { name: 'Request changes' }).click()
@@ -119,7 +119,7 @@ test('a newer version cannot be approved from an older open editor', async ({ pa
   const state = await desk(page)
   state.job.headSha = 'e'.repeat(40)
   await expect(page.getByText('A newer version is available', { exact: true })).toBeVisible({ timeout: 12000 })
-  const review = page.getByRole('dialog', { name: 'Review practice', exact: true })
+  const review = page.getByRole('dialog', { name: reviewJob.plan.title, exact: true })
   await expect(review.getByRole('checkbox')).toBeDisabled()
   await review.getByRole('button', { name: 'Reload review and discard target edits' }).click()
   await review.getByRole('checkbox').check()
@@ -129,7 +129,7 @@ test('a newer version cannot be approved from an older open editor', async ({ pa
 
 test('other authorized coaches can preview but cannot publish', async ({ page }) => {
   const state = await desk(page, false)
-  const review = page.getByRole('dialog', { name: 'Review practice', exact: true })
+  const review = page.getByRole('dialog', { name: reviewJob.plan.title, exact: true })
   await expect(review.getByRole('button', { name: 'Preview as player' })).toBeEnabled()
   await expect(review.getByLabel('Sets', { exact: true })).toBeDisabled()
   await expect(review.getByRole('button', { name: 'Approve for publishing' })).toBeDisabled()

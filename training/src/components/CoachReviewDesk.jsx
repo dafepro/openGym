@@ -48,10 +48,9 @@ export default function CoachReviewDesk({ job, canReview, paused, onReview, onCl
   }
   return (
     <>
-      <Dialog title="Review practice" className="pb-review-dialog" onClose={onClose} dismissDisabled={busy}>
+      <Dialog title={edition.plan.title} className="pb-review-dialog" onClose={onClose} dismissDisabled={busy}>
         <div className="pb-review-desk">
           <header>
-            <h2>{edition.plan.title}</h2>
             <p>{edition.plan.goal}</p>
           </header>
           {edition.plan.overview && (
