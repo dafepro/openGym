@@ -1,0 +1,76 @@
+.pb-night-game {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: 1000;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 45%, #132c35e8, #030910f5 80%);
+  backdrop-filter: blur(5px);
+  touch-action: none;
+  animation: pb-night-in 320ms ease both;
+}
+.pb-night-game.is-closing {
+  animation: pb-night-out 320ms ease both;
+  pointer-events: none;
+}
+.pb-night-goal {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(88px, 44%, 140px);
+  height: 62px;
+  border: 2px solid currentColor;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 13px, #ffffff16 13px 14px),
+    repeating-linear-gradient(0deg, transparent 0 13px, #ffffff16 13px 14px);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 32px currentColor;
+}
+.pb-night-goal strong {
+  font: 600 30px var(--qt-body);
+  color: #fff;
+  text-shadow: 0 2px 8px #000;
+}
+.pb-night-goal--blue {
+  top: -2px;
+  color: #6ccaff80;
+  border-radius: 0 0 10px 10px;
+}
+.pb-night-goal--gold {
+  bottom: -2px;
+  color: #e9b75e80;
+  border-radius: 10px 10px 0 0;
+}
+.pb-kick-ball.pb-night-ball {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 44px;
+  box-shadow:
+    0 0 28px #e5f2cf55,
+    0 8px 20px #000;
+}
+@keyframes pb-night-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pb-night-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-night-game {
+    animation-duration: 1ms;
+  }
+}

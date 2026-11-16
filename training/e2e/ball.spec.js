@@ -1,89 +1,27 @@
-import { test, expect, noHorizontalOverflow } from './fixtures.js'
+import { test, expect } from './fixtures.js'
 
-async function pullDown(page, ball, endY) {
+test('full-screen night overlay scores a drag and closes on a tap', async ({ page }) => {
+  await page.getByRole('button', { name: 'Play soccer ball game' }).click()
+  const overlay = page.getByRole('dialog', { name: 'Soccer game' })
+  await expect(overlay).toBeVisible()
+  await expect
+    .poll(() => overlay.evaluate((e) => e.getAnimations().filter((a) => a.playState === 'running').length))
+    .toBe(0)
+  expect((await overlay.innerText()).replace(/\s/g, '')).toBe('00')
+  const bounds = await overlay.boundingBox()
+  expect(bounds.width).toBe(page.viewportSize().width)
+  expect(bounds.height).toBe(page.viewportSize().height)
+  const ball = page.getByRole('button', { name: 'Soccer ball: drag to kick, tap to close' })
   const box = await ball.boundingBox()
   const x = box.x + box.width / 2,
     y = box.y + box.height / 2
   await page.mouse.move(x, y)
   await page.mouse.down()
-  await page.mouse.move(x, endY ?? y + 130, { steps: 4 })
-  return { x, y }
-}
-
-test('pulling back aims and charges the kick; tap returns the ball', async ({ page }, testInfo) => {
-  const home = page.getByRole('button', { name: 'Kick the soccer ball' })
-  const ball = page.getByRole('button', { name: 'Return soccer ball' })
-  const arrow = page.locator('.pb-kick-aim')
-  const origin = await home.boundingBox()
-  await home.click()
-  await expect(ball).toHaveCount(0)
-
-  const { x, y } = await pullDown(page, home, origin.y + origin.height / 2 + 42)
-  await expect(arrow).toBeVisible()
-  const guide = () =>
-    arrow.evaluate((element) => {
-      const style = getComputedStyle(element)
-      const width = parseFloat(style.width)
-      const rotation = new DOMMatrix(style.transform)
-      const tail = parseFloat(style.top) + parseFloat(style.height) / 2
-      return {
-        width,
-        tail,
-        tip: tail + rotation.b * width,
-        direction: rotation.b,
-        gradientRadius: element.querySelector('radialGradient').r.baseVal.value
-      }
-    })
-  const light = await guide()
-  expect(light.direction).toBeCloseTo(-1)
-  expect(light.tail).toBeCloseTo(y + 41, 0)
-  expect(light.tip).toBeCloseTo(y + 25, 0)
-  await page.mouse.move(x, y + 144, { steps: 5 })
-  const full = await guide()
-  expect(full.width).toBeGreaterThan(light.width + 50)
-  expect(full.tip).toBeCloseTo(light.tip, 0)
-  expect(full.gradientRadius).toBe(light.gradientRadius)
-  await page.mouse.move(x, y + 165)
-  expect((await guide()).width).toBe(full.width)
+  await page.mouse.move(x, y + 100, { steps: 6 })
   await page.mouse.up()
-  await expect(arrow).toBeHidden()
-
-  if (testInfo.project.name === 'reduced-motion') {
-    await expect(ball).toHaveCount(0)
-  } else {
-    await expect(ball).toHaveAttribute('data-moving', 'true')
-    await expect.poll(async () => (await ball.boundingBox()).y).toBeLessThan(origin.y - 15)
-    await expect(ball).toHaveAttribute('data-moving', 'false', {
-      timeout: 15000
-    })
-    await noHorizontalOverflow(page)
-
-    // Even with little space to pull at the floor, full power reaches the top.
-    await pullDown(page, ball, page.viewportSize().height - 1)
-    await page.mouse.up()
-    await expect
-      .poll(async () => (await ball.boundingBox()).y, {
-        intervals: [16],
-        timeout: 4000
-      })
-      .toBeLessThan(16)
-    await expect(ball).toHaveAttribute('data-moving', 'false', {
-      timeout: 15000
-    })
-    if (testInfo.project.use.hasTouch) await ball.tap()
-    else await ball.click()
-    await expect(home).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'My practices' })).toBeVisible()
-    expect((await home.boundingBox()).y).toBeCloseTo(origin.y)
-
-    await home.focus()
-    await home.press('Enter')
-    await expect(ball).toBeFocused()
-    await ball.press('Escape')
-    await expect(home).toBeFocused()
-    await home.press('Enter')
-  }
-  await page.getByRole('button', { name: 'Create practice', exact: true }).click()
-  await expect(ball).toHaveCount(0)
-  await expect(arrow).toHaveCount(0)
+  await expect(page.locator('.pb-night-goal--blue strong')).toHaveText('1')
+  await expect(overlay).toBeVisible()
+  await ball.click()
+  await expect(overlay).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Play soccer ball game' })).toBeFocused()
 })

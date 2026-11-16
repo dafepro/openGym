@@ -90,3 +90,10 @@ Soccer practice offers optional field-side large controls, local audible cues an
 supported screen-awake behavior. Timer expiry requires explicit actual-time
 confirmation, regardless of page visibility; unattended time never proves work
 (ADR 016).
+
+## Optional soccer ball game
+
+The home ball opens a full-screen dark overlay with two goals and scores inside
+those goals. Drag to kick and tap the ball to close. No visible copy, pitch drawing,
+directional controls or phone tilt. Keep the game separate from training records
+(ADR 018).

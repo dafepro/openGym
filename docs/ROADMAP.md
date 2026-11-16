@@ -26,3 +26,6 @@
 - Implemented: optional soccer field display, audible phase/countdown cues and
   browser screen-awake support. Timed expiry requires explicit confirmation;
   interrupted-time review and history formats remain intact (ADR 016).
+
+- Implemented: full-screen night ball overlay with goals, scores, drag-to-kick and
+  tap-to-dismiss. Removed tilt and visible controls (ADR 018).
