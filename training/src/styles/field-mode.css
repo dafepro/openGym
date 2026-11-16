@@ -1,0 +1,78 @@
+.pb-field-settings {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--qt-border);
+  font-size: 12px;
+}
+.pb-field-settings summary {
+  cursor: pointer;
+  min-height: 32px;
+  align-content: center;
+  font-weight: 700;
+}
+.pb-field-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pb-field-options button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+.pb-field-options button[aria-pressed='true'] {
+  background: #242824;
+  color: #fff;
+}
+.pb-field-settings p {
+  margin: 8px 0;
+}
+.qt-workout-controls[data-layout='playbook'][data-field] {
+  max-width: 900px;
+  max-height: calc(100dvh - 24px - var(--qt-safe-bottom));
+  overflow-y: auto;
+  background: #fffdf7;
+  color: #172318;
+}
+.pb-field-phase {
+  margin: 0;
+  padding: 8px 16px;
+  background: #172318;
+  color: #fff;
+  text-align: center;
+  font-size: clamp(24px, 6vw, 40px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+[data-phase='rest'] .pb-field-phase {
+  background: #174b77;
+}
+[data-phase='review'] .pb-field-phase {
+  background: #773900;
+}
+.qt-workout-controls[data-layout='playbook'][data-field] .qt-control-measure strong {
+  font-size: clamp(64px, 19vw, 144px);
+  color: #172318;
+}
+.qt-workout-controls[data-layout='playbook'][data-field] .qt-control-measure {
+  flex-wrap: wrap;
+}
+.qt-workout-controls[data-layout='playbook'][data-field] .qt-control-top {
+  flex-wrap: wrap;
+}
+.qt-workout-controls[data-layout='playbook'][data-field] .qt-control-caption {
+  font-size: 18px;
+  color: #263d28;
+}
+.qt-workout-controls[data-layout='playbook'][data-field] .qt-control-context strong {
+  font-size: 18px;
+}
+.qt-workout-controls[data-layout='playbook'][data-field] .qt-control-play {
+  min-height: 64px;
+  font-size: 18px;
+}
+.qt-workout-controls[data-layout='playbook'][data-field] .qt-count-stepper input {
+  font-size: clamp(48px, 14vw, 96px);
+}
