@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import '../styles/offline-status.css'
 import { Notice } from './ui.jsx'
 
 export const OfflineContext = createContext(null)
@@ -9,7 +10,10 @@ export default function OfflineStatus() {
   if (!local && !state.cacheError && !state.shellError) return null
   return (
     <Notice
-      title={local ? 'Using practices on this device' : 'Offline setup incomplete'}
+      className="pb-offline-status"
+      title={
+        local ? (state.source === 'recovered' ? 'Recovered practices' : 'Saved library') : 'Offline setup incomplete'
+      }
       tone="warning"
       action={state.checking ? undefined : local ? 'Retry' : 'Retry offline setup'}
       onAction={state.retry}
@@ -17,9 +21,9 @@ export default function OfflineStatus() {
       {local ? (
         <>
           {state.source === 'recovered'
-            ? 'Recovered from saved practices and progress; this is not a new coach assignment. '
+            ? 'Recovered on this device; not a new coach assignment. '
             : 'The library may be out of date. '}
-          Progress stays on this device. Videos and coach services need a connection.
+          Videos and coach actions need a connection.
         </>
       ) : (
         state.cacheError || state.shellError
