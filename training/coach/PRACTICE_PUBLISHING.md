@@ -50,3 +50,18 @@ Luna stays explicitly configured with low reasoning effort and bounded output bu
 requested revision, maximum three research tool calls per pass, maximum three
 revisions, existing daily/monthly/pending limits and provider spending limits apply.
 No autonomous loop requests more model work merely because a check or deploy failed.
+
+## Coach desk review
+
+The publishing owner can select **Review practice** in the desk, preview the exact
+compiled player practice, review demonstrations, and edit sets, reps/duration,
+sides and rest. **Save target changes** creates a new revision of the same PR
+without another research call. **Request changes** checkpoints feedback for the
+existing bounded research pipeline. Both invalidate the previous approval.
+
+**Approve for publishing** records an approval for the exact reviewed head and
+queue owner. It does not bypass CI, the allowlisted file/content check, a GitHub
+changes-requested review, or live publication verification. Other coaches can
+preview but cannot approve. GitHub and build links are under **Technical details**.
+Review operations use the existing protected requests endpoint; deploy the coach
+runtime before the UI. Existing database backups include the additive review fields.

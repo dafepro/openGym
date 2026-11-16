@@ -54,3 +54,8 @@ branch. Focus uses the existing workout controller; Drive and Garmin remain sepa
 around the same local store. Phone and watch share finished-record construction and commit;
 warm-up-only sessions preserve their routine's place. Native updates use a fork-owned release
 channel alongside upstream's downloader. See ADR 009 and the upstream integration review.
+
+Soccer practice publication supports review inside the coach desk: a player preview,
+explicit target edits, video review, revision feedback and exact-version approval.
+Keep infrastructure details behind an optional disclosure and retain the existing
+publishing-owner, CI and live-publication boundaries (ADR 014).

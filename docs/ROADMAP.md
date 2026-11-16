@@ -14,3 +14,7 @@
 
 - Production cutover: existing Cloudflare Worker, local/Drive storage and Garmin relay; no Node API or Coach. Preserve original Uplift data and disable its automatic deploy gate (ADR 005).
 - Club Elite Android handoff: verified dashboard intent with official store fallback. A direct external barcode route remains unverified; keep dynamic codes in the official app (ADR 008).
+
+- Soccer improvement 4: coach desk review, player preview, target editing, revision
+  feedback and exact-version approval; technical diagnostics remain available on
+  demand. PR validation and operational limits are documented in ADR 014.
