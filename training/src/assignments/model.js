@@ -37,6 +37,7 @@ export function changeAssignment(record, input, role, now = Date.now()) {
     validateSession(input.session)
     if (
       input.session.status === 'active' ||
+      input.session.coachAssignmentId !== record.id ||
       JSON.stringify(input.session.assignment) !== JSON.stringify(record.practice)
     )
       throw new Error('Choose a finished session of this exact practice version')

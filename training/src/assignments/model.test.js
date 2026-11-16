@@ -1,3 +1,4 @@
+import { emptyProgress, exportProgress, parseProgressExport } from '../storage/index.js'
 import { createStartedSession, reduceSession } from '../domain/session.js'
 import { describe, it, expect } from 'vitest'
 import { createAssignment, changeAssignment } from './model.js'
@@ -36,7 +37,7 @@ describe('assignment authorization and version lifecycle', () => {
 it('only sends finished work of the pinned version, and preserves it through review', () => {
   let record = createAssignment({ email: 'player@example.com', practice }, 'coach', 100)
   record = changeAssignment(record, { action: 'accept', revision: 0 }, 'player', 200)
-  let session = createStartedSession(practice, { id: 'session', now: 300 })
+  let session = { ...createStartedSession(practice, { id: 'session', now: 300 }), coachAssignmentId: record.id }
   expect(() => changeAssignment(record, { action: 'submit', revision: 1, session }, 'player')).toThrow()
   session = reduceSession(session, {
     type: 'DONE',
@@ -54,6 +55,15 @@ it('only sends finished work of the pinned version, and preserves it through rev
     600
   )
   expect(submitted.result.rows[0].actual).toBe(2)
+  const restored = parseProgressExport(exportProgress({ ...emptyProgress(), sessions: [session] }))
+  expect(restored.sessions[0].coachAssignmentId).toBe(record.id)
+  expect(() =>
+    changeAssignment(
+      record,
+      { action: 'submit', revision: 1, session: { ...session, coachAssignmentId: 'other-assignment' } },
+      'player'
+    )
+  ).toThrow()
   expect(() =>
     changeAssignment(
       record,

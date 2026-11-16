@@ -73,7 +73,10 @@ test('signed coach/player isolation, acceptance, persistence and stale writes', 
     assert.equal((await call('player', 'p@example.com', input)).status, 200)
     assert.equal((await call('player', 'p@example.com', input)).status, 400)
     assert.equal((await (await call('coach', 'coach@example.com')).json()).records[0].status, 'accepted')
-    let session = createStartedSession(practice, { id: 'verified-session', now: Date.now() })
+    let session = {
+      ...createStartedSession(practice, { id: 'verified-session', now: Date.now() }),
+      coachAssignmentId: records[0].id
+    }
     session = reduceSession(session, {
       type: 'DONE',
       id: 'record',

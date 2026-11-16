@@ -123,7 +123,10 @@ function Assignment({ record, coach, sessions, busy, mutate, onStart, onRepeat }
   const [note, setNote] = useState(''),
     [sessionId, setSessionId] = useState('')
   const matches = sessions.filter(
-    (s) => s.status !== 'active' && JSON.stringify(s.assignment) === JSON.stringify(record.practice)
+    (s) =>
+      s.status !== 'active' &&
+      s.coachAssignmentId === record.id &&
+      JSON.stringify(s.assignment) === JSON.stringify(record.practice)
   )
   const action = (type, extra = {}) => mutate({ id: record.id, revision: record.revision, action: type, ...extra })
   return (
@@ -159,7 +162,7 @@ function Assignment({ record, coach, sessions, busy, mutate, onStart, onRepeat }
       )}
       {!coach && record.status === 'accepted' && (
         <>
-          <Button disabled={busy} onClick={() => onStart(record.practice)}>
+          <Button disabled={busy} onClick={() => onStart(record.practice, record.id)}>
             Start assigned practice
           </Button>
           <p>Finish a session locally, then choose it here to send to your coach.</p>

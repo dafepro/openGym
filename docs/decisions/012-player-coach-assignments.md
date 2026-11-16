@@ -28,3 +28,9 @@ No notifications are sent automatically by this feature.
 Operational qualification: test separate coach and player Google accounts and a
 second player, restart recovery and backup restoration, and the proxy routing on
 staging before enabling production. Player sign-in fails closed without its audience.
+
+Local sessions carry an optional validated `coachAssignmentId`. Old sessions remain
+valid; exports/restores preserve the optional field. Submissions require this exact
+assignment ID as well as the immutable practice snapshot, so repeat assignments
+cannot reuse a previous session of the same practice. No IndexedDB version bump
+or rewriting of existing history is required.

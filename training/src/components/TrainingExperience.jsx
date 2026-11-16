@@ -437,7 +437,7 @@ function TrainingExperienceView({
     setActual(offered ?? '')
   }, [view?.currentRow?.id, view?.phase])
 
-  const begin = async (assignment) => {
+  const begin = async (assignment, coachAssignmentId) => {
     if (readOnly || starting) return
     setMessage('')
     if (active) {
@@ -446,7 +446,7 @@ function TrainingExperienceView({
     }
     setStarting(true)
     try {
-      const next = await controller.start(assignment)
+      const next = await controller.start(assignment, coachAssignmentId)
       if (next?.activeSession) {
         setFinished(null)
         navigate('practice')
