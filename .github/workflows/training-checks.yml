@@ -55,11 +55,13 @@ jobs:
           # Linux's software WebKit skips complete short composited transitions.
           - platform: macos-webkit
             # macOS 14 silently falls back to frozen WebKit r2251.
-            # Keep native WebKit coverage without the ARM hosted-runner capacity queue.
-            os: macos-26-intel
+            os: macos-26
             engines: webkit
             projects: --project=mobile-webkit
-    runs-on: ${{ matrix.os }}
+    # Only owner-triggered, same-repository code may use the existing private Mac.
+    # External PRs stay isolated on hosted runners. Native ARM preserves reliable
+    # frame sampling without depending on hosted ARM capacity.
+    runs-on: ${{ matrix.platform == 'macos-webkit' && github.actor_id == '313492551' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","macOS","ARM64","dcarrell-mac"]') || matrix.os }}
     timeout-minutes: 15
     defaults:
       run:
