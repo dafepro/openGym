@@ -36,7 +36,12 @@ export function ConvertWeighIns({ close, onBackup }) {
   const selectedKeys = new Set(selected)
   const count = rows.filter(row => !row.ambiguous && selectedKeys.has(row.key)).length
   const step = receipt ? 3 : preview ? 2 : from ? 1 : 0
-  useEffect(() => { title.current?.focus() }, [step])
+  const previousStep = useRef(step)
+  // Let the enclosing sheet capture its opener before moving focus between steps.
+  useEffect(() => {
+    if (previousStep.current !== step) title.current?.focus()
+    previousStep.current = step
+  }, [step])
   const reset = () => { setPreview(null); setError(false) }
   const chooseCategory = value => {
     setCategory(value); setFrom(''); setSelected([]); setStart(''); setEnd(''); reset()
