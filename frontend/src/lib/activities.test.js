@@ -138,7 +138,8 @@ describe('activities: imports', () => {
         const parsed = parseImport(xml, { unit })
         expect(mergeImport(S, parsed).activities).toBe(1)
         expect(mergeImport(S, parsed).activities).toBe(0)
-        return activitiesOf(S)
+        // Merge stamps reflect when each profile imported, not the converted distance.
+        return activitiesOf(S).map(({ _ts, ...record }) => record)
       })
       expect(profiles[0]).toEqual(profiles[1])
       expect(profiles[0][0]).toMatchObject({ min: 30, km, src: 'import' })
