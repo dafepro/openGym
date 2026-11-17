@@ -90,3 +90,11 @@ it('keeps repaired history across sync with a newer stale profile', () => {
   for (const merged of [mergeStates(next,stale),mergeStates(stale,next)])
     expect(merged.workouts.find(w=>w.id===s.workouts[0].id).entries[0].sets[0].w).toBe(convertExact(90,'kg','lb'))
 })
+it('converts a selected warm-up without promoting it to top load or work-set volume', () => {
+  const s=fixture(),e=s.workouts[0].entries[0]
+  e.sets[2].w=500
+  const volume=s.workouts[0].vol, row=importedLoadRows(s,'kg').find(r=>r.set===3)
+  applyImportedLoads(s,previewImportedLoads(s,'kg',[row.key]))
+  expect(e.sets[2].w).toBe(convertExact(500,'kg','lb'))
+  expect(e.topW).toBe(200);expect(s.workouts[0].vol).toBe(volume)
+})
