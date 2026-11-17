@@ -4,6 +4,15 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Confira as unidades de peso na linha {0}. Use uma coluna de peso por linha, indicada em kg ou lb.",
+  "Your weight unit changed. Close this preview and import the file again.": "Sua unidade de peso mudou. Feche esta prévia e importe o arquivo novamente.",
+
+  // Import repair refinements (English fallback pending translation).
+  "Filter by date": "Filter by date",
+  "Possible imported workout": "Possible imported workout",
+  "Suggested groups": "Suggested groups",
+  "Weigh-ins and weights in recognized imported workouts are supported. Select only values you know were imported in the wrong unit. Suggestions identify possible imports, not confirmed errors.": "Weigh-ins and weights in recognized imported workouts are supported. Select only values you know were imported in the wrong unit. Suggestions identify possible imports, not confirmed errors.",
+
   // Import repair review (English fallback pending translation).
   "Changes sync to your other devices. Undo is available here until you close this screen, unless these records change again.": "Changes sync to your other devices. Undo is available here until you close this screen, unless these records change again.",
   "Check the original unit and every new value before confirming.": "Check the original unit and every new value before confirming.",
@@ -4497,7 +4506,4 @@ export const PT_BR_OVERRIDES = {
   "Follows the main page. Switch this on to pick the details and buttons for this type yourself.": "Segue a página principal. Ative isto para escolher você mesmo os detalhes e os botões deste tipo.",
 }
 
-export default { ...pt, ...PT_BR_OVERRIDES,
-  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Confira as unidades de peso na linha {0}. Use uma coluna de peso por linha, indicada em kg ou lb.",
-  "Your weight unit changed. Close this preview and import the file again.": "Sua unidade de peso mudou. Feche esta prévia e importe o arquivo novamente.",
-}
+export default { ...pt, ...PT_BR_OVERRIDES }
