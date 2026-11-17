@@ -28,7 +28,7 @@ export default {
   "No eligible values found in this category. Nothing will be changed.": "No eligible values found in this category. Nothing will be changed.",
   "No values in this date range. Try different dates.": "No values in this date range. Try different dates.",
   "Only your selected values changed.": "Only your selected values changed.",
-  "Other source — check before selecting": "Other source — check before selecting",
+  "Other source — check before selecting": "Other source: check before selecting",
   "Repair imported units": "Repair imported units",
   "Repair progress": "Repair progress",
   "Review your changes": "Review your changes",

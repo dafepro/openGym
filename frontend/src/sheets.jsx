@@ -3,7 +3,7 @@ import { tempoSheet } from './components/Tempo.jsx'
 import { useCircuit } from './store/useCircuit.js'
 import { CircuitResults } from './components/CircuitCard.jsx'
 import { normalizeTempo, repSec } from './lib/tempo.js'
-import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useStore } from './store/useStore.js'
 import {
   exView,
@@ -1193,6 +1193,7 @@ function ImportSummary({ parsed: initial, text, importUnit, close }) {
   // tiles and lines below show what Import will do. Nothing is written before Import.
   const [choices, setChoices] = useState(freshChoices)
   const [assumedMassUnit, setAssumedMassUnit] = useState('')
+  const sourceUnitId = useId()
   const preview = useMemo(() => {
     if (text == null || (!choicesChanged(choices) && !assumedMassUnit)) return { parsed: initial }
     try {
@@ -1339,13 +1340,12 @@ function ImportSummary({ parsed: initial, text, importUnit, close }) {
       )}
       {text != null && parsed.unknownMassRows > 0 && (
         <div className="small" style={{ marginBottom: 12 }}>
-          <label>
-            {t('Unit for unlabelled weights')}{' '}
-            <select value={assumedMassUnit || parsed.massAssumption} onChange={e => setAssumedMassUnit(e.target.value)} disabled={unitChanged}>
-              <option value="kg">kg</option>
-              <option value="lb">lb</option>
-            </select>
-          </label>
+          <fieldset data-import-source-unit disabled={unitChanged} style={{ border: 0, padding: 0, margin: '0 0 10px', minWidth: 0 }}>
+            <legend id={sourceUnitId} style={{ marginBottom: 8 }}>{t('Unit for unlabelled weights')}</legend>
+            <Segmented ariaLabelledby={sourceUnitId} value={assumedMassUnit || parsed.massAssumption}
+              options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]}
+              onChange={value => { if (!unitChanged) setAssumedMassUnit(value) }} />
+          </fieldset>
           {!preview.error && parsed.massSample && (
             <div>{t('Example')}: {parsed.massSample.before} {parsed.massAssumption} → {parsed.massSample.after} {importUnit}</div>
           )}

@@ -1564,6 +1564,7 @@ export function parseBodyweight(text, { unit = 'kg', assumedMassUnit } = {}) {
   } else if (activities.length) {
     // An export with workouts and no weigh-in at all: the activities alone.
   } else {
+    source = '' // Generic CSV is not evidence of Apple Health provenance.
     const rows = parseCSV(s)
     if (rows.length < 2) return { error: 'empty' }
     // In our body export every column after date/weight is a measurement, even
