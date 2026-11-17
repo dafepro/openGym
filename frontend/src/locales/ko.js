@@ -1,5 +1,60 @@
 // Korean UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // Import repair refinements (English fallback pending translation).
+  "Filter by date": "Filter by date",
+  "Possible imported workout": "Possible imported workout",
+  "Suggested groups": "Suggested groups",
+  "Weigh-ins and weights in recognized imported workouts are supported. Select only values you know were imported in the wrong unit. Suggestions identify possible imports, not confirmed errors.": "Weigh-ins and weights in recognized imported workouts are supported. Select only values you know were imported in the wrong unit. Suggestions identify possible imports, not confirmed errors.",
+
+  // Import repair review (English fallback pending translation).
+  "Changes sync to your other devices. Undo is available here until you close this screen, unless these records change again.": "Changes sync to your other devices. Undo is available here until you close this screen, unless these records change again.",
+  "Check the original unit and every new value before confirming.": "Check the original unit and every new value before confirming.",
+  "Choose": "Choose",
+  "Choose a group, then uncheck anything that is already correct. Choosing another group replaces your selection.": "Choose a group, then uncheck anything that is already correct. Choosing another group replaces your selection.",
+  "Choose the unit used by the original numbers, not the label currently shown in the app.": "Choose the unit used by the original numbers, not the label currently shown in the app.",
+  "Choose values to convert": "Choose values to convert",
+  "Conversion": "Conversion",
+  "Conversion complete": "Conversion complete",
+  "Conversion preview": "Conversion preview",
+  "Convert into your current weight unit": "Convert into your current weight unit",
+  "Corrected unit": "Corrected unit",
+  "Fix unit mix-ups without changing your weight preference.": "Fix unit mix-ups without changing your weight preference.",
+  "From date": "From date",
+  "Import repair": "Import repair",
+  "Imported groups": "Imported groups",
+  "Imported workout": "Imported workout",
+  "Keep a backup before changing history.": "Keep a backup before changing history.",
+  "Measurements, distances, durations and routine targets use different units or lack reliable import history. They are not changed here. Active workouts and workouts with saved personal records are excluded.": "Measurements, distances, durations and routine targets use different units or lack reliable import history. They are not changed here. Active workouts and workouts with saved personal records are excluded.",
+  "No eligible values found in this category. Nothing will be changed.": "No eligible values found in this category. Nothing will be changed.",
+  "No values in this date range. Try different dates.": "No values in this date range. Try different dates.",
+  "Only your selected values changed.": "Only your selected values changed.",
+  "Other source — check before selecting": "Other source — check before selecting",
+  "Repair imported units": "Repair imported units",
+  "Repair progress": "Repair progress",
+  "Review your changes": "Review your changes",
+  "Selected values": "Selected values",
+  "Set": "Set",
+  "These records changed after conversion. Undo is unavailable to protect newer edits.": "These records changed after conversion. Undo is unavailable to protect newer edits.",
+  "This changes saved history and syncs to your other devices. Check your source file if you are unsure.": "This changes saved history and syncs to your other devices. Check your source file if you are unsure.",
+  "To date": "To date",
+  "Weigh-ins and weights in recognized imported workouts are supported. Select only values you know were imported in the wrong unit. Suggestions identify imported records, not confirmed errors.": "Weigh-ins and weights in recognized imported workouts are supported. Select only values you know were imported in the wrong unit. Suggestions identify imported records, not confirmed errors.",
+  "What needs fixing?": "What needs fixing?",
+  "Which imported values can I fix?": "Which imported values can I fix?",
+  "Workout loads": "Workout loads",
+  "Your weight preference, unselected values and other record types stay unchanged.": "Your weight preference, unselected values and other record types stay unchanged.",
+
+  "Same-time readings need individual review.": "Same-time readings need individual review.",
+  // Selective weigh-in repair (English fallback pending translation).
+  "Back up first. Changes sync to your other devices. Undo is available here until you close this screen, unless the readings change again.": "Back up first. Changes sync to your other devices. Undo is available here until you close this screen, unless the readings change again.",
+  "Confirm conversion": "Confirm conversion",
+  "Convert weigh-ins": "Convert weigh-ins",
+  "Original unit": "Original unit",
+  "Preview conversion": "Preview conversion",
+  "Review imported stretch": "Review imported stretch",
+  "Select only readings recorded in the wrong unit. Other weights and your unit preference stay unchanged.": "Select only readings recorded in the wrong unit. Other weights and your unit preference stay unchanged.",
+  "Selected weigh-ins converted.": "Selected weigh-ins converted.",
+  "The readings or settings changed. Review a fresh preview; nothing was overwritten.": "The readings or settings changed. Review a fresh preview; nothing was overwritten.",
+
   // Uplift additions. New locales use English until translated.
   "Starting estimate": "시작 추정치",
   "Use your first set to adjust the estimate.": "첫 세트를 바탕으로 추정치를 조정하세요.",
@@ -6015,4 +6070,11 @@ export default {
   "Preview on": "미리 볼 화면",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "조금 짧게",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "{0}행의 무게 단위를 확인하세요. 각 행에는 kg 또는 lb로 표시된 무게 열 하나를 사용하세요.",
+  "Your weight unit changed. Close this preview and import the file again.": "무게 단위가 변경되었습니다. 이 미리보기를 닫고 파일을 다시 가져오세요.",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
+  "Unit for unlabelled weights": "단위가 없는 무게의 단위",
+  "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0}개 항목에 무게 단위가 없습니다. 이 선택은 해당 무게에만 적용되며, 단위가 표시된 값과 신체 치수는 변경되지 않습니다.",
+  "Example": "예시",
 }

@@ -122,3 +122,92 @@ describe('the import summary with routines', () => {
     expect(useUI.getState().sheets).toHaveLength(0)
   })
 })
+
+describe('import unit safety', () => {
+  beforeEach(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true
+    useUI.setState({ sheets: [], toasts: [], toastMsg: '' })
+    useStore.setState(s => ({ S: { ...s.S, unit: 'kg', workouts: [], bodyweight: [] } }))
+  })
+  afterEach(() => { if (root) act(() => root.unmount()); root = null; document.body.innerHTML = '' })
+  it.each([
+    'Date,Weight,Unit\n2026-09-01,180,lb',
+    'Date,Exercise,Weight (lb),Reps\n2026-09-01,Bench Press,180,5',
+  ])('does not import stale numbers after the profile unit changes', async text => {
+    await summaryFor(text)
+    const importBtn = [...host.querySelectorAll('button')].find(b => b.textContent === 'Import')
+    expect(importBtn.disabled).toBe(false)
+    act(() => useStore.setState(s => ({ S: { ...s.S, unit: 'lb' } })))
+    expect(host.querySelector('[role=alert]').textContent).toContain('import the file again')
+    expect(importBtn.disabled).toBe(true)
+    act(() => importBtn.click())
+    expect(useStore.getState().S.bodyweight).toEqual([])
+    expect(useStore.getState().S.workouts).toEqual([])
+  })
+  it('explains the ambiguous row and writes nothing', async () => {
+    importFromApp(new File(['Date,Weight,Unit\n2026-09-01,80,kg\n2026-09-02,81,'], 'weights.csv'))
+    for (let i = 0; i < 50 && !useUI.getState().toastMsg; i++) await new Promise(r => setTimeout(r, 5))
+    expect(useUI.getState().toastMsg).toBe('Check weight units in row 3. Use one weight column per row, labelled kg or lb.')
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(useStore.getState().S.bodyweight).toEqual([])
+  })
+})
+
+describe('unitless CSV source-unit selector', () => {
+  beforeEach(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true
+    useUI.setState({ sheets: [], toasts: [], toastMsg: '' })
+    useStore.setState(s => ({ S: { ...s.S, unit: 'kg', workouts: [], bodyweight: [] } }))
+  })
+  afterEach(() => { if (root) act(() => root.unmount()); root = null; document.body.innerHTML = '' })
+  const selector = () => host.querySelector('[data-import-source-unit]') || undefined
+  const selectedUnit = select => select.querySelector('[aria-pressed=true]').textContent
+  const chooseUnit = (select, unit) => [...select.querySelectorAll('button')].find(b => b.textContent === unit).click()
+  it.each(['kg', 'lb'])('reparses bodyweights into %s without writing before Import', async unit => {
+    useStore.setState(s => ({ S: { ...s.S, unit } }))
+    await summaryFor('Date,Weight\n2026-09-01,80')
+    const select = selector()
+    expect(selectedUnit(select)).toBe(unit)
+    act(() => {
+      chooseUnit(select, unit === 'kg' ? 'lb' : 'kg')
+    })
+    expect(host.textContent).toContain(unit === 'kg' ? 'Example: 80 lb → 36.3 kg' : 'Example: 80 kg → 176.4 lb')
+    expect(useStore.getState().S.bodyweight).toEqual([])
+    act(() => [...host.querySelectorAll('button')].find(b => b.textContent === 'Import').click())
+    expect(useStore.getState().S.bodyweight[0].w).toBe(unit === 'kg' ? 36.3 : 176.4)
+  })
+  it('blocks an invalid source-unit choice rather than importing a stale or partial preview', async () => {
+    useStore.setState(s => ({ S: { ...s.S, unit: 'lb' } }))
+    await summaryFor('Date,Weight\n2026-09-01,800\n2026-09-02,100')
+    const select = selector()
+    act(() => { chooseUnit(select, 'kg') })
+    const btn = [...host.querySelectorAll('button')].find(b => b.textContent === 'Import')
+    expect(btn.disabled).toBe(true)
+    expect(host.querySelector('[role=alert]').textContent).toContain('row 2')
+    act(() => btn.click())
+    expect(useStore.getState().S.bodyweight).toEqual([])
+    act(() => { chooseUnit(select, 'lb') })
+    expect(btn.disabled).toBe(false)
+  })
+  it('preserves explicit workout rows and disables the choice after a profile change', async () => {
+    await summaryFor('Date,Exercise,Weight,Unit,Reps\n2026-09-01,Bench Press,100,lb,5\n2026-09-01,Bench Press,100,,5')
+    const select = selector()
+    expect(selectedUnit(select)).toBe('lb') // existing sole-file-unit fallback
+    act(() => { chooseUnit(select, 'kg') })
+    act(() => [...host.querySelectorAll('button')].find(b => b.textContent === 'Import').click())
+    expect(useStore.getState().S.workouts[0].entries[0].sets.map(s => s.w)).toEqual([45.36, 100])
+    act(() => useStore.setState(s => ({ S: { ...s.S, unit: 'lb' } })))
+    expect(select.disabled).toBe(true)
+  })
+  it('names a generic CSV honestly while retaining actual provider identity', async () => {
+    await summaryFor('Date,Weight\n2025-01-07,78')
+    expect(host.querySelector('h3').textContent).toBe('Import history')
+    act(() => root.unmount()); root = null; document.body.innerHTML = ''; useUI.setState({ sheets: [] })
+    await summaryFor('<HealthData><Record type="HKQuantityTypeIdentifierBodyMass" unit="kg" value="78" startDate="2025-01-07 08:00:00 +0000" /></HealthData>')
+    expect(host.querySelector('h3').textContent).toBe('Import from Apple Health')
+  })
+  it.each(['Date,Exercise,Weight,Reps\n2026-09-01,Push Up,0,5', 'Date,Weight,Unit\n2026-09-01,80,kg'])('hides for zero or fully explicit mass', async text => {
+    await summaryFor(text)
+    expect(selector()).toBeUndefined()
+  })
+})

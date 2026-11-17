@@ -3,8 +3,8 @@
  * src/lib/app-icon-variants.js and the dumbbell in resources/icon.svg.
  *
  * The glyph is five rectangles, so this draws them itself (4x4 to 8x8 samples per pixel for the
- * edges) and writes the PNGs with node:zlib: no sharp or resvg to install, and the same bytes on
- * every machine, which the test checks. A variant with `art` (Halloween) is a hand-made SVG
+ * edges) and writes the PNGs with node:zlib: no sharp or resvg to install, and the same pixels on
+ * every machine, which the test checks (zlib compression bytes can differ). A variant with `art` (Halloween) is a hand-made SVG
  * instead, drawn by the small renderer below (rect, circle, line, polyline, polygon, one radial
  * gradient). Written per variant:
  *   resources/icons/<id>.svg                                  the source (the glyph ones only)
@@ -21,7 +21,7 @@
  *
  * Usage: node scripts/app-icons.mjs            write everything
  *        node scripts/app-icons.mjs --check    exit 1 when a committed file differs from a fresh draw */
-import { deflateSync } from 'node:zlib'
+import { deflateSync, inflateSync } from 'node:zlib'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -312,6 +312,62 @@ export function pngInfo(buf) {
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20), alpha: buf[25] === 6 || buf[25] === 4 }
 }
 
+/** Decode only the generated icon format: 8-bit non-interlaced RGB/RGBA with
+ * filter-0 scanlines and IHDR/IDAT/IEND. Reject unknown chunks rather than ignoring possible visual changes.
+ * This is intentionally not a general-purpose PNG reader. CRCs and stream lengths
+ * still matter: a corrupt file must never pass because its pixels happen to inflate. */
+export function iconPixels(buf) {
+  const fail = () => { throw new Error('Invalid generated icon PNG') }
+  if (!Buffer.isBuffer(buf) || !buf.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) fail()
+  let pos = 8, header, ended = false
+  const parts = []
+  while (pos < buf.length) {
+    if (pos + 12 > buf.length || ended) fail()
+    const len = buf.readUInt32BE(pos)
+    const end = pos + 12 + len
+    if (end > buf.length) fail()
+    const type = buf.toString('ascii', pos + 4, pos + 8)
+    if (!buf.subarray(pos + 4, pos + 8).equals(Buffer.from(type, 'ascii'))) fail()
+    const data = buf.subarray(pos + 8, end - 4)
+    if (crc32(buf.subarray(pos + 4, end - 4)) !== buf.readUInt32BE(end - 4)) fail()
+    if (!header) {
+      if (type !== 'IHDR' || len !== 13) fail()
+      header = data
+    } else if (type === 'IDAT') parts.push(data)
+    else if (type === 'IEND' && len === 0 && parts.length) ended = true
+    else fail()
+    pos = end
+  }
+  if (!header || !ended) fail()
+  const width = header.readUInt32BE(0), height = header.readUInt32BE(4)
+  const channels = header[9] === 2 ? 3 : header[9] === 6 ? 4 : 0
+  if (!width || !height || width > IOS_SIZE || height > IOS_SIZE || !channels
+    || header[8] !== 8 || header[10] || header[11] || header[12]) fail()
+  const stride = width * channels
+  const size = height * (stride + 1)
+  const compressed = Buffer.concat(parts)
+  const decoded = inflateSync(compressed, { maxOutputLength: size, info: true })
+  const raw = decoded.buffer
+  if (raw.length !== size || decoded.engine.bytesWritten !== compressed.length) fail()
+  const pixels = Buffer.alloc(height * stride)
+  for (let y = 0; y < height; y++) {
+    const start = y * (stride + 1)
+    if (raw[start] !== 0) fail()
+    raw.copy(pixels, y * stride, start + 1, start + stride + 1)
+  }
+  return { width, height, channels, pixels }
+}
+
+/** Compression bytes are not artwork; dimensions, alpha and pixels are. */
+export function sameIconPixels(a, b) {
+  try {
+    const x = iconPixels(a), y = iconPixels(b)
+    return x.width === y.width && x.height === y.height && x.channels === y.channels && x.pixels.equals(y.pixels)
+  } catch {
+    return false
+  }
+}
+
 const svgOf = (v, rects) => `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512">
   <!-- openGym app icon "${v.id}", written by scripts/app-icons.mjs (the glyph of resources/icon.svg). -->
   <rect width="512" height="512" fill="${v.bg}"/>
@@ -417,7 +473,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     const body = make()
     const buf = Buffer.isBuffer(body) ? body : Buffer.from(body)
     if (check) {
-      if (!existsSync(p) || !readFileSync(p).equals(buf)) bad.push(rel)
+      if (!existsSync(p) || !(rel.endsWith('.png')
+        ? sameIconPixels(readFileSync(p), buf)
+        : readFileSync(p).equals(buf))) bad.push(rel)
       continue
     }
     mkdirSync(dirname(p), { recursive: true })
