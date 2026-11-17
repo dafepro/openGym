@@ -1910,7 +1910,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
               onChange={(v) => switchUnit(v)}
             />
           </Row>
-          <Row icon="scale" iconTint="var(--teal)" title={t('Convert weigh-ins')} chevron
+          <Row icon="scale" iconTint="var(--teal)" title={t('Repair imported units')} chevron
             onClick={() => convertWeighInsSheet({ onBackup: doExport })} />
           {/* Display only: one decimal reads fine for plate-loadable numbers, two for anyone whose
             per-side figure lands on .25 or .75, or who loads microplates (issue #139). Nothing is

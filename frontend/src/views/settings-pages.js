@@ -852,7 +852,7 @@ export const SEARCH = [
   },
   {
     page: 'units',
-    title: 'Convert weigh-ins',
+    title: 'Repair imported units',
     icon: 'scale',
     tint: 'var(--teal)',
     kw: 'imported kg lb history convert repair'
