@@ -94,9 +94,10 @@ confirmation, regardless of page visibility; unattended time never proves work
 ## Optional soccer ball game
 
 The home ball opens a full-screen dark overlay with two goals and scores inside
-those goals. Drag to kick and tap the ball to close. No visible copy, pitch drawing,
+those goals. Touch launches the home ball from its existing position; taps nudge it and pulling
+shows a direction-and-strength arrow before release. An explicit close control exits. No visible copy, pitch drawing,
 directional controls or phone tilt. Keep the game separate from training records
-(ADR 018).
+(ADRs 018 and 021).
 
 The soccer home leads with the next individual assignment and keeps feedback and
 previous submitted sessions with that practice. Completion offers explicit sharing

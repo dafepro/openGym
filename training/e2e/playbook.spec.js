@@ -303,7 +303,9 @@ test('an organizer previews the player experience and opens its shared practice 
   expect(new URL(link).hash).not.toBe('')
   await expect(share.getByRole('button', { name: 'Copy link', exact: true })).toBeEnabled()
   await share.getByRole('button', { name: 'Copy link', exact: true }).click()
-  await expect(share.getByRole('status')).toHaveText(/Copied\. Ready to send\.|Select the link below to copy it\./)
+  await expect(
+    share.getByRole('status').filter({ hasText: /Copied\. Ready to send\.|Select the link below to copy it\./ })
+  ).toBeVisible()
   const receiverOptions = Object.fromEntries(
     ['viewport', 'screen', 'deviceScaleFactor', 'isMobile', 'hasTouch', 'userAgent', 'reducedMotion']
       .filter((key) => testInfo.project.use[key] !== undefined)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { advanceBall, centeredBall, kickFromPull } from './ball-game.js'
+import { advanceBall, centeredBall, aimFromContact, shoveBall } from './ball-game.js'
 
 const size = { width: 320, height: 440 }
 describe('flat-pitch ball physics', () => {
@@ -31,13 +31,42 @@ describe('flat-pitch ball physics', () => {
       expect(next.ball.vy).toBeGreaterThan(0)
     }
   })
+  it('caps a strong diagonal kick without bending its direction', () => {
+    const next = advanceBall({ ...centeredBall(size), vx: 1200, vy: -600 }, 0.01, size)
+    expect(next.ball.vx / next.ball.vy).toBeCloseTo(-2)
+    expect(Math.hypot(next.ball.vx, next.ball.vy)).toBeLessThanOrEqual(900)
+  })
   it('limits elapsed time so returning to a background tab cannot simulate unseen play', () => {
     const body = { ...centeredBall(size), vx: 400, vy: 100 }
     expect(advanceBall(body, 20, size)).toEqual(advanceBall(body, 0.05, size))
   })
-  it('pulls in the opposite direction and caps kick strength', () => {
-    expect(kickFromPull(0, 3)).toBeNull()
-    expect(kickFromPull(0, 200)).toEqual({ x: -0, y: -1, power: 1 })
-    expect(kickFromPull(-50, 0)).toMatchObject({ x: 1, power: 0.5 })
+  it('aims opposite the pull and reaches full force near a screen edge', () => {
+    const center = { x: 160, y: 400 }
+    expect(aimFromContact(center, center, { x: 160, y: 403 }, size)).toBeNull()
+    expect(aimFromContact(center, center, { x: 160, y: 439 }, size)).toMatchObject({
+      x: 0,
+      y: -1,
+      power: expect.any(Number)
+    })
+    expect(aimFromContact(center, center, { x: 160, y: 440 }, size).power).toBe(1)
+  })
+})
+
+describe('contact nudges', () => {
+  it('pushes away from either touched side without relocating the ball', () => {
+    const ball = { ...centeredBall(size), vx: 50 }
+    const left = shoveBall(ball, { x: ball.x - 15, y: ball.y }, size)
+    const right = shoveBall(ball, { x: ball.x + 15, y: ball.y }, size)
+    expect(left).toMatchObject({ x: ball.x, y: ball.y, vx: 470, vy: 0 })
+    expect(right.vx).toBe(-370)
+    expect(ball.vx).toBe(50)
+  })
+  it('gives a centered touch a usable direction', () => {
+    const center = centeredBall(size)
+    expect(shoveBall(center, center, size).vy).toBeLessThan(0)
+    const corner = { ...center, x: 280, y: 60 }
+    expect(shoveBall(corner, corner, size)).toMatchObject({ vx: expect.any(Number), vy: expect.any(Number) })
+    expect(shoveBall(corner, corner, size).vx).toBeLessThan(0)
+    expect(shoveBall(corner, corner, size).vy).toBeGreaterThan(0)
   })
 })
