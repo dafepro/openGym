@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js'
+import { BALL_RADIUS } from '../src/domain/ball-game.js'
 
 test('contact launches the home ball, pull shows force, and a shot scores', async ({ page }, testInfo) => {
   const homeBall = page.getByRole('button', { name: 'Play soccer ball game' })
@@ -21,14 +22,19 @@ test('contact launches the home ball, pull shows force, and a shot scores', asyn
   await page.mouse.down()
   // Launch stays near the source rather than teleporting to the field center.
   expect(Math.hypot(x - home.x - home.width / 2, y - home.y - home.height / 2)).toBeLessThan(180)
-  const dx = bounds.width / 2 - x,
-    dy = -y
+  // Aim using the caught ball, not its position before pointer-down. Target
+  // the goal mouth crossing line (one ball radius from the screen edge).
+  const caught = await ball.boundingBox()
+  const cx = caught.x + caught.width / 2,
+    cy = caught.y + caught.height / 2
+  const dx = bounds.width / 2 - cx,
+    dy = BALL_RADIUS - cy
   const length = Math.hypot(dx, dy)
-  await page.mouse.move(x - (dx / length) * 45, y - (dy / length) * 45, { steps: 3 })
+  await page.mouse.move(cx - (dx / length) * 45, cy - (dy / length) * 45, { steps: 3 })
   const arrow = page.locator('.pb-restored-kick-aim')
   await expect(arrow).toBeVisible()
   const short = await arrow.evaluate((e) => parseFloat(e.style.width))
-  await page.mouse.move(x - (dx / length) * 100, y - (dy / length) * 100, { steps: 6 })
+  await page.mouse.move(cx - (dx / length) * 100, cy - (dy / length) * 100, { steps: 6 })
   expect(await arrow.evaluate((e) => parseFloat(e.style.width))).toBeGreaterThan(short)
   await page.screenshot({ path: testInfo.outputPath('kick-arrow-and-nets.png') })
   await page.mouse.up()
