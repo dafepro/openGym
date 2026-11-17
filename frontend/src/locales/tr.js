@@ -6074,4 +6074,6 @@ export default {
   "Your weight unit changed. Close this preview and import the file again.": "Ağırlık biriminiz değişti. Bu önizlemeyi kapatıp dosyayı yeniden içe aktarın.",
   // Hevy stale-preview protection (English fallback).
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
+  "Unit for unlabelled weights": "Birimsiz ağırlıkların birimi",
+  "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0} kayıtta ağırlık birimi yok. Bu seçim yalnızca bu ağırlıklara uygulanır; birimi belirtilen değerler ve ölçümler değişmez.",
 }

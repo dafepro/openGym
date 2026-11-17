@@ -6074,4 +6074,6 @@ export default {
   "Your weight unit changed. Close this preview and import the file again.": "आपके वजन की इकाई बदल गई है। यह पूर्वावलोकन बंद करें और फ़ाइल फिर से आयात करें।",
   // Hevy stale-preview protection (English fallback).
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
+  "Unit for unlabelled weights": "बिना इकाई वाले वजन की इकाई",
+  "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0} प्रविष्टियों में वजन की इकाई नहीं है। यह चयन केवल उन वजन पर लागू होगा; इकाई वाले मान और माप नहीं बदलेंगे।",
 }

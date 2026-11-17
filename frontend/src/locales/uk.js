@@ -6071,4 +6071,6 @@ export default {
   "Your weight unit changed. Close this preview and import the file again.": "Ваша одиниця ваги змінилася. Закрийте цей попередній перегляд та імпортуйте файл знову.",
   // Hevy stale-preview protection (English fallback).
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
+  "Unit for unlabelled weights": "Одиниця ваги без позначення",
+  "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "У {0} записах немає одиниці ваги. Вибір застосовується лише до цих значень ваги; значення з одиницями та виміри не змінюються.",
 }

@@ -152,3 +152,53 @@ describe('import unit safety', () => {
     expect(useStore.getState().S.bodyweight).toEqual([])
   })
 })
+
+describe('unitless CSV source-unit selector', () => {
+  beforeEach(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true
+    useUI.setState({ sheets: [], toasts: [], toastMsg: '' })
+    useStore.setState(s => ({ S: { ...s.S, unit: 'kg', workouts: [], bodyweight: [] } }))
+  })
+  afterEach(() => { if (root) act(() => root.unmount()); root = null; document.body.innerHTML = '' })
+  const selector = () => [...host.querySelectorAll('label')].find(l => l.textContent.includes('Unit for unlabelled weights'))?.querySelector('select')
+  it.each(['kg', 'lb'])('reparses bodyweights into %s without writing before Import', async unit => {
+    useStore.setState(s => ({ S: { ...s.S, unit } }))
+    await summaryFor('Date,Weight\n2026-09-01,80')
+    const select = selector()
+    expect(select.value).toBe(unit)
+    act(() => {
+      select.value = unit === 'kg' ? 'lb' : 'kg'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(useStore.getState().S.bodyweight).toEqual([])
+    act(() => [...host.querySelectorAll('button')].find(b => b.textContent === 'Import').click())
+    expect(useStore.getState().S.bodyweight[0].w).toBe(unit === 'kg' ? 36.3 : 176.4)
+  })
+  it('blocks an invalid source-unit choice rather than importing a stale or partial preview', async () => {
+    useStore.setState(s => ({ S: { ...s.S, unit: 'lb' } }))
+    await summaryFor('Date,Weight\n2026-09-01,800\n2026-09-02,100')
+    const select = selector()
+    act(() => { select.value = 'kg'; select.dispatchEvent(new Event('change', { bubbles: true })) })
+    const btn = [...host.querySelectorAll('button')].find(b => b.textContent === 'Import')
+    expect(btn.disabled).toBe(true)
+    expect(host.querySelector('[role=alert]').textContent).toContain('row 2')
+    act(() => btn.click())
+    expect(useStore.getState().S.bodyweight).toEqual([])
+    act(() => { select.value = 'lb'; select.dispatchEvent(new Event('change', { bubbles: true })) })
+    expect(btn.disabled).toBe(false)
+  })
+  it('preserves explicit workout rows and disables the choice after a profile change', async () => {
+    await summaryFor('Date,Exercise,Weight,Unit,Reps\n2026-09-01,Bench Press,100,lb,5\n2026-09-01,Bench Press,100,,5')
+    const select = selector()
+    expect(select.value).toBe('lb') // existing sole-file-unit fallback
+    act(() => { select.value = 'kg'; select.dispatchEvent(new Event('change', { bubbles: true })) })
+    act(() => [...host.querySelectorAll('button')].find(b => b.textContent === 'Import').click())
+    expect(useStore.getState().S.workouts[0].entries[0].sets.map(s => s.w)).toEqual([45.36, 100])
+    act(() => useStore.setState(s => ({ S: { ...s.S, unit: 'lb' } })))
+    expect(select.disabled).toBe(true)
+  })
+  it.each(['Date,Exercise,Weight,Reps\n2026-09-01,Push Up,0,5', 'Date,Weight,Unit\n2026-09-01,80,kg'])('hides for zero or fully explicit mass', async text => {
+    await summaryFor(text)
+    expect(selector()).toBeUndefined()
+  })
+})

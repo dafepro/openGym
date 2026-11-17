@@ -1192,15 +1192,17 @@ function ImportSummary({ parsed: initial, text, importUnit, close }) {
   // What you chose under "Check and choose" (#931, #849): the file is read again with it, so the
   // tiles and lines below show what Import will do. Nothing is written before Import.
   const [choices, setChoices] = useState(freshChoices)
-  const parsed = useMemo(() => {
-    if (text == null || !choicesChanged(choices)) return initial
+  const [assumedMassUnit, setAssumedMassUnit] = useState('')
+  const preview = useMemo(() => {
+    if (text == null || (!choicesChanged(choices) && !assumedMassUnit)) return { parsed: initial }
     try {
-      const p = parseImportFile(text, { ...choiceOpts(S(), choices), unit: importUnit })
-      return p && !p.error ? p : initial
+      const p = parseImportFile(text, { ...choiceOpts(S(), choices), unit: importUnit, assumedMassUnit })
+      return p && !p.error ? { parsed: p } : { parsed: initial, error: p?.error || true, row: p?.row }
     } catch {
-      return initial
+      return { parsed: initial, error: true }
     }
-  }, [text, choices, initial, importUnit])
+  }, [text, choices, initial, importUnit, assumedMassUnit])
+  const parsed = preview.parsed
   const unitChanged = (st.unit || 'kg') !== importUnit
   const isBW = parsed.kind === 'bodyweight'
   // Our own body CSV brings measurement check-ins along (#718); a day that has one keeps it.
@@ -1222,6 +1224,7 @@ function ImportSummary({ parsed: initial, text, importUnit, close }) {
   const unmatched = [...new Set([...(isBW ? [] : parsed.unmatchedNames), ...(plans?.unmatchedNames || [])])].sort()
 
   const doImport = () => {
+    if (preview.error) return
     // Re-check at click time as well: a sync can change units after the preview.
     if ((S().unit || 'kg') !== importUnit) {
       toast(t('Your weight unit changed. Close this preview and import the file again.'))
@@ -1334,16 +1337,28 @@ function ImportSummary({ parsed: initial, text, importUnit, close }) {
           {t('Weigh-ins')}: {parsed.bodyweight.length} · {t('New')}: {freshBody}
         </div>
       )}
+      {text != null && parsed.unknownMassRows > 0 && (
+        <div className="small" style={{ marginBottom: 12 }}>
+          <label>
+            {t('Unit for unlabelled weights')}{' '}
+            <select value={assumedMassUnit || parsed.massAssumption} onChange={e => setAssumedMassUnit(e.target.value)} disabled={unitChanged}>
+              <option value="kg">kg</option>
+              <option value="lb">lb</option>
+            </select>
+          </label>
+          <div className="dim">{t('{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.', parsed.unknownMassRows)}</div>
+        </div>
+      )}
       {parsed.mixedUnits ? (
         <div className="small" style={{ color: 'var(--gold-ink)', marginBottom: 10 }}>
           {t('The file mixes kg and lb, so each set is converted to {0}.', st.unit)}
         </div>
-      ) : parsed.converted ? (
+      ) : parsed.converted && parsed.fileUnit && !parsed.unknownMassRows ? (
         <div className="small" style={{ color: 'var(--gold-ink)', marginBottom: 10 }}>
           {t('The file is in {0} and your profile is in {1}, so weights get converted.', parsed.fileUnit, st.unit)}
         </div>
       ) : null}
-      {hasWorkouts && !isBW && !parsed.fileUnit && !parsed.mixedUnits && (
+      {hasWorkouts && !isBW && !parsed.fileUnit && !parsed.mixedUnits && !parsed.unknownMassRows && (
         <div className="small dim" style={{ marginBottom: 10 }}>
           {t('The file doesn’t say which unit it uses, so numbers are imported as they are.')}
         </div>
@@ -1406,8 +1421,9 @@ function ImportSummary({ parsed: initial, text, importUnit, close }) {
         />
       )}
 
+      {preview.error && <p role="alert">{preview.error === 'units' ? t('Check weight units in row {0}. Use one weight column per row, labelled kg or lb.', preview.row) : t('Could not read that file')}</p>}
       {unitChanged && <p role="alert">{t('Your weight unit changed. Close this preview and import the file again.')}</p>}
-      <Button variant="primary" onClick={doImport} disabled={!fresh || unitChanged}>
+      <Button variant="primary" onClick={doImport} disabled={!fresh || unitChanged || preview.error}>
         {fresh ? t('Import') : t('Nothing new to import')}
       </Button>
       <div style={{ height: 8 }} />

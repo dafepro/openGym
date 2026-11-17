@@ -4,6 +4,9 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  "Unit for unlabelled weights": "Unidade dos pesos sem indicação",
+  "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0} registros não têm unidade de peso. Esta escolha só se aplica a esses pesos; os valores com unidade e as medidas não mudam.",
+
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Confira as unidades de peso na linha {0}. Use uma coluna de peso por linha, indicada em kg ou lb.",
   "Your weight unit changed. Close this preview and import the file again.": "Sua unidade de peso mudou. Feche esta prévia e importe o arquivo novamente.",
 

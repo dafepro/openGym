@@ -6040,4 +6040,6 @@ export default {
   "Your weight unit changed. Close this preview and import the file again.": "Jednotka hmotnosti se změnila. Zavřete tento náhled a importujte soubor znovu.",
   // Hevy stale-preview protection (English fallback).
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
+  "Unit for unlabelled weights": "Jednotka neoznačených hmotností",
+  "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0} záznamů nemá jednotku hmotnosti. Volba platí jen pro tyto hmotnosti; označené hodnoty a míry zůstávají beze změny.",
 }

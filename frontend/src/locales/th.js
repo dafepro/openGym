@@ -6085,4 +6085,6 @@ export default {
   "Your weight unit changed. Close this preview and import the file again.": "หน่วยน้ำหนักของคุณเปลี่ยนไป ปิดตัวอย่างนี้แล้วนำเข้าไฟล์อีกครั้ง",
   // Hevy stale-preview protection (English fallback).
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
+  "Unit for unlabelled weights": "หน่วยสำหรับน้ำหนักที่ไม่ระบุหน่วย",
+  "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "มี {0} รายการที่ไม่มีหน่วยน้ำหนัก ตัวเลือกนี้ใช้กับน้ำหนักเหล่านี้เท่านั้น ค่าที่ระบุหน่วยและการวัดสัดส่วนจะไม่เปลี่ยนแปลง",
 }

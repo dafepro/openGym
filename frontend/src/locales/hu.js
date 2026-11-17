@@ -6077,4 +6077,6 @@ export default {
   "Your weight unit changed. Close this preview and import the file again.": "Megváltozott a súlyegységed. Zárd be ezt az előnézetet, és importáld újra a fájlt.",
   // Hevy stale-preview protection (English fallback).
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
+  "Unit for unlabelled weights": "Jelöletlen súlyok egysége",
+  "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0} bejegyzésből hiányzik a súlyegység. A választás csak ezekre vonatkozik; a jelölt értékek és testméretek változatlanok maradnak.",
 }

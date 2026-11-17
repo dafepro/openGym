@@ -949,7 +949,7 @@ export function priorCustom(customEx, id, name) {
 export function parseWorkoutCSV(text, opts = {}) {
   const rows = parseCSV(text)
   if (rows.length < 2) return { error: 'empty' }
-  return parseWorkoutRows(rows, mapHeader(rows[0]), detectSource(rows[0]), opts)
+  return parseWorkoutRows(rows, mapHeader(rows[0]), detectSource(rows[0]), { ...opts, allowMassAssumption: true })
 }
 
 /**
@@ -968,6 +968,8 @@ export function parseWorkoutRows(
   source,
   {
     unit = 'kg',
+    assumedMassUnit,
+    allowMassAssumption = false,
     customEx = [],
     skipped: preSkipped = 0,
     matches,
@@ -1385,16 +1387,26 @@ export function parseWorkoutRows(
   // "185 lb" into 185 kg.
   const fileUnit = sawLb && !sawKg ? 'lb' : sawKg && !sawLb ? 'kg' : ''
   const mixedUnits = sawLb && sawKg
+  // Only the native CSV path opts in. Provider adapters/routines keep their contracts.
+  const hasPositiveMass = (s) => s.w > 0 || s.drops?.some(d => d.w > 0)
+    || (s.sides && Object.values(s.sides).some(hasPositiveMass))
+  const safeMassAssumption = allowMassAssumption && !own && (map.weightUnit === undefined || rows.slice(1).every(r => {
+    const u = String(r[map.weightUnit] || '').trim().toLowerCase()
+    return !u || u.startsWith('lb') || u.startsWith('kg')
+  }))
+  const unknownMassRows = safeMassAssumption ? [...byDate.values()].reduce((n, day) =>
+    n + [...day.ex.values()].flat().filter(s => !s.u && hasPositiveMass(s)).length, 0) : 0
+  const massAssumption = unknownMassRows ? (['kg', 'lb'].includes(assumedMassUnit) ? assumedMassUnit : fileUnit || unit) : ''
   const toKg = (x) => roundWeight(x * LB_TO_KG)
   const toLb = (x) => roundWeight(x / LB_TO_KG)
   // A row without its own unit follows the file's, and a file that says nothing is taken
   // to already be in the profile's unit.
   const convRow = (s) => {
-    const u = s.u || fileUnit
+    const u = s.u || massAssumption || fileUnit
     if (!u || u === unit) return s.w
     return u === 'lb' ? toKg(s.w) : toLb(s.w)
   }
-  const converted = (!!fileUnit && fileUnit !== unit) || mixedUnits
+  const converted = (!!fileUnit && fileUnit !== unit) || mixedUnits || (!!massAssumption && massAssumption !== unit)
 
   // By day, and within a day by start, the order the history keeps (sync-merge byDayStart).
   const days = [...byDate.values()].sort((a, b) => (a.d === b.d ? (a.start ?? 0) - (b.start ?? 0) : a.d < b.d ? -1 : 1))
@@ -1481,6 +1493,8 @@ export function parseWorkoutRows(
     warmups,
     fileUnit,
     mixedUnits,
+    unknownMassRows,
+    massAssumption,
     converted,
     rpeSets,
     rirSets,
@@ -1504,7 +1518,7 @@ export function parseWorkoutRows(
  * records are pulled out with a scan instead. Health writes weights in the unit the
  * phone is set to and labels each record, so the unit is read per record.
  */
-export function parseBodyweight(text, { unit = 'kg' } = {}) {
+export function parseBodyweight(text, { unit = 'kg', assumedMassUnit } = {}) {
   const s = String(text)
   // iso date -> [{ w, unit, t, at }]: every weigh-in with a time of day (#859); of the ones
   // without a time, the day's last, as before.
@@ -1517,7 +1531,8 @@ export function parseBodyweight(text, { unit = 'kg' } = {}) {
   }
   let fileUnit = '',
     source = 'Apple Health',
-    measurements = []
+    measurements = [],
+    unknownMassRows = 0
   // The export's runs, rides and matches come along as activities (lib/activities.js, gm-hooks):
   // they used to be dropped on the floor, every one of them.
   const activities = activitiesFromHealthExport(s)
@@ -1604,14 +1619,22 @@ export function parseBodyweight(text, { unit = 'kg' } = {}) {
       if ((rawUnit && !rowUnit) || (columnUnit && rowUnit && columnUnit !== rowUnit)
         || (!columnUnit && !rowUnit && (map.weightUnit !== undefined || weightCols.some(([, u]) => u))))
         return { error: 'units', row: i + 1 }
-      const recUnit = columnUnit || rowUnit || unit
+      const massUnit = ['kg', 'lb'].includes(assumedMassUnit) ? assumedMassUnit : unit
+      const recUnit = columnUnit || rowUnit || massUnit
       const w = num(r[col])
+      // A changed assumption must not silently remove rows from an accepted preview.
+      if (!columnUnit && !rowUnit && ['kg', 'lb'].includes(assumedMassUnit)
+        && w > 0 && !bodyOk(w, recUnit)) return { error: 'units', row: i + 1 }
       if (!w || !bodyOk(w, recUnit)) continue
-      put(when.d, { w, unit: columnUnit || rowUnit, t: new Date(when.d).getTime() + (when.t ?? 0) }, when.t)
+      if (!columnUnit && !rowUnit) unknownMassRows++
+      put(when.d, { w, unit: columnUnit || rowUnit || (assumedMassUnit ? massUnit : ''), t: new Date(when.d).getTime() + (when.t ?? 0) }, when.t)
     }
   }
 
-  return finishBodyweight(out, unit, source, fileUnit, measurements, activities)
+  return { ...finishBodyweight(out, unit, source, fileUnit, measurements, activities),
+    unknownMassRows,
+    massAssumption: unknownMassRows ? (['kg', 'lb'].includes(assumedMassUnit) ? assumedMassUnit : unit) : '' }
+
 }
 
 // Our own body CSV (lib/export-csv.js bodyCSV) carries the measurements too (#718): a column per

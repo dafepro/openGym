@@ -6040,4 +6040,6 @@ export default {
   "Your weight unit changed. Close this preview and import the file again.": "واحد وزن شما تغییر کرده است. این پیش‌نمایش را ببندید و فایل را دوباره وارد کنید.",
   // Hevy stale-preview protection (English fallback).
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
+  "Unit for unlabelled weights": "واحد وزن‌های بدون برچسب",
+  "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0} مورد واحد وزن ندارند. این انتخاب فقط برای این وزن‌ها است؛ مقادیر دارای واحد و اندازه‌گیری‌ها تغییر نمی‌کنند.",
 }

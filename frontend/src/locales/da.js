@@ -6014,4 +6014,6 @@ export default {
   "Your weight unit changed. Close this preview and import the file again.": "Din vægtenhed er ændret. Luk denne forhåndsvisning, og importér filen igen.",
   // Hevy stale-preview protection (English fallback).
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
+  "Unit for unlabelled weights": "Enhed for vægte uden mærkning",
+  "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0} poster mangler vægtenhed. Valget gælder kun disse vægte; mærkede værdier og kropsmål ændres ikke.",
 }

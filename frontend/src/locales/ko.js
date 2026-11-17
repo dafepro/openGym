@@ -6074,4 +6074,6 @@ export default {
   "Your weight unit changed. Close this preview and import the file again.": "무게 단위가 변경되었습니다. 이 미리보기를 닫고 파일을 다시 가져오세요.",
   // Hevy stale-preview protection (English fallback).
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
+  "Unit for unlabelled weights": "단위가 없는 무게의 단위",
+  "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0}개 항목에 무게 단위가 없습니다. 이 선택은 해당 무게에만 적용되며, 단위가 표시된 값과 신체 치수는 변경되지 않습니다.",
 }
