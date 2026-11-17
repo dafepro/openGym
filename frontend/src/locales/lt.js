@@ -6060,4 +6060,6 @@ export default {
   "Preview on": "Peržiūra",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "šiek tiek trumpiau",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Patikrinkite svorio vienetus {0} eilutėje. Kiekvienoje eilutėje naudokite vieną svorio stulpelį, pažymėtą kg arba lb.",
+  "Your weight unit changed. Close this preview and import the file again.": "Jūsų svorio vienetas pasikeitė. Uždarykite šią peržiūrą ir importuokite failą iš naujo.",
 }

@@ -6064,4 +6064,6 @@ export default {
   "Preview on": "预览位置",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "缩短一点",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "请检查第 {0} 行的重量单位。每行只使用一个重量列，并标注 kg 或 lb。",
+  "Your weight unit changed. Close this preview and import the file again.": "你的重量单位已更改。请关闭此预览并重新导入文件。",
 }

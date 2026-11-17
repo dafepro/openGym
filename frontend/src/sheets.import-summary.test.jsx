@@ -122,3 +122,33 @@ describe('the import summary with routines', () => {
     expect(useUI.getState().sheets).toHaveLength(0)
   })
 })
+
+describe('import unit safety', () => {
+  beforeEach(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true
+    useUI.setState({ sheets: [], toasts: [], toastMsg: '' })
+    useStore.setState(s => ({ S: { ...s.S, unit: 'kg', workouts: [], bodyweight: [] } }))
+  })
+  afterEach(() => { if (root) act(() => root.unmount()); root = null; document.body.innerHTML = '' })
+  it.each([
+    'Date,Weight,Unit\n2026-09-01,180,lb',
+    'Date,Exercise,Weight (lb),Reps\n2026-09-01,Bench Press,180,5',
+  ])('does not import stale numbers after the profile unit changes', async text => {
+    await summaryFor(text)
+    const importBtn = [...host.querySelectorAll('button')].find(b => b.textContent === 'Import')
+    expect(importBtn.disabled).toBe(false)
+    act(() => useStore.setState(s => ({ S: { ...s.S, unit: 'lb' } })))
+    expect(host.querySelector('[role=alert]').textContent).toContain('import the file again')
+    expect(importBtn.disabled).toBe(true)
+    act(() => importBtn.click())
+    expect(useStore.getState().S.bodyweight).toEqual([])
+    expect(useStore.getState().S.workouts).toEqual([])
+  })
+  it('explains the ambiguous row and writes nothing', async () => {
+    importFromApp(new File(['Date,Weight,Unit\n2026-09-01,80,kg\n2026-09-02,81,'], 'weights.csv'))
+    for (let i = 0; i < 50 && !useUI.getState().toastMsg; i++) await new Promise(r => setTimeout(r, 5))
+    expect(useUI.getState().toastMsg).toBe('Check weight units in row 3. Use one weight column per row, labelled kg or lb.')
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(useStore.getState().S.bodyweight).toEqual([])
+  })
+})

@@ -6030,4 +6030,6 @@ export default {
   "Preview on": "پیش‌نمایش روی",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "کمی کوتاه‌تر",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "واحدهای وزن در ردیف {0} را بررسی کنید. در هر ردیف از یک ستون وزن با برچسب kg یا lb استفاده کنید.",
+  "Your weight unit changed. Close this preview and import the file again.": "واحد وزن شما تغییر کرده است. این پیش‌نمایش را ببندید و فایل را دوباره وارد کنید.",
 }

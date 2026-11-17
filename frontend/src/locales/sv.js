@@ -6111,4 +6111,6 @@ export default {
   "Preview on": "Förhandsvisa på",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "kortare",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Kontrollera viktenheterna på rad {0}. Använd en viktkolumn per rad, märkt kg eller lb.",
+  "Your weight unit changed. Close this preview and import the file again.": "Din viktenhet har ändrats. Stäng förhandsvisningen och importera filen igen.",
 }

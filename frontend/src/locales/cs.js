@@ -6030,4 +6030,6 @@ export default {
   "Preview on": "Náhled na",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "kratší",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Zkontrolujte jednotky hmotnosti na řádku {0}. Na každém řádku použijte jeden sloupec hmotnosti označený kg nebo lb.",
+  "Your weight unit changed. Close this preview and import the file again.": "Jednotka hmotnosti se změnila. Zavřete tento náhled a importujte soubor znovu.",
 }

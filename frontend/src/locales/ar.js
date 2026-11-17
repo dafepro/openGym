@@ -6119,4 +6119,6 @@ export default {
   "Preview on": "المعاينة على",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "أقصر قليلًا",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "تحقق من وحدات الوزن في الصف {0}. استخدم عمود وزن واحدًا لكل صف، مع تسمية kg أو lb.",
+  "Your weight unit changed. Close this preview and import the file again.": "تغيّرت وحدة وزنك. أغلق هذه المعاينة واستورد الملف مرة أخرى.",
 }

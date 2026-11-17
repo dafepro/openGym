@@ -6029,4 +6029,6 @@ export default {
   "Preview on": "Pratinjau di",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "sedikit lebih singkat",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Periksa satuan berat pada baris {0}. Gunakan satu kolom berat per baris, berlabel kg atau lb.",
+  "Your weight unit changed. Close this preview and import the file again.": "Satuan berat Anda berubah. Tutup pratinjau ini dan impor file lagi.",
 };

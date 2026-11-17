@@ -6074,4 +6074,6 @@ export default {
   "Preview on": "Anteprima su",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "un po’ più corto",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Controlla le unità di peso alla riga {0}. Usa una sola colonna del peso per riga, indicata in kg o lb.",
+  "Your weight unit changed. Close this preview and import the file again.": "La tua unità di peso è cambiata. Chiudi questa anteprima e importa di nuovo il file.",
 }

@@ -115,3 +115,72 @@ describe('several weigh-ins a day from a file', () => {
     expect(S.bodyweight[0]).toEqual({ d: '2026-09-01', w: 79, t: 5 })
   })
 })
+
+// Generic weight exports may put units beside values rather than in the heading.
+describe('generic bodyweight CSV units', () => {
+  it.each([
+    ['lb', [176.37, 180]], ['kg', [80, 81.65]],
+  ])('reads each row into %s, independent of row order', (unit, expected) => {
+    const head = 'Date,Weight,Unit\n'
+    const rows = ['2026-09-01,80,kg', '2026-09-02,180,lbs']
+    const result = parseImport(head + rows.join('\n'), { unit })
+    expect(result.kind).toBe('bodyweight')
+    expect(result.bodyweight.map(b => b.w)).toEqual(expected)
+    expect(result.fileUnit).toBe('kg / lb')
+    expect(result.converted).toBe(true)
+    expect(parseImport(head + rows.reverse().join('\n'), { unit }).bodyweight).toEqual(result.bodyweight)
+  })
+  it('accepts Weight Unit and case/whitespace/plural spellings', () => {
+    const p = parseImport('Date,Weight,Weight Unit\n2026-09-01,80, Kilograms \n2026-09-02,180,POUNDS', { unit: 'lb' })
+    expect(p.bodyweight.map(b => b.w)).toEqual([176.37, 180])
+  })
+  it.each([
+    'Date,Weight,Unit\n2026-09-01,80,kg\n2026-09-02,81,stone',
+    'Date,Weight,Unit,Weight Unit\n2026-09-01,80,kg,lb',
+    'Date,Weight,Weight\n2026-09-01,80,180',
+    'Date,Weight,Unit\n2026-09-01,80,kg\n2026-09-02,81,',
+    'Date,Weight (kg),Unit\n2026-09-01,80,lb',
+    'Date,Weight (kg),Unit\n2026-09-01,80,kg-ish',
+    'Date,Weight (kg),Weight (lb)\n2026-09-01,80,176.37',
+    'Date,Weight,Weight (kg)\n2026-09-01,80,80',
+    'Date,Weight,Weight (kg)\n2026-09-01,,80\n2026-09-02,81,',
+  ])('rejects ambiguous or conflicting declarations without partial results: %s', text => {
+    expect(parseImport(text, { unit: 'lb' })).toMatchObject({ error: 'units', row: expect.any(Number) })
+  })
+  it('uses populated explicitly labelled columns per row, not the first header', () => {
+    const text = 'Date,Weight (kg),Weight (lbs),Unit\n2026-09-01,80,,\n2026-09-02,,180,lb'
+    expect(parseImport(text, { unit: 'lb' }).bodyweight.map(b => b.w)).toEqual([176.37, 180])
+  })
+  it('keeps the existing wholly unitless contract', () => {
+    const p = parseImport('Date,Weight\n2026-09-01,180', { unit: 'lb' })
+    expect(p.bodyweight[0].w).toBe(180)
+    expect(p.fileUnit).toBe('')
+    expect(p.converted).toBe(false)
+  })
+  it('does not apply the weight row unit to custom or built-in measurement columns', async () => {
+    const { mergeImport } = await import('./import-csv.js')
+    const text = 'date,weight_kg,waist_cm,Lean mass (lb),Unit\n2026-09-01,80,90,110.23113109,kg\n2026-09-02,,91,112.43575371,'
+    const p = parseImport(text, { unit: 'lb' })
+    const s = { unit: 'lb', bodyweight: [], measurements: [], customMeasurements: [] }
+    mergeImport(s, p)
+    expect(s.bodyweight[0].w).toBe(176.4)
+    expect(s.measurements.map(m => m.waist)).toEqual([90, 91])
+    expect(s.measurements.map(m => m.other[0].value)).toEqual([50, 51])
+  })
+})
+
+
+it('row weight units leave all supported measurement columns unchanged', async () => {
+  const { MEASUREMENT_FIELDS, builtinCsvColumn, CUSTOM_MEASUREMENT_UNITS } = await import('./measurements.js')
+  const builtins = MEASUREMENT_FIELDS.map(builtinCsvColumn)
+  const customs = CUSTOM_MEASUREMENT_UNITS.map((u, i) => u === 'none' ? `Score ${i}` : `Metric ${i} (${u})`)
+  const values = MEASUREMENT_FIELDS.map(f => f.key === 'bpSys' ? 120 : f.key === 'bpDia' ? 80 : f.key === 'pulse' ? 60 : 20)
+  const base = ['date,weight_kg,' + [...builtins, ...customs].join(','), '2026-09-01,80,' + [...values, ...customs.map(() => 20)].join(',')]
+  const declared = [base[0] + ',Unit', base[1] + ',kg'].join('\n')
+  const plain = parseImport(base.join('\n'), { unit: 'lb' })
+  const rowUnits = parseImport(declared, { unit: 'lb' })
+  expect(rowUnits.bodyweight).toEqual(plain.bodyweight)
+  expect(rowUnits.measurements).toEqual(plain.measurements)
+  expect(rowUnits.measurements[0].values).toHaveProperty('bpSys', 120)
+  expect(rowUnits.measurements[0].other).toHaveLength(CUSTOM_MEASUREMENT_UNITS.length)
+})

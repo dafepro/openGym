@@ -6068,4 +6068,6 @@ export default {
   "Preview on": "Предпросмотр на",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "чуть покороче",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Проверьте единицы веса в строке {0}. Используйте один столбец веса на строку с обозначением kg или lb.",
+  "Your weight unit changed. Close this preview and import the file again.": "Единица веса изменилась. Закройте предпросмотр и импортируйте файл заново.",
 }

@@ -6030,4 +6030,6 @@ export default {
   "Preview on": "Xem trước trên",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "ngắn hơn",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Kiểm tra đơn vị cân nặng ở hàng {0}. Mỗi hàng chỉ dùng một cột cân nặng, ghi rõ kg hoặc lb.",
+  "Your weight unit changed. Close this preview and import the file again.": "Đơn vị cân nặng của bạn đã thay đổi. Đóng bản xem trước này và nhập lại tệp.",
 };

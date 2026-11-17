@@ -6064,4 +6064,6 @@ export default {
   "Preview on": "प्रीव्यू यहां",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "थोड़ा छोटा",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "पंक्ति {0} में वजन की इकाइयाँ जाँचें। हर पंक्ति में kg या lb चिह्नित एक वजन कॉलम इस्तेमाल करें।",
+  "Your weight unit changed. Close this preview and import the file again.": "आपके वजन की इकाई बदल गई है। यह पूर्वावलोकन बंद करें और फ़ाइल फिर से आयात करें।",
 }

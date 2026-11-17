@@ -1570,18 +1570,41 @@ export function parseBodyweight(text, { unit = 'kg' } = {}) {
       }
       return finishBodyweight(out, unit, source)
     }
-    // a weight-only CSV: whichever weight column it has
-    const wCol = map.weightKg ?? map.weightLb ?? map.weight
+    // A weight-only CSV can label each row, each column, or neither. Never let a
+    // generic Unit column silently relabel kg as lb. With no unit declaration at
+    // all, retain the established contract: values are in the profile's unit.
+    const weightCols = [
+      [map.weightKg, 'kg'], [map.weightLb, 'lb'], [map.weight, '']
+    ].filter(([i]) => i !== undefined)
     const dCol = map.date ?? map.startTime
-    if (wCol === undefined || dCol === undefined) return { error: 'unrecognised' }
+    if (!weightCols.length || dCol === undefined) return { error: 'unrecognised' }
+    // mapHeader intentionally takes the first alias elsewhere; a body-weight file
+    // with duplicate unit/value declarations must not silently hide another column.
+    const head = rows[0].map(norm)
+    const aliases = COLUMNS.filter(([field]) => ['weightKg', 'weightLb', 'weight', 'weightUnit'].includes(field))
+    if (aliases.some(([, names]) => head.filter(h => names.includes(h)).length > 1)) return { error: 'units', row: 1 }
     measurements = bodyCsvMeasurements(rows)
-    if (map.weightKg !== undefined) fileUnit = 'kg'
-    else if (map.weightLb !== undefined) fileUnit = 'lb'
     for (let i = 1; i < rows.length; i++) {
-      const when = parseWhen(String(rows[i][dCol] ?? ''))
-      const w = num(rows[i][wCol])
-      if (!when || !w || !bodyOk(w, fileUnit || unit)) continue
-      put(when.d, { w, t: new Date(when.d).getTime() + (when.t ?? 0) }, when.t)
+      const r = rows[i]
+      const when = parseWhen(String(r[dCol] ?? ''))
+      if (!when) continue
+      const populated = weightCols.filter(([col]) => String(r[col] ?? '').trim() !== '')
+      if (!populated.length) continue // measurement-only rows in our own body CSV
+      if (populated.length !== 1) return { error: 'units', row: i + 1 }
+      const [col, columnUnit] = populated[0]
+      const rawUnit = String(r[map.weightUnit] ?? '').trim().toLowerCase()
+      const rowUnit = /^(kg|kilograms?)$/.test(rawUnit) ? 'kg'
+        : /^(lbs?|pounds?)$/.test(rawUnit) ? 'lb' : ''
+      // Reject the whole file, rather than silently dropping an ambiguous row or
+      // guessing between contradictory declarations. A header may supply a blank
+      // row unit; a generic Weight column with an explicit Unit column may not.
+      if ((rawUnit && !rowUnit) || (columnUnit && rowUnit && columnUnit !== rowUnit)
+        || (!columnUnit && !rowUnit && (map.weightUnit !== undefined || weightCols.some(([, u]) => u))))
+        return { error: 'units', row: i + 1 }
+      const recUnit = columnUnit || rowUnit || unit
+      const w = num(r[col])
+      if (!w || !bodyOk(w, recUnit)) continue
+      put(when.d, { w, unit: columnUnit || rowUnit, t: new Date(when.d).getTime() + (when.t ?? 0) }, when.t)
     }
   }
 
@@ -1721,7 +1744,7 @@ export function parseImport(text, opts) {
   const asWorkouts = parseWorkoutCSV(s, opts)
   if (!asWorkouts.error) return asWorkouts
   const asWeights = parseBodyweight(s, opts)
-  return asWeights.error ? asWorkouts : asWeights
+  return asWeights.error && asWeights.error !== 'units' ? asWorkouts : asWeights
 }
 
 /* --------------------------------------------------------------- merge ---- */

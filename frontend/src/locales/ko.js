@@ -6064,4 +6064,6 @@ export default {
   "Preview on": "미리 볼 화면",
   // 1.4.5 UX round, P2: timed holds in the finish summary (next hold is shorter)
   "shorter": "조금 짧게",
+  "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "{0}행의 무게 단위를 확인하세요. 각 행에는 kg 또는 lb로 표시된 무게 열 하나를 사용하세요.",
+  "Your weight unit changed. Close this preview and import the file again.": "무게 단위가 변경되었습니다. 이 미리보기를 닫고 파일을 다시 가져오세요.",
 }

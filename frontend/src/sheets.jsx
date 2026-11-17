@@ -1187,7 +1187,7 @@ const effortLine = (effort, n, scale) =>
 // the one action where "just try it" is expensive — it's someone's entire training
 // history — so the numbers, the unit conversion and the exercises we couldn't recognise
 // are all on screen before the confirm button.
-function ImportSummary({ parsed: initial, text, close }) {
+function ImportSummary({ parsed: initial, text, importUnit, close }) {
   const st = useStore((s) => s.S)
   // What you chose under "Check and choose" (#931, #849): the file is read again with it, so the
   // tiles and lines below show what Import will do. Nothing is written before Import.
@@ -1195,12 +1195,13 @@ function ImportSummary({ parsed: initial, text, close }) {
   const parsed = useMemo(() => {
     if (text == null || !choicesChanged(choices)) return initial
     try {
-      const p = parseImportFile(text, choiceOpts(S(), choices))
+      const p = parseImportFile(text, { ...choiceOpts(S(), choices), unit: importUnit })
       return p && !p.error ? p : initial
     } catch {
       return initial
     }
-  }, [text, choices, initial])
+  }, [text, choices, initial, importUnit])
+  const unitChanged = (st.unit || 'kg') !== importUnit
   const isBW = parsed.kind === 'bodyweight'
   // Our own body CSV brings measurement check-ins along (#718); a day that has one keeps it.
   const checkIns = isBW ? parsed.measurements || [] : []
@@ -1221,6 +1222,11 @@ function ImportSummary({ parsed: initial, text, close }) {
   const unmatched = [...new Set([...(isBW ? [] : parsed.unmatchedNames), ...(plans?.unmatchedNames || [])])].sort()
 
   const doImport = () => {
+    // Re-check at click time as well: a sync can change units after the preview.
+    if ((S().unit || 'kg') !== importUnit) {
+      toast(t('Your weight unit changed. Close this preview and import the file again.'))
+      return
+    }
     let res, planRes
     update((s) => {
       res = mergeImport(s, parsed)
@@ -1400,7 +1406,8 @@ function ImportSummary({ parsed: initial, text, close }) {
         />
       )}
 
-      <Button variant="primary" onClick={doImport} disabled={!fresh}>
+      {unitChanged && <p role="alert">{t('Your weight unit changed. Close this preview and import the file again.')}</p>}
+      <Button variant="primary" onClick={doImport} disabled={!fresh || unitChanged}>
         {fresh ? t('Import') : t('Nothing new to import')}
       </Button>
       <div style={{ height: 8 }} />
@@ -1444,11 +1451,16 @@ export function importFromApp(file, onDone) {
   const rd = new FileReader()
   rd.onload = () => {
     let parsed
+    const opts = choiceOpts(S(), freshChoices())
     // Read with the names you already gave exercises, so a pick made on an earlier import holds.
     try {
-      parsed = parseImportFile(String(rd.result), choiceOpts(S(), freshChoices()))
+      parsed = parseImportFile(String(rd.result), opts)
     } catch (e) {
       toast(t(e.message || 'Could not read that file'))
+      return
+    }
+    if (parsed.error === 'units') {
+      toast(t('Check weight units in row {0}. Use one weight column per row, labelled kg or lb.', parsed.row))
       return
     }
     if (parsed.error === 'empty') {
@@ -1477,7 +1489,7 @@ export function importFromApp(file, onDone) {
       return
     }
     const text = String(rd.result)
-    ui().openSheet((close) => <ImportSummary parsed={parsed} text={text} close={close} />)
+    ui().openSheet((close) => <ImportSummary parsed={parsed} text={text} importUnit={opts.unit} close={close} />)
     onDone && onDone()
   }
   rd.onerror = () => toast(t('Could not read that file'))
