@@ -52,6 +52,7 @@ import { StreakIconRows } from '../components/StreakIconPicker.jsx'
 import { StreakRuleRow, StreakExcuseRow } from '../components/StreakRule.jsx'
 import { PinnedBadges } from '../components/Streak.jsx'
 import { DeloadRows } from '../components/DeloadCard.jsx'
+import { convertWeighInsSheet } from '../components/ConvertWeighIns.jsx'
 import { deleteWorkoutsSheet } from '../components/DeleteWorkouts.jsx'
 import { CheckinReminderRow } from '../components/CheckinReminder.jsx'
 import { scheduleModeOf, chooseFixedWeek, chooseRotation } from '../lib/rotation.js'
@@ -1909,6 +1910,8 @@ export default function Settings({ page = null, find = null, via = null, entryKe
               onChange={(v) => switchUnit(v)}
             />
           </Row>
+          <Row icon="scale" iconTint="var(--teal)" title={t('Repair imported units')} chevron
+            onClick={() => convertWeighInsSheet({ onBackup: doExport })} />
           {/* Display only: one decimal reads fine for plate-loadable numbers, two for anyone whose
             per-side figure lands on .25 or .75, or who loads microplates (issue #139). Nothing is
             stored or rounded differently; lib/format.js fmtNum just prints what is already there. */}

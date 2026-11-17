@@ -852,6 +852,13 @@ export const SEARCH = [
   },
   {
     page: 'units',
+    title: 'Repair imported units',
+    icon: 'scale',
+    tint: 'var(--teal)',
+    kw: 'imported kg lb history convert repair'
+  },
+  {
+    page: 'units',
     title: 'Weight decimals',
     icon: 'ruler',
     tint: 'var(--teal)',

@@ -294,6 +294,16 @@ describe('parseHevyRoutines', () => {
     expect(pull.sg).toBe(row.sg)
   })
 
+  it('converts routine loads for lb without scaling cardio speed, duration or rep counts', () => {
+    const kg = parseHevyRoutines([ROUTINE], TEMPLATES, { unit: 'kg' }).routines[0]
+    const lb = parseHevyRoutines([ROUTINE], TEMPLATES, { unit: 'lb' }).routines[0]
+    expect(lb.hevyId).toBe(kg.hevyId)
+    expect(lb.ex[0]).toEqual(kg.ex[0])
+    expect(lb.ex[0]).toMatchObject({ min: 3, speed: 9.6 })
+    expect(lb.ex[1].weight).toBeCloseTo(52 / 0.45359237, 1)
+    for (const key of ['sets', 'reps', 'warmupSets']) expect(lb.ex[1][key]).toBe(kg.ex[1][key])
+  })
+
   // D#876: a long Hevy note (form cues, a whole warm-up) came over cut at 280 characters.
   it('keeps a long exercise note whole', () => {
     const long = 'Keep the elbows tucked and squeeze at the top. '.repeat(20).trim()

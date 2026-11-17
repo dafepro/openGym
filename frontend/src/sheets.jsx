@@ -3,7 +3,7 @@ import { tempoSheet } from './components/Tempo.jsx'
 import { useCircuit } from './store/useCircuit.js'
 import { CircuitResults } from './components/CircuitCard.jsx'
 import { normalizeTempo, repSec } from './lib/tempo.js'
-import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useStore } from './store/useStore.js'
 import {
   exView,
@@ -1187,20 +1187,24 @@ const effortLine = (effort, n, scale) =>
 // the one action where "just try it" is expensive — it's someone's entire training
 // history — so the numbers, the unit conversion and the exercises we couldn't recognise
 // are all on screen before the confirm button.
-function ImportSummary({ parsed: initial, text, close }) {
+function ImportSummary({ parsed: initial, text, importUnit, close }) {
   const st = useStore((s) => s.S)
   // What you chose under "Check and choose" (#931, #849): the file is read again with it, so the
   // tiles and lines below show what Import will do. Nothing is written before Import.
   const [choices, setChoices] = useState(freshChoices)
-  const parsed = useMemo(() => {
-    if (text == null || !choicesChanged(choices)) return initial
+  const [assumedMassUnit, setAssumedMassUnit] = useState('')
+  const sourceUnitId = useId()
+  const preview = useMemo(() => {
+    if (text == null || (!choicesChanged(choices) && !assumedMassUnit)) return { parsed: initial }
     try {
-      const p = parseImportFile(text, choiceOpts(S(), choices))
-      return p && !p.error ? p : initial
+      const p = parseImportFile(text, { ...choiceOpts(S(), choices), unit: importUnit, assumedMassUnit })
+      return p && !p.error ? { parsed: p } : { parsed: initial, error: p?.error || true, row: p?.row }
     } catch {
-      return initial
+      return { parsed: initial, error: true }
     }
-  }, [text, choices, initial])
+  }, [text, choices, initial, importUnit, assumedMassUnit])
+  const parsed = preview.parsed
+  const unitChanged = (st.unit || 'kg') !== importUnit
   const isBW = parsed.kind === 'bodyweight'
   // Our own body CSV brings measurement check-ins along (#718); a day that has one keeps it.
   const checkIns = isBW ? parsed.measurements || [] : []
@@ -1221,6 +1225,12 @@ function ImportSummary({ parsed: initial, text, close }) {
   const unmatched = [...new Set([...(isBW ? [] : parsed.unmatchedNames), ...(plans?.unmatchedNames || [])])].sort()
 
   const doImport = () => {
+    if (preview.error) return
+    // Re-check at click time as well: a sync can change units after the preview.
+    if ((S().unit || 'kg') !== importUnit) {
+      toast(t('Your weight unit changed. Close this preview and import the file again.'))
+      return
+    }
     let res, planRes
     update((s) => {
       res = mergeImport(s, parsed)
@@ -1328,16 +1338,30 @@ function ImportSummary({ parsed: initial, text, close }) {
           {t('Weigh-ins')}: {parsed.bodyweight.length} · {t('New')}: {freshBody}
         </div>
       )}
+      {text != null && parsed.unknownMassRows > 0 && (
+        <div className="small" style={{ marginBottom: 12 }}>
+          <fieldset data-import-source-unit disabled={unitChanged} style={{ border: 0, padding: 0, margin: '0 0 10px', minWidth: 0 }}>
+            <legend id={sourceUnitId} style={{ marginBottom: 8 }}>{t('Unit for unlabelled weights')}</legend>
+            <Segmented ariaLabelledby={sourceUnitId} value={assumedMassUnit || parsed.massAssumption}
+              options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]}
+              onChange={value => { if (!unitChanged) setAssumedMassUnit(value) }} />
+          </fieldset>
+          {!preview.error && parsed.massSample && (
+            <div>{t('Example')}: {parsed.massSample.before} {parsed.massAssumption} → {parsed.massSample.after} {importUnit}</div>
+          )}
+          <div className="dim">{t('{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.', parsed.unknownMassRows)}</div>
+        </div>
+      )}
       {parsed.mixedUnits ? (
         <div className="small" style={{ color: 'var(--gold-ink)', marginBottom: 10 }}>
           {t('The file mixes kg and lb, so each set is converted to {0}.', st.unit)}
         </div>
-      ) : parsed.converted ? (
+      ) : parsed.converted && parsed.fileUnit && !parsed.unknownMassRows ? (
         <div className="small" style={{ color: 'var(--gold-ink)', marginBottom: 10 }}>
           {t('The file is in {0} and your profile is in {1}, so weights get converted.', parsed.fileUnit, st.unit)}
         </div>
       ) : null}
-      {hasWorkouts && !isBW && !parsed.fileUnit && !parsed.mixedUnits && (
+      {hasWorkouts && !isBW && !parsed.fileUnit && !parsed.mixedUnits && !parsed.unknownMassRows && (
         <div className="small dim" style={{ marginBottom: 10 }}>
           {t('The file doesn’t say which unit it uses, so numbers are imported as they are.')}
         </div>
@@ -1400,7 +1424,9 @@ function ImportSummary({ parsed: initial, text, close }) {
         />
       )}
 
-      <Button variant="primary" onClick={doImport} disabled={!fresh}>
+      {preview.error && <p role="alert">{preview.error === 'units' ? t('Check weight units in row {0}. Use one weight column per row, labelled kg or lb.', preview.row) : t('Could not read that file')}</p>}
+      {unitChanged && <p role="alert">{t('Your weight unit changed. Close this preview and import the file again.')}</p>}
+      <Button variant="primary" onClick={doImport} disabled={!fresh || unitChanged || preview.error}>
         {fresh ? t('Import') : t('Nothing new to import')}
       </Button>
       <div style={{ height: 8 }} />
@@ -1444,11 +1470,16 @@ export function importFromApp(file, onDone) {
   const rd = new FileReader()
   rd.onload = () => {
     let parsed
+    const opts = choiceOpts(S(), freshChoices())
     // Read with the names you already gave exercises, so a pick made on an earlier import holds.
     try {
-      parsed = parseImportFile(String(rd.result), choiceOpts(S(), freshChoices()))
+      parsed = parseImportFile(String(rd.result), opts)
     } catch (e) {
       toast(t(e.message || 'Could not read that file'))
+      return
+    }
+    if (parsed.error === 'units') {
+      toast(t('Check weight units in row {0}. Use one weight column per row, labelled kg or lb.', parsed.row))
       return
     }
     if (parsed.error === 'empty') {
@@ -1477,7 +1508,7 @@ export function importFromApp(file, onDone) {
       return
     }
     const text = String(rd.result)
-    ui().openSheet((close) => <ImportSummary parsed={parsed} text={text} close={close} />)
+    ui().openSheet((close) => <ImportSummary parsed={parsed} text={text} importUnit={opts.unit} close={close} />)
     onDone && onDone()
   }
   rd.onerror = () => toast(t('Could not read that file'))
@@ -1541,15 +1572,17 @@ function HevyImportSheet({ close }) {
   const [progress, setProgress] = useState(null)
   const [payload, setPayload] = useState(null) // { workouts, routines, bodyweight, raw }
   const [choices, setChoices] = useState(freshChoices)
+  const [importUnit, setImportUnit] = useState(null)
+  const unitChanged = importUnit != null && (st.unit || 'kg') !== importUnit
   // Read again from what Hevy sent when a choice changes (#931, #849); the key is long gone.
   const view = useMemo(() => {
     if (!payload || !choicesChanged(choices)) return payload
     try {
-      return parseHevyAccount(payload.raw, choiceOpts(S(), choices))
+      return parseHevyAccount(payload.raw, { ...choiceOpts(S(), choices), unit: importUnit })
     } catch {
       return payload
     }
-  }, [payload, choices])
+  }, [payload, choices, importUnit])
   const [wantWorkouts, setWantWorkouts] = useState(true)
   const [wantRoutines, setWantRoutines] = useState(true)
   const [wantBody, setWantBody] = useState(true)
@@ -1577,8 +1610,11 @@ function HevyImportSheet({ close }) {
     setBusy(true)
     setProgress({ stage: 'templates', page: 1, pageCount: 1 })
     setPayload(null)
+    // Capture before awaiting the API: another device can change units during fetch.
+    const opts = choiceOpts(S(), freshChoices())
+    setImportUnit(opts.unit)
     try {
-      const data = await importHevyData(key, { ...choiceOpts(S(), freshChoices()), onProgress: setProgress })
+      const data = await importHevyData(key, { ...opts, onProgress: setProgress })
       wipeKey()
       const empty =
         !data.workouts.workouts.length && !data.routines.routines.length && !data.bodyweight.bodyweight.length
@@ -1605,6 +1641,11 @@ function HevyImportSheet({ close }) {
 
   const doImport = () => {
     if (!view) return
+    // Check again at commit time, including a sync before React has re-rendered.
+    if ((S().unit || 'kg') !== importUnit) {
+      toast(t('Your weight unit changed. Go back and fetch your Hevy data again.'))
+      return
+    }
     const payload = view
     const parts = []
     let addedW = 0,
@@ -1802,7 +1843,8 @@ function HevyImportSheet({ close }) {
         />
       )}
 
-      <Button variant="primary" onClick={doImport} disabled={!canImport}>
+      {unitChanged && <p role="alert">{t('Your weight unit changed. Go back and fetch your Hevy data again.')}</p>}
+      <Button variant="primary" onClick={doImport} disabled={!canImport || unitChanged}>
         {canImport ? t('Import') : t('Nothing new to import')}
       </Button>
       <div style={{ height: 8 }} />
