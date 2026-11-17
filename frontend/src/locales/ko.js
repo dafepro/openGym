@@ -6076,4 +6076,5 @@ export default {
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
   "Unit for unlabelled weights": "단위가 없는 무게의 단위",
   "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0}개 항목에 무게 단위가 없습니다. 이 선택은 해당 무게에만 적용되며, 단위가 표시된 값과 신체 치수는 변경되지 않습니다.",
+  "Example": "예시",
 }

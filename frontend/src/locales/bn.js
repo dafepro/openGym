@@ -6155,4 +6155,5 @@ export default {
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
   "Unit for unlabelled weights": "এককহীন ওজনের একক",
   "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0}টি এন্ট্রিতে ওজনের একক নেই। শুধু এই ওজনগুলিতে এই নির্বাচন প্রযোজ্য; এককযুক্ত মান ও পরিমাপ অপরিবর্তিত থাকে।",
+  "Example": "উদাহরণ",
 }

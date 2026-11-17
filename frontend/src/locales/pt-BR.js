@@ -4,6 +4,7 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  "Example": "Exemplo",
   "Unit for unlabelled weights": "Unidade dos pesos sem indicação",
   "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0} registros não têm unidade de peso. Esta escolha só se aplica a esses pesos; os valores com unidade e as medidas não mudam.",
 

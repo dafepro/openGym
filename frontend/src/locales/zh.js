@@ -6076,4 +6076,5 @@ export default {
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
   "Unit for unlabelled weights": "未标注重量的单位",
   "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0} 条记录没有重量单位。此选择仅适用于这些重量；已标注单位的数值和身体测量值保持不变。",
+  "Example": "示例",
 }

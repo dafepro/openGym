@@ -6072,4 +6072,5 @@ export default {
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
   "Unit for unlabelled weights": "Nepažymėtų svorių vienetas",
   "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0} įrašų neturi svorio vieneto. Šis pasirinkimas taikomas tik šiems svoriams; pažymėtos reikšmės ir kūno matmenys nesikeičia.",
+  "Example": "Pavyzdys",
 }

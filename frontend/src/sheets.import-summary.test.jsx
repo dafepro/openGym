@@ -170,6 +170,7 @@ describe('unitless CSV source-unit selector', () => {
       select.value = unit === 'kg' ? 'lb' : 'kg'
       select.dispatchEvent(new Event('change', { bubbles: true }))
     })
+    expect(host.textContent).toContain(unit === 'kg' ? 'Example: 80 lb → 36.3 kg' : 'Example: 80 kg → 176.4 lb')
     expect(useStore.getState().S.bodyweight).toEqual([])
     act(() => [...host.querySelectorAll('button')].find(b => b.textContent === 'Import').click())
     expect(useStore.getState().S.bodyweight[0].w).toBe(unit === 'kg' ? 36.3 : 176.4)

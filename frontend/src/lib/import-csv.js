@@ -1406,6 +1406,10 @@ export function parseWorkoutRows(
     if (!u || u === unit) return s.w
     return u === 'lb' ? toKg(s.w) : toLb(s.w)
   }
+  const sampleSet = unknownMassRows ? [...byDate.values()]
+    .flatMap(day => [...day.ex.values()].flat()).find(s => !s.u && s.w > 0) : null
+  // Preview metadata only: mergeImport takes workouts, never these summary fields.
+  const massSample = sampleSet ? { before: sampleSet.w, after: convRow(sampleSet) } : null
   const converted = (!!fileUnit && fileUnit !== unit) || mixedUnits || (!!massAssumption && massAssumption !== unit)
 
   // By day, and within a day by start, the order the history keeps (sync-merge byDayStart).
@@ -1495,6 +1499,7 @@ export function parseWorkoutRows(
     mixedUnits,
     unknownMassRows,
     massAssumption,
+    massSample,
     converted,
     rpeSets,
     rirSets,
@@ -1627,12 +1632,23 @@ export function parseBodyweight(text, { unit = 'kg', assumedMassUnit } = {}) {
         && w > 0 && !bodyOk(w, recUnit)) return { error: 'units', row: i + 1 }
       if (!w || !bodyOk(w, recUnit)) continue
       if (!columnUnit && !rowUnit) unknownMassRows++
-      put(when.d, { w, unit: columnUnit || rowUnit || (assumedMassUnit ? massUnit : ''), t: new Date(when.d).getTime() + (when.t ?? 0) }, when.t)
+      put(when.d, { w, unlabelledMass: !columnUnit && !rowUnit, unit: columnUnit || rowUnit || (assumedMassUnit ? massUnit : ''), t: new Date(when.d).getTime() + (when.t ?? 0) }, when.t)
     }
   }
 
-  return { ...finishBodyweight(out, unit, source, fileUnit, measurements, activities),
-    unknownMassRows,
+  const result = finishBodyweight(out, unit, source, fileUnit, measurements, activities)
+  // Choose a surviving row (put may replace same-time rows), not an explicit value
+  // or an earlier duplicate. Weigh-in storage rounds readings to one decimal.
+  let massSample = null
+  for (const [d, readings] of out) {
+    const raw = readings.find(b => b.unlabelledMass)
+    const parsed = raw && result.bodyweight?.find(b => b.d === d && (b.at || null) === raw.at)
+    if (parsed) {
+      massSample = { before: raw.w, after: Math.round(parsed.w * 10) / 10 }
+      break
+    }
+  }
+  return { ...result, unknownMassRows, massSample,
     massAssumption: unknownMassRows ? (['kg', 'lb'].includes(assumedMassUnit) ? assumedMassUnit : unit) : '' }
 
 }

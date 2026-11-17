@@ -6123,4 +6123,5 @@ export default {
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
   "Unit for unlabelled weights": "Enhet för vikter utan märkning",
   "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "{0} poster saknar viktenhet. Valet gäller bara dessa vikter; märkta värden och kroppsmått ändras inte.",
+  "Example": "Exempel",
 }

@@ -1346,6 +1346,9 @@ function ImportSummary({ parsed: initial, text, importUnit, close }) {
               <option value="lb">lb</option>
             </select>
           </label>
+          {!preview.error && parsed.massSample && (
+            <div>{t('Example')}: {parsed.massSample.before} {parsed.massAssumption} → {parsed.massSample.after} {importUnit}</div>
+          )}
           <div className="dim">{t('{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.', parsed.unknownMassRows)}</div>
         </div>
       )}

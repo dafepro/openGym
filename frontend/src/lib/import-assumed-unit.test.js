@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseImport, parseWorkoutRows, parseCSV } from './import-csv.js'
+import { parseImport, parseWorkoutRows, parseCSV, mergeImport } from './import-csv.js'
 import { parseImportFile } from './import-apps.js'
 const head = 'Date,Exercise,Weight,Unit,Reps'
 const mixed = [head, '2026-09-01,Bench Press,100,kg,5', '2026-09-01,Bench Press,100,,5', '2026-09-01,Bench Press,100,lb,5'].join('\n')
@@ -14,6 +14,11 @@ describe('source unit assumption is separate from destination profile', () => {
     expect(weights(p)).toEqual(expected)
     expect(p.unknownMassRows).toBe(1)
     expect(p.massAssumption).toBe(assumedMassUnit)
+    expect(p.massSample).toEqual({ before: 100, after: expected[1] })
+    const state = { unit, workouts: [], bodyweight: [], customEx: [], exWeights: {} }
+    mergeImport(state, p)
+    expect(state.workouts[0].entries[0].sets[1].w).toBe(p.massSample.after)
+    expect(JSON.stringify(state)).not.toMatch(/massSample|unlabelledMass|unknownMassRows|massAssumption/)
     expect(weights(parseImportFile(mixed, { unit }))[1]).toBe(100)
   })
   it('preserves sole-file-unit inference until a choice is made', () => {
@@ -27,7 +32,17 @@ describe('source unit assumption is separate from destination profile', () => {
     const p = parseImport(csv, { unit, assumedMassUnit })
     expect(p.bodyweight[0].w).toBe(expected)
     expect(p.unknownMassRows).toBe(1)
+    expect(p.massSample).toEqual({ before: 80, after: Math.round(expected * 10) / 10 })
+    const state = { unit, workouts: [], bodyweight: [], customEx: [], exWeights: {} }
+    mergeImport(state, p)
+    expect(state.bodyweight[0].w).toBe(p.massSample.after)
+    expect(JSON.stringify(state)).not.toMatch(/massSample|unlabelledMass|unknownMassRows|massAssumption/)
     expect(parseImport(csv, { unit }).bodyweight[0].w).toBe(80)
+  })
+  it('samples only surviving unitless body rows, with storage precision', () => {
+    const p = parseImport('Date,Weight\n2026-09-01,80\n2026-09-01,90', { unit: 'kg', assumedMassUnit: 'lb' })
+    expect(p.massSample).toEqual({ before: 90, after: 40.8 })
+    expect(parseImport('Date,Weight,Unit\n2026-09-01,80,kg').massSample).toBeNull()
   })
   it('does not override explicit bodyweight or turn ambiguity into an assumption', () => {
     expect(parseImport('Date,Weight,Unit\n2026-09-01,80,kg', { unit: 'kg', assumedMassUnit: 'lb' }).bodyweight[0].w).toBe(80)

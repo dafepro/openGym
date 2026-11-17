@@ -6073,4 +6073,5 @@ export default {
   "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
   "Unit for unlabelled weights": "Одиниця ваги без позначення",
   "{0} entries have no weight unit. Only these weights use this choice; labelled values and measurements stay unchanged.": "У {0} записах немає одиниці ваги. Вибір застосовується лише до цих значень ваги; значення з одиницями та виміри не змінюються.",
+  "Example": "Приклад",
 }
