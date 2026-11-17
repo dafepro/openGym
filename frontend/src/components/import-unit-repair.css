@@ -1,0 +1,41 @@
+/* Inset lists and controls are the shared Uplift primitives. These rules only
+   arrange the repair flow; all surfaces, text and focus colors follow its theme. */
+.unit-repair { display: grid; gap: 16px; min-width: 0; }
+.unit-repair-header h3 { margin: 4px 0 8px; }
+.unit-repair-header h3:focus { outline: none; }
+.unit-repair p { margin: 0; }
+.unit-repair h4 { margin: 0; font-size: var(--fs-subhead); font-weight: 600; }
+.unit-repair-eyebrow { color: var(--acc-ink); font-size: var(--fs-footnote); font-weight: 600; }
+.unit-repair-muted, .unit-repair-help, .unit-repair-record-text small { color: var(--label-2); font-size: var(--fs-footnote); line-height: var(--lh-small); }
+.unit-repair-steps { display: flex; gap: 12px; padding: 0; margin: 0; list-style: none; }
+.unit-repair-steps li { display: flex; align-items: center; gap: 6px; flex: 1; color: var(--label-2); font-size: var(--fs-footnote); }
+.unit-repair-steps li span { display: grid; place-items: center; width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; background: var(--surface-2); }
+.unit-repair-steps li.active { color: var(--acc-ink); }
+.unit-repair-steps li.active span { background: var(--acc-soft); }
+.unit-repair .sect { margin: 0; }
+.unit-repair-help summary { min-height: 44px; display: list-item; align-content: center; cursor: pointer; color: var(--label); }
+.unit-repair-help p { margin: 8px 0; }
+.unit-repair-dates { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.unit-repair-dates label { display: grid; gap: 6px; font-size: var(--fs-footnote); color: var(--label-2); min-width: 0; }
+.unit-repair-dates input { min-width: 0; width: 100%; min-height: 44px; color-scheme: dark; }
+.unit-repair-groups { max-height: 180px; overflow-y: auto; }
+.unit-repair-selection, .unit-repair-backup { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.unit-repair-records { border-radius: var(--r-card); background: var(--surface); max-height: 36vh; min-height: 64px; overflow: auto; overscroll-behavior: contain; }
+.unit-repair-record { display: flex; gap: 8px; align-items: center; padding: 12px; min-width: 0; border-bottom: var(--hair) solid var(--sep); }
+.unit-repair-record:last-child { border-bottom: none; }
+.unit-repair-record.selected { background: var(--acc-soft); }
+.unit-repair-record .chk { flex-shrink: 0; }
+.unit-repair-record-text { display: grid; gap: 5px; min-width: 0; width: 100%; font-size: var(--fs-footnote); overflow-wrap: anywhere; }
+.unit-repair-values { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; font-size: var(--fs-body); font-variant-numeric: tabular-nums; }
+.unit-repair-values strong { font-weight: 600; }
+.unit-repair-values > span:first-child { color: var(--label-2); }
+.unit-repair-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; padding-bottom: 4px; }
+.unit-repair-actions .btn { min-height: 48px; white-space: normal; }
+.unit-repair-notice, .unit-repair-empty { padding: 16px; border-radius: var(--r-card); background: var(--surface); font-size: var(--fs-subhead); line-height: var(--lh-small); }
+.unit-repair-notice { border-inline-start: 3px solid var(--orange); }
+.unit-repair :is(summary, .unit-repair-records):focus-visible { outline: 2px solid var(--acc-ink); outline-offset: 3px; }
+@media (max-width: 360px) { .unit-repair-steps { gap: 5px; } .unit-repair-dates { gap: 8px; } .unit-repair-backup { align-items: flex-start; flex-direction: column; } }
+
+:root[data-theme="light"] .unit-repair-dates input { color-scheme: light; }
+.unit-repair-footer { position: sticky; bottom: -20px; z-index: 1; background: var(--bg-el); padding: 8px 0 20px; border-top: var(--hair) solid var(--sep); }
+.unit-repair-footer .unit-repair-selection { margin-bottom: 8px; }
