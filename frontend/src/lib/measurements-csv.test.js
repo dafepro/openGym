@@ -115,3 +115,24 @@ describe('importing measurements that make no sense', () => {
     expect(S.measurements.map(e => e.d)).toEqual(['2026-10-01'])
   })
 })
+
+
+describe('body export custom names are not primary weight metadata', () => {
+  it.each(['kg', 'lb'])('roundtrips reserved-looking names in a %s export', unit => {
+    const names = [['Unit', 'none'], ['Weight', 'kg'], ['Weight', 'lb'], ['Exercise', 'none']]
+    const S = {
+      unit, bodyweight: [{ d: '2026-10-01', w: 80, t: 1 }],
+      customMeasurements: names.map(([name, unit], i) => ({ id: `c${i}`, name, unit })),
+      measurements: [{ d: '2026-10-01', other: names.map(([, unit], i) => ({ id: `c${i}`, unit, value: i + 1 })) }]
+    }
+    const text = bodyCSV(S)
+    const parsed = parseImport(text, { unit })
+    expect(parsed.error).toBeUndefined()
+    expect(parsed.kind).toBe('bodyweight')
+    expect(parsed.bodyweight[0].w).toBe(80)
+    expect(parsed.measurements[0].other).toEqual(names.map(([name, unit], i) => ({ name, unit, value: unit === 'lb' ? 6.6 : i + 1 })))
+    const flipped = parseImport(text, { unit: unit === 'kg' ? 'lb' : 'kg' })
+    expect(flipped.measurements).toEqual(parsed.measurements)
+    expect(flipped.bodyweight[0].w).toBe(unit === 'kg' ? 176.37 : 36.29)
+  })
+})

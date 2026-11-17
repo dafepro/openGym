@@ -1546,7 +1546,10 @@ export function parseBodyweight(text, { unit = 'kg' } = {}) {
   } else {
     const rows = parseCSV(s)
     if (rows.length < 2) return { error: 'empty' }
-    const map = mapHeader(rows[0])
+    // In our body export every column after date/weight is a measurement, even
+    // when a custom field happens to be called Unit or Weight (kg).
+    const ownBody = isBodyCsvHeader(rows[0])
+    const map = mapHeader(ownBody ? rows[0].slice(0, 2) : rows[0])
     // Strong's measurements export: one row per measurement, "Measurement Type" saying which
     // ("Weight", "Body Fat Percentage", a waist…), the number in "Value" and its own "Unit".
     if (map.measurementType !== undefined && map.value !== undefined && map.date !== undefined) {
@@ -1580,7 +1583,7 @@ export function parseBodyweight(text, { unit = 'kg' } = {}) {
     if (!weightCols.length || dCol === undefined) return { error: 'unrecognised' }
     // mapHeader intentionally takes the first alias elsewhere; a body-weight file
     // with duplicate unit/value declarations must not silently hide another column.
-    const head = rows[0].map(norm)
+    const head = (ownBody ? rows[0].slice(0, 2) : rows[0]).map(norm)
     const aliases = COLUMNS.filter(([field]) => ['weightKg', 'weightLb', 'weight', 'weightUnit'].includes(field))
     if (aliases.some(([, names]) => head.filter(h => names.includes(h)).length > 1)) return { error: 'units', row: 1 }
     measurements = bodyCsvMeasurements(rows)
@@ -1615,9 +1618,12 @@ export function parseBodyweight(text, { unit = 'kg' } = {}) {
 // built-in field (`waist_cm`) and per custom field ("Muscle ratio (%)", lib/measurements.js). Only
 // a file with our header is read this way, so another app's Notes column never turns into a
 // measurement. Values stay in their column's unit here; mergeImport files them.
+const isBodyCsvHeader = (head) => String(head[0] ?? '').trim().toLowerCase() === 'date'
+  && /^weight_(kg|lb)$/.test(String(head[1] ?? '').trim())
+
 function bodyCsvMeasurements(rows) {
   const head = rows[0].map((h) => String(h ?? '').trim())
-  if (head[0]?.toLowerCase() !== 'date' || !/^weight_(kg|lb)$/.test(head[1] || '')) return []
+  if (!isBodyCsvHeader(head)) return []
   const builtin = new Map(MEASUREMENT_FIELDS.map((f) => [builtinCsvColumn(f), f.key]))
   const cols = head
     .slice(2)
@@ -1740,6 +1746,7 @@ export function parseImport(text, opts) {
   const s = String(text)
   if (s.includes('HKQuantityTypeIdentifier') || /^\s*</.test(s)) return parseBodyweight(s, opts)
   const rows = parseCSV(s)
+  if (rows.length && isBodyCsvHeader(rows[0])) return parseBodyweight(s, opts)
   if (rows.length && isStrongLiftsHeader(rows[0])) return parseStrongLifts(rows, opts, { matchExercise, importId })
   const asWorkouts = parseWorkoutCSV(s, opts)
   if (!asWorkouts.error) return asWorkouts
