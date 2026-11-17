@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { DENSITIES, IOS_SIZE, PREVIEW, ROOT, draw, files, pngInfo, scene } from './app-icons.mjs'
+import { DENSITIES, IOS_SIZE, PREVIEW, ROOT, draw, files, pngInfo, scene, sameIconPixels } from './app-icons.mjs'
 import { APP_ICON_VARIANTS } from '../src/lib/app-icon-variants.js'
 
 const read = rel => readFileSync(join(ROOT, rel), 'utf8')
@@ -43,13 +43,13 @@ describe('generated icon files', () => {
 
   it('match a fresh draw (the small ones; --check compares them all)', () => {
     for (const v of APP_ICON_VARIANTS) {
-      expect(readFileSync(join(ROOT, `public/app-icons/${v.id}.png`)).equals(draw(v, PREVIEW)), v.id).toBe(true)
+      expect(sameIconPixels(readFileSync(join(ROOT, `public/app-icons/${v.id}.png`)), draw(v, PREVIEW)), v.id).toBe(true)
     }
     const sky = APP_ICON_VARIANTS.find(v => v.id === 'sky')
-    expect(readFileSync(join(ROOT, `${RES}/mipmap-mdpi/ic_launcher_sky_round.png`)).equals(draw(sky, 48, { round: true }))).toBe(true)
+    expect(sameIconPixels(readFileSync(join(ROOT, `${RES}/mipmap-mdpi/ic_launcher_sky_round.png`)), draw(sky, 48, { round: true }))).toBe(true)
     // The hand-made one goes through its own renderer, round cut included.
     const hw = APP_ICON_VARIANTS.find(v => v.id === 'halloween')
-    expect(readFileSync(join(ROOT, `${RES}/mipmap-mdpi/ic_launcher_halloween_round.png`)).equals(draw(hw, 48, { round: true }))).toBe(true)
+    expect(sameIconPixels(readFileSync(join(ROOT, `${RES}/mipmap-mdpi/ic_launcher_halloween_round.png`)), draw(hw, 48, { round: true }))).toBe(true)
   })
 })
 
