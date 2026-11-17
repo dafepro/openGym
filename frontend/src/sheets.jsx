@@ -1553,15 +1553,17 @@ function HevyImportSheet({ close }) {
   const [progress, setProgress] = useState(null)
   const [payload, setPayload] = useState(null) // { workouts, routines, bodyweight, raw }
   const [choices, setChoices] = useState(freshChoices)
+  const [importUnit, setImportUnit] = useState(null)
+  const unitChanged = importUnit != null && (st.unit || 'kg') !== importUnit
   // Read again from what Hevy sent when a choice changes (#931, #849); the key is long gone.
   const view = useMemo(() => {
     if (!payload || !choicesChanged(choices)) return payload
     try {
-      return parseHevyAccount(payload.raw, choiceOpts(S(), choices))
+      return parseHevyAccount(payload.raw, { ...choiceOpts(S(), choices), unit: importUnit })
     } catch {
       return payload
     }
-  }, [payload, choices])
+  }, [payload, choices, importUnit])
   const [wantWorkouts, setWantWorkouts] = useState(true)
   const [wantRoutines, setWantRoutines] = useState(true)
   const [wantBody, setWantBody] = useState(true)
@@ -1589,8 +1591,11 @@ function HevyImportSheet({ close }) {
     setBusy(true)
     setProgress({ stage: 'templates', page: 1, pageCount: 1 })
     setPayload(null)
+    // Capture before awaiting the API: another device can change units during fetch.
+    const opts = choiceOpts(S(), freshChoices())
+    setImportUnit(opts.unit)
     try {
-      const data = await importHevyData(key, { ...choiceOpts(S(), freshChoices()), onProgress: setProgress })
+      const data = await importHevyData(key, { ...opts, onProgress: setProgress })
       wipeKey()
       const empty =
         !data.workouts.workouts.length && !data.routines.routines.length && !data.bodyweight.bodyweight.length
@@ -1617,6 +1622,11 @@ function HevyImportSheet({ close }) {
 
   const doImport = () => {
     if (!view) return
+    // Check again at commit time, including a sync before React has re-rendered.
+    if ((S().unit || 'kg') !== importUnit) {
+      toast(t('Your weight unit changed. Go back and fetch your Hevy data again.'))
+      return
+    }
     const payload = view
     const parts = []
     let addedW = 0,
@@ -1814,7 +1824,8 @@ function HevyImportSheet({ close }) {
         />
       )}
 
-      <Button variant="primary" onClick={doImport} disabled={!canImport}>
+      {unitChanged && <p role="alert">{t('Your weight unit changed. Go back and fetch your Hevy data again.')}</p>}
+      <Button variant="primary" onClick={doImport} disabled={!canImport || unitChanged}>
         {canImport ? t('Import') : t('Nothing new to import')}
       </Button>
       <div style={{ height: 8 }} />

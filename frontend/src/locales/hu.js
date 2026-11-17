@@ -6075,4 +6075,6 @@ export default {
   "shorter": "kicsit rövidebben",
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Ellenőrizd a súlyegységeket a(z) {0}. sorban. Soronként egy súlyoszlopot használj, kg vagy lb jelöléssel.",
   "Your weight unit changed. Close this preview and import the file again.": "Megváltozott a súlyegységed. Zárd be ezt az előnézetet, és importáld újra a fájlt.",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
 }

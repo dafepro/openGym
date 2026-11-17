@@ -6038,4 +6038,6 @@ export default {
   "shorter": "kratší",
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Zkontrolujte jednotky hmotnosti na řádku {0}. Na každém řádku použijte jeden sloupec hmotnosti označený kg nebo lb.",
   "Your weight unit changed. Close this preview and import the file again.": "Jednotka hmotnosti se změnila. Zavřete tento náhled a importujte soubor znovu.",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
 }

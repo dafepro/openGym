@@ -6072,4 +6072,6 @@ export default {
   "shorter": "缩短一点",
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "请检查第 {0} 行的重量单位。每行只使用一个重量列，并标注 kg 或 lb。",
   "Your weight unit changed. Close this preview and import the file again.": "你的重量单位已更改。请关闭此预览并重新导入文件。",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
 }

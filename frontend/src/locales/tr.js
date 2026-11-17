@@ -6072,4 +6072,6 @@ export default {
   "shorter": "biraz daha kısa",
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "{0}. satırdaki ağırlık birimlerini kontrol edin. Her satırda kg veya lb etiketli tek bir ağırlık sütunu kullanın.",
   "Your weight unit changed. Close this preview and import the file again.": "Ağırlık biriminiz değişti. Bu önizlemeyi kapatıp dosyayı yeniden içe aktarın.",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
 }

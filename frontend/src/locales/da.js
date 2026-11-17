@@ -6012,4 +6012,6 @@ export default {
   "shorter": "lidt kortere",
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Kontrollér vægtenhederne i række {0}. Brug én vægtkolonne pr. række, mærket kg eller lb.",
   "Your weight unit changed. Close this preview and import the file again.": "Din vægtenhed er ændret. Luk denne forhåndsvisning, og importér filen igen.",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
 }

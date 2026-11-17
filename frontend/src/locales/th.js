@@ -6083,4 +6083,6 @@ export default {
   "shorter": "สั้นลงหน่อย",
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "ตรวจสอบหน่วยน้ำหนักในแถว {0} ใช้คอลัมน์น้ำหนักหนึ่งคอลัมน์ต่อแถว โดยระบุ kg หรือ lb",
   "Your weight unit changed. Close this preview and import the file again.": "หน่วยน้ำหนักของคุณเปลี่ยนไป ปิดตัวอย่างนี้แล้วนำเข้าไฟล์อีกครั้ง",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
 }

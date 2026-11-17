@@ -6127,4 +6127,6 @@ export default {
   "shorter": "أقصر قليلًا",
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "تحقق من وحدات الوزن في الصف {0}. استخدم عمود وزن واحدًا لكل صف، مع تسمية kg أو lb.",
   "Your weight unit changed. Close this preview and import the file again.": "تغيّرت وحدة وزنك. أغلق هذه المعاينة واستورد الملف مرة أخرى.",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
 }

@@ -6092,4 +6092,6 @@ export default {
   "shorter": "etwas kürzer",
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Prüfe die Gewichtseinheiten in Zeile {0}. Verwende pro Zeile eine Gewichtsspalte mit der Einheit kg oder lb.",
   "Your weight unit changed. Close this preview and import the file again.": "Deine Gewichtseinheit hat sich geändert. Schließe diese Vorschau und importiere die Datei erneut.",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
 }

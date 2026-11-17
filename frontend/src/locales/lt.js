@@ -6068,4 +6068,6 @@ export default {
   "shorter": "šiek tiek trumpiau",
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Patikrinkite svorio vienetus {0} eilutėje. Kiekvienoje eilutėje naudokite vieną svorio stulpelį, pažymėtą kg arba lb.",
   "Your weight unit changed. Close this preview and import the file again.": "Jūsų svorio vienetas pasikeitė. Uždarykite šią peržiūrą ir importuokite failą iš naujo.",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
 }

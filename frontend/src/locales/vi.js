@@ -6038,4 +6038,6 @@ export default {
   "shorter": "ngắn hơn",
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Kiểm tra đơn vị cân nặng ở hàng {0}. Mỗi hàng chỉ dùng một cột cân nặng, ghi rõ kg hoặc lb.",
   "Your weight unit changed. Close this preview and import the file again.": "Đơn vị cân nặng của bạn đã thay đổi. Đóng bản xem trước này và nhập lại tệp.",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
 };

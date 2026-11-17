@@ -6069,4 +6069,6 @@ export default {
   "shorter": "трохи коротше",
   "Check weight units in row {0}. Use one weight column per row, labelled kg or lb.": "Перевірте одиниці ваги в рядку {0}. Використовуйте один стовпець ваги на рядок із позначенням kg або lb.",
   "Your weight unit changed. Close this preview and import the file again.": "Ваша одиниця ваги змінилася. Закрийте цей попередній перегляд та імпортуйте файл знову.",
+  // Hevy stale-preview protection (English fallback).
+  "Your weight unit changed. Go back and fetch your Hevy data again.": "Your weight unit changed. Go back and fetch your Hevy data again.",
 }
