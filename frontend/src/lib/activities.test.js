@@ -130,6 +130,21 @@ describe('activities: imports', () => {
     expect(mergeImport(S, parsed).activities).toBe(0)
     expect(activitiesOf(S)).toHaveLength(2)
   })
+  it.each([['m', 5000, 5], ['mi', 3, 4.83], ['km', 5, 5]])(
+    'normalizes Apple Health %s distances independently of profile weight units', (distanceUnit, distance, km) => {
+      const xml = `<?xml version="1.0"?><HealthData><Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="1800" durationUnit="s" totalDistance="${distance}" totalDistanceUnit="${distanceUnit}" sourceName="Watch" startDate="2026-10-05 07:00:00 +0000" endDate="2026-10-05 07:30:00 +0000"/></HealthData>`
+      const profiles = ['kg', 'lb'].map(unit => {
+        const S = { unit, bodyweight: [] }
+        const parsed = parseImport(xml, { unit })
+        expect(mergeImport(S, parsed).activities).toBe(1)
+        expect(mergeImport(S, parsed).activities).toBe(0)
+        return activitiesOf(S)
+      })
+      expect(profiles[0]).toEqual(profiles[1])
+      expect(profiles[0][0]).toMatchObject({ min: 30, km, src: 'import' })
+    }
+  )
+
   it('turns a session that was only sport into an activity and keeps a real workout', () => {
     const nameOf = e => ({ c1: 'Padel', c2: 'Bench Press', c3: 'Football' })[e.id] || ''
     const workouts = [

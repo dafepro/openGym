@@ -67,6 +67,19 @@ describe('the body CSV with custom units (#718)', () => {
     expect(byName['Visceral fat']).toMatchObject({ value: 0, unit: 'none' })
   })
 
+  it.each(['kg', 'lb'])('keeps mixed measurement dimensions canonical in a %s profile', (unit) => {
+    const csv = 'date,weight_kg,waist_cm,Arm (in),Lean (lb),body_fat_percent,bp_systolic_mmhg,bp_diastolic_mmhg,pulse_bpm,Score\n2026-10-02,80,84,15,100,21,120,80,60,0\n'
+    const S = normalizeMeasurementsState({ unit, bodyweight: [] })
+    expect(mergeImport(S, parseBodyweight(csv, { unit })).measurements).toBe(1)
+    const m = S.measurements[0]
+    expect(m).toMatchObject({ waist: 84, bodyFat: 21, bpSys: 120, bpDia: 80, pulse: 60 })
+    const byName = Object.fromEntries(m.other.map(o => [o.name, o.value]))
+    expect(byName.Arm).toBe(38.1)
+    expect(byName.Lean).toBeCloseTo(45.359, 3)
+    expect(byName.Score).toBe(0)
+    expect(S.bodyweight[0].w).toBeCloseTo(unit === 'kg' ? 80 : 176.4, 1)
+  })
+
   it('files a column under the field of that name, converting within its kind, and leaves a clashing one out', () => {
     const csv = 'date,weight_kg,Lean mass (kg),Muscle ratio (kg)\n2026-10-02,,61,50\n'
     const S = state()
