@@ -1,4 +1,16 @@
 export default {
+  "Same-time readings need individual review.": "Same-time readings need individual review.",
+  // Selective weigh-in repair (English fallback pending translation).
+  "Back up first. Changes sync to your other devices. Undo is available here until you close this screen, unless the readings change again.": "Back up first. Changes sync to your other devices. Undo is available here until you close this screen, unless the readings change again.",
+  "Confirm conversion": "Confirm conversion",
+  "Convert weigh-ins": "Convert weigh-ins",
+  "Original unit": "Original unit",
+  "Preview conversion": "Preview conversion",
+  "Review imported stretch": "Review imported stretch",
+  "Select only readings recorded in the wrong unit. Other weights and your unit preference stay unchanged.": "Select only readings recorded in the wrong unit. Other weights and your unit preference stay unchanged.",
+  "Selected weigh-ins converted.": "Selected weigh-ins converted.",
+  "The readings or settings changed. Review a fresh preview; nothing was overwritten.": "The readings or settings changed. Review a fresh preview; nothing was overwritten.",
+
   // Uplift additions. New locales use English until translated.
   "Starting estimate": "起始估計",
   "Use your first set to adjust the estimate.": "根據第一組的表現調整估計。",
