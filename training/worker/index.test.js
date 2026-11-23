@@ -421,6 +421,8 @@ describe('private catalog and media boundary', () => {
     expect(shell.headers.get('Cache-Control')).toContain('no-store')
     expect(shell.headers.get('Content-Security-Policy')).toContain('frame-src https://www.youtube-nocookie.com')
     expect((await handleRequest(request('/source.html'), { ASSETS: env.ASSETS }, NOW)).status).toBe(200)
+    expect((await handleRequest(request('/featured-practice.json'), { ASSETS: env.ASSETS }, NOW)).status).toBe(200)
+    expect((await handleRequest(request('/featured-practice.json?anything=1'), env, NOW)).status).toBe(404)
     expect((await handleRequest(request('/sw.js'), { ASSETS: env.ASSETS }, NOW)).status).toBe(200)
     expect((await handleRequest(request('/sw.js?token=private'), env, NOW)).status).toBe(404)
     expect((await handleRequest(request('/source.html?private=true'), env, NOW)).status).toBe(404)
