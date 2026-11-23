@@ -515,6 +515,7 @@ function Shell() {
         {isOn(S, 'checkin') && <Route path="/checkin" element={<CheckIn />} />}
         <Route path="/plan" element={<Plan />} />
         <Route path="/plan/r/:id" element={<RoutineEdit />} />
+        <Route path="/plan/prog/:programmeId/r/:id" element={<RoutineEdit />} />
         <Route path="/plan/programmes" element={<Programmes />} />
         <Route path="/plan/prog/:id" element={<ProgrammeEdit />} />
         <Route path="/workout" element={S.active ? null : <Workout />} />

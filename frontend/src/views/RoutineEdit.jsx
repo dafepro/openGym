@@ -369,12 +369,13 @@ export function undoRemoveRoutineExercise({ routineId, i, before, after, base, d
 
 export default function RoutineEdit() {
   const nav = useNavigate()
-  const { id } = useParams()
+  const { id, programmeId } = useParams()
+  const back = programmeId ? '/plan/prog/' + programmeId : '/plan'
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const toast = useUI(s => s.toast)
   const r = S.routines.find(x => x.id === id)
-  useEffect(() => { if (!r) nav('/plan') }, [!!r])
+  useEffect(() => { if (!r) nav(back) }, [!!r, back])
   // Editing here has no explicit "save" — every field change persists immediately. A single
   // auto-backup on the way out (not per keystroke) covers the whole editing session, deletion
   // included: this still unmounts after the delete button navigates away.
@@ -499,7 +500,7 @@ export default function RoutineEdit() {
 
   return <div className="narrow">
     <div className="hdr">
-      <button className="iconbtn" data-back="/plan" data-tour="routine-back" onClick={() => nav('/plan')} aria-label={t('Plan')}><Icon name="chevronLeft" /></button>
+      <button className="iconbtn" data-back={back} data-tour="routine-back" onClick={() => nav(back)} aria-label={programmeId ? t('Programme') : t('Plan')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, margin: '0 12px' }}>
         <input className="input" data-tour="routine-name" aria-label={t('Routine name')} defaultValue={r.name} style={{ fontWeight: 600, fontSize: 'var(--fs-title3)', letterSpacing: '-.021em' }}
           onChange={e => update(s => { s.routines.find(x => x.id === id).name = e.target.value.trim() || t('Routine') })} />
@@ -654,7 +655,7 @@ export default function RoutineEdit() {
         title: t('Delete routine?'), message: t('“{0}” and its exercises will be removed.', r.name), confirmText: t('Delete'), danger: true,
         onConfirm: () => {
           update(s => { deleteRoutine(s, id) })
-          nav('/plan')
+          nav(back)
         }
       })}><Icon name="trash" className="re-act-i" /><span className="lrow-m"><span className="lrow-t">{t('Delete routine')}</span>
         <span className="lrow-s">{t('“{0}” and its exercises will be removed.', r.name)}</span></span></button>

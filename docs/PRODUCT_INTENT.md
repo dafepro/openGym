@@ -54,3 +54,5 @@ branch. Focus uses the existing workout controller; Drive and Garmin remain sepa
 around the same local store. Phone and watch share finished-record construction and commit;
 warm-up-only sessions preserve their routine's place. Native updates use a fork-owned release
 channel alongside upstream's downloader. See ADRs 009/012 and the upstream integration review. Per-exercise units and gym equipment flow through upstream domain helpers; the profile unit remains the storage convention.
+
+Any local profile can load an editable strength template and review its routines before starting the schedule ([ADR 013](decisions/013-editable-strength-templates.md)).
