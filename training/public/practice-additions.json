@@ -7,7 +7,7 @@
         "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca",
         "revision": "v1",
         "title": "Soft Touch to Speed",
-        "note": "Soft touches, quick feet—speed up only while the ball stays close.",
+        "note": "Soft touches, quick feet\u2014speed up only while the ball stays close.",
         "status": "archived",
         "drills": [
           {
@@ -36,7 +36,7 @@
           },
           {
             "id": "coach-d07c4a2f-dfd1-495c-ab46-46d85c3266ca-2",
-            "title": "Inside–Outside Cone Touches",
+            "title": "Inside\u2013Outside Cone Touches",
             "instructions": "Setup: Set four cones in a straight line about a yard apart, with room to turn at the end.\nUse the inside and outside of the active foot to dribble down the line and back. Keep that same foot for the whole interval; the next interval uses the other foot. Start slowly and speed up only while the ball stays close.\nFocus: Use small inside and outside touches to guide the ball around each cone.",
             "mode": "time",
             "sets": 3,
@@ -109,7 +109,7 @@
         "title": "Agility foundations",
         "assignedOn": "2026-11-23",
         "status": "archived",
-        "note": "Warm up for 4 minutes, then complete each exercise in order. Allow about 15–20 minutes including rests and an easy 2-minute finish. Springy contacts, trunk control and leg endurance support your agility work. Stop any exercise that causes pain.",
+        "note": "Warm up for 4 minutes, then complete each exercise in order. Allow about 20\u201325 minutes including rests and an easy 2-minute finish. Springy contacts, trunk control and leg endurance support your agility work. Stop any exercise that causes pain.",
         "drills": [
           {
             "id": "coach-c80e9d83-d57c-4c1e-b1af-018569a53701-1",
@@ -117,7 +117,7 @@
             "instructions": "Setup: Use a mat on a firm floor. Before the session, warm up for 4 minutes with easy marching or jogging, ankle circles and comfortable bodyweight squats. Lie on your back, bend your knees and place both feet flat about hip-width apart.\nPress through your feet and raise your hips by squeezing your glutes. Pause for 2 seconds, then lower slowly. Keep your ribs settled rather than lifting higher by arching your back. One lift and lower is one rep. Finish both sets before moving on.\nFocus: Smooth, even hip lift. Leave a few good repetitions in reserve.",
             "mode": "reps",
             "sets": 2,
-            "reps": 10,
+            "reps": 15,
             "side": "both",
             "restSec": 30,
             "metadata": {
@@ -152,7 +152,7 @@
             "instructions": "Setup: Stand tall with feet hip-width apart on a level, non-slip surface with clear space overhead. Complete the warm-up before jumping.\nMake small two-foot hops, using a quick ankle spring and a soft knee bend. Land quietly in the same spot and keep the hops low. Count each landing as one rep. Pause and reset if the rhythm or landing control fades; do not chase height. Rest the full minute between sets.\nFocus: Light, quiet contacts. If hopping is uncomfortable, stop the set and use controlled calf raises instead.",
             "mode": "reps",
             "sets": 3,
-            "reps": 15,
+            "reps": 25,
             "side": "both",
             "restSec": 60,
             "metadata": {
@@ -219,10 +219,10 @@
           {
             "id": "coach-c80e9d83-d57c-4c1e-b1af-018569a53701-4",
             "title": "Wall sits",
-            "instructions": "Setup: Use a solid wall and a non-slip floor. Place your back against the wall and walk your feet forward, about hip-width apart.\nSlide into a comfortable squat depth and hold with both feet flat and knees following your toes. A shallower position is fine; do not force a right angle. Keep breathing normally. Hold for up to 30 seconds, then stand and rest for 45 seconds before the next set.\nFocus: Steady position without breath-holding. After the final set, walk easily for 2 minutes.",
+            "instructions": "Setup: Use a solid wall and a non-slip floor. Place your back against the wall and walk your feet forward, about hip-width apart.\nSlide into a comfortable squat depth and hold with both feet flat and knees following your toes. A shallower position is fine; do not force a right angle. Keep breathing normally. Hold for up to 45 seconds, then stand and rest for 45 seconds before the next set.\nFocus: Steady position without breath-holding. After the final set, walk easily for 2 minutes.",
             "mode": "time",
-            "sets": 2,
-            "durationSec": 30,
+            "sets": 3,
+            "durationSec": 45,
             "side": "both",
             "restSec": 45,
             "metadata": {
