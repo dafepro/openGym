@@ -802,7 +802,7 @@ export function build(S, opts = {}) {
       p.userNote = String(opts.refine).slice(0, MAX_NOTE_CHARS);
     }
   }
-  if (opts.kind !== 'debrief' && opts.kind !== 'adapt') {
+  if (opts.includeConversation || (opts.kind !== 'debrief' && opts.kind !== 'adapt')) {
     const said = conversation(coach, [opts.note, opts.refine]);
     if (said.length) p.conversation = said;
   }

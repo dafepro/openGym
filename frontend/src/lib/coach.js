@@ -12,6 +12,7 @@
 // The screens that call it arrive in PR 4. Nothing in this file needs one to be tested, which
 // is the point of it being separate from them.
 
+import { hostedCoach } from './invited-coach.js'
 import { offlineBuild } from './build-caps.js'
 import { EXIDX, canonicalExId } from './exercises.js'
 import { modeOf, isBw, isPerSide, cleanupSg } from './history.js'
@@ -68,7 +69,7 @@ const coachOf = s => (s.coach = s.coach || emptyCoach())
 // openGym Offline (lib/build-caps.js) has no network, so no Coach in any form.
 export const coachAvailable = (config, user, { demo, mobile, coachMode } = {}) =>
   offlineBuild() ? false : mobile ? (coachMode === 'byok' || !!(config?.coach?.enabled && user))
-    : demo ? true : !!(config?.coach?.enabled && user)
+    : demo || hostedCoach() ? true : !!(config?.coach?.enabled && user)
 
 // What each data category means, in the user's words. Rendered from the same list the payload
 // builder uses (api/coach/core/categories.js), so the screen cannot promise less than leaves.
@@ -787,4 +788,11 @@ export function changeMeaning(c) {
     }).join(' · ')
   }
   return null
+}
+
+export const readCoachNotes = (S) => S?.coach?.profile?.notes ?? S?.coach?.draftNotes ?? ''
+export function writeCoachNotes(S, text) {
+  const coach = (S.coach ||= emptyCoach())
+  if (coach.profile) coach.profile.notes = text
+  else coach.draftNotes = text
 }

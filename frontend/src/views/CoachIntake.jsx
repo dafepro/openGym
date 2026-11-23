@@ -11,6 +11,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
+import { hostedCoach } from '../lib/invited-coach.js'
+import { readCoachNotes } from '../lib/coach.js'
+import { CoachNotes } from '../components/CoachNotes.jsx'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { DAYN } from '../lib/format.js'
@@ -78,8 +81,8 @@ export default function CoachIntake() {
   const [p, setP] = useState(() => ({
     goal: null, experience: null, daysPerWeek: 3, preferredDays: defaultTrainingDays(3),
     // A home gym already set up under Settings → Equipment is the best first guess here.
-    sessionMin: 60, equipment: (activeProfile(S)?.equipment || []).filter(e => EQUIPMENT.includes(e)), limitations: '', likes: '', dislikes: '', notes: '',
-    ...(S.coach?.profile || {})
+    sessionMin: 60, equipment: (activeProfile(S)?.equipment || []).filter(e => EQUIPMENT.includes(e)), limitations: '', likes: '', dislikes: '',
+    ...(S.coach?.profile || {}), notes: readCoachNotes(S)
   }))
   const set = patch => setP(v => ({ ...v, ...patch }))
 
@@ -114,6 +117,7 @@ export default function CoachIntake() {
     update(s => {
       const c = (s.coach = s.coach || emptyCoach())
       c.profile = profile
+      delete c.draftNotes
       // The conversation opens with the answers — rendered from the profile, so an edit later
       // is reflected rather than duplicated. One intake line whoever is writing it: a first-timer
       // whose plan request failed presses the button again, and must not open the thread with
@@ -157,6 +161,7 @@ export default function CoachIntake() {
       {key !== 'consent' && <div className="ob-dots">
         {dots.map((s, i) => <span key={s} className={'ob-dot' + (i === dotIndex ? ' on' : i < dotIndex ? ' done' : '')} />)}
       </div>}
+      <CoachNotes value={p.notes} onSave={notes=>set({notes})}/>
       {optional && !last ? <button className="ob-skip" onClick={next}>{t('Skip')}</button> : <span style={{ width: 36 }} />}
     </div>
 
@@ -278,6 +283,7 @@ function Consent({ onAgree, onDecline }) {
     <h1 className="ob-h">{t('Meet the Coach')}</h1>
     <p className="ob-p">{t('It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.')}</p>
     <div className="ob-sub" style={{ marginTop: 0 }}>{t('What it reads')}</div>
+    {hostedCoach() && <p className="small dim">When you ask, Uplift sends your selected training context, Coach notes and up to six recent chat messages to OpenAI through the shared server. Your notes and chat stay in your local profile and full backups.</p>}
     <div className="ob-consent">
       {(info?.categories || Object.keys(CATEGORY_TEXT)).map(k => {
         const [title, sub] = CATEGORY_TEXT[k]?.() || [k, '']

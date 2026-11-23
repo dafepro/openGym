@@ -10,6 +10,7 @@ import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import { fmtDate, isoOf } from '../lib/format.js'
 import { DATA_CATEGORIES } from '../../../api/coach/core/categories.js'
+import { CoachNotes } from './CoachNotes.jsx'
 import { aiConsents, withdrawAi, onAiConsentChange } from '../lib/coach-consent.js'
 import { emptyCoach } from '../lib/coach.js'
 import Icon from './Icon.jsx'
@@ -41,6 +42,7 @@ export function askAiConsent(target) {
 function ConsentSheet({ target, onAnswer }) {
   const server = target.via === 'server'
   return <div className="ai-consent">
+    <CoachNotes />
     <div className="ob-eyebrow">{t('Your data, your call')}</div>
     <h3>{t('Send your training to {0}?', target.name)}</h3>
     <p className="muted" style={{ lineHeight: 1.5, margin: '6px 0 12px' }}>

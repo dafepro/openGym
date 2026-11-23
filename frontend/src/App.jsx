@@ -85,6 +85,7 @@ import MobileOnboarding from './views/MobileOnboarding.jsx'
 import PermissionSteps from './views/PermissionSteps.jsx'
 import Home from './views/Home.jsx'
 import { tintCss } from './lib/streak-icons.js'
+import InvitedCoachGate from './components/InvitedCoachGate.jsx'
 import Plan from './views/Plan.jsx'
 import Workout from './views/Workout.jsx'
 
@@ -538,8 +539,8 @@ function Shell() {
         {/* The Coach screens gate themselves on the instance config; the routes exist whenever the
           AI Coach module is on, so a deep link from a notification lands somewhere sane rather
           than on the catch-all. With the module off, Home is the sane place. */}
-        {isOn(S, 'coach') && <Route path="/coach" element={<CoachChat />} />}
-        {isOn(S, 'coach') && <Route path="/coach/intake" element={<CoachIntake />} />}
+        {isOn(S, 'coach') && <Route path="/coach" element={<InvitedCoachGate><CoachChat /></InvitedCoachGate>} />}
+        {isOn(S, 'coach') && <Route path="/coach/intake" element={<InvitedCoachGate><CoachIntake /></InvitedCoachGate>} />}
         {isOn(S, 'coach') && <Route path="/coach/proposal" element={<Navigate to="/coach" replace />} />}
         {isOn(S, 'coach') && <Route path="/coach/setup" element={<CoachSetup />} />}
         {/* Until boot has asked /api/me, the cached user may be from before an admin grant (or there is
