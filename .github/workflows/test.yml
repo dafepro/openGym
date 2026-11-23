@@ -157,7 +157,9 @@ jobs:
           --outputFile.junit=junit.xml --coverage --coverage.provider=v8 --coverage.include='src/**'
           --coverage.reporter=json-summary --coverage.reporter=text-summary
       - name: Uplift Worker regressions
-        run: npm run test:worker
+        run: |
+          npm ci --no-audit --no-fund
+          npm run test:worker
       - name: Web build
         run: npm run build
         working-directory: frontend
