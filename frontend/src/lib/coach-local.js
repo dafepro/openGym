@@ -147,7 +147,7 @@ export async function localScheduled(S, now = new Date()) {
   // A proposal nobody has answered is not replaced by the next one, as on the server.
   if (d.pending && !(d.pending.expiresAt && d.pending.expiresAt < now.getTime())) return null
   const cap = await capState()
-  if (!hostedCoach() && cap.limit > 0 && cap.used >= cap.limit) return null
+  if (cap.limit > 0 && cap.used >= cap.limit) return null
   const tz = deviceZone()
   if (!isDue(S.coach, S, wallClock(now), d.reviewedAt || 0, tz)) return null
   try { return await start(S, 'review', { scheduled: true }) } catch { return null }
@@ -198,8 +198,9 @@ async function start(S, kind, opts) {
   if (!hostedCoach() && (d.mode !== 'byok' || !adapter)) throw Object.assign(new Error(t('The Coach isn’t set up on this phone.')), { status: 503, code: 'off' })
   const cap = await capState()
   // 0 is the documented "no limit" (the dial's own floor), same as the instance cap.
-  if (cap.limit > 0 && cap.used >= cap.limit) throw Object.assign(new Error(t('The Coach is taking a breather. You’ve used today’s {0} runs on this phone.', cap.limit)), { status: 429, code: 'cap' })
+  if (!hostedCoach() && cap.limit > 0 && cap.used >= cap.limit) throw Object.assign(new Error(t('The Coach is taking a breather. You’ve used today’s {0} runs on this phone.', cap.limit)), { status: 429, code: 'cap' })
 
+  if (job) throw Object.assign(new Error(t('The Coach is already thinking about your training.')), { status: 409, code: 'busy' })
   if (!hostedCoach()) await bumpDaily()
   job = { id: 'local-' + Date.now().toString(36), kind, state: 'running', startedAt: Date.now(), ...(opts.scheduled ? { trigger: 'scheduled' } : {}) }
   lastError = null
