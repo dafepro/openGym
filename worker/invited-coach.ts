@@ -21,8 +21,9 @@ export async function invitedCoach(request: Request, fetcher: typeof fetch = fet
       method: request.method,
       headers,
       body: action === 'run' ? request.body : undefined,
-      redirect: 'error'
+      redirect: 'manual'
     })
+    if (response.status >= 300 && response.status < 400) return fail(502)
     if (action === 'login' && response.ok)
       return new Response(null, { status: 303, headers: { Location: site + '/#/coach', 'Cache-Control': 'no-store' } })
     if (!response.headers.get('Content-Type')?.includes('application/json')) return fail(503)
