@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { googleDriveProvider, DRIVE_SCOPE, validClientId } from './google-drive.js'
 
-const state = { unit: 'kg', workouts: [{ id: 'w', entries: [] }], routines: [] }
+const state = { unit: 'kg', workouts: [{ id: 'w', entries: [] }], routines: [], coach: { profile: { notes: 'fixture' } } }
 const envelope = { format: 'opengym-sync', version: 1, state }
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } })
 const make = fetcher => googleDriveProvider({ token: 'test-token', expiresAt: Date.now() + 3600000, fetcher })
@@ -26,6 +26,7 @@ describe('private Drive snapshot provider', () => {
     const [url, opts] = fetcher.mock.calls[0]
     expect(url).toContain('upload/drive/v3/files?uploadType=multipart')
     expect(opts.method).toBe('POST')
+    expect(opts.body).toContain('"notes":"fixture"')
     expect(opts.body).toContain('"parents":["appDataFolder"]')
     expect(opts.body).not.toContain('"active"'); expect(opts.body).not.toContain('_wid')
     expect(fetcher.mock.calls[1][0]).toContain('/created?alt=media')

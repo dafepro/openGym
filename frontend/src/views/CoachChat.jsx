@@ -16,6 +16,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { closeThenNav } from '../lib/nav.js'
 import { useStore } from '../store/useStore.js'
+import { hostedCoach } from '../lib/invited-coach.js'
+import { CoachNotes } from '../components/CoachNotes.jsx'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
 import { fmtDate, fmtNum, fmtChatTimestamp, DAYS, weekOrder, weekStartOf, isoOf } from '../lib/format.js'
@@ -208,7 +210,7 @@ export default function CoachChat() {
       <Row icon="history" iconTint="var(--blue)" title={t('Everything the Coach proposed')} subtitle={t('Plans, suggestions and debriefs, kept')} accessory="chevron" onClick={() => { close(); showHistory() }} />
       {idle && <Row icon="clipboard" iconTint="var(--indigo)" title={t('Start a new plan')} subtitle={t('A fresh plan from your answers; your workouts stay')} accessory="chevron" onClick={() => { close(); askNewPlan() }} />}
       <Row icon="pencil" iconTint="var(--indigo)" title={t('Edit my answers')} subtitle={t('Goal, days, equipment, limits')} accessory="chevron" onClick={() => closeThenNav(close, '/coach/intake?edit=1')} />
-      <Row icon="clock" iconTint="var(--purple)" title={t('Automatic reviews')} subtitle={cadenceLabel(coach)} accessory="chevron" onClick={() => { close(); cadenceSheet(openSheet, update) }} />
+      {!hostedCoach() && <Row icon="clock" iconTint="var(--purple)" title={t('Automatic reviews')} subtitle={cadenceLabel(coach)} accessory="chevron" onClick={() => { close(); cadenceSheet(openSheet, update) }} />}
       <Row icon="list" iconTint="var(--teal)" title={t('What the Coach sees')} subtitle={t('Choose what it may read, and whether it may search the web')} accessory="chevron" onClick={() => { close(); openSheet(() => <div className="chat-menu"><CoachSeesSection /></div>) }} />
       {!DEMO && <Row icon="shield" iconTint="var(--green)" title={t('AI data sharing')} subtitle={t('Who may see your training')} accessory="chevron" onClick={() => { close(); openSheet(() => <div className="chat-menu"><AiConsentSection /></div>) }} />}
       {canRevert(S) && <Row icon="reset" iconTint="var(--blue)" title={t('Undo the last Coach changes')} accessory="chevron" onClick={() => { close(); doRevert() }} />}
@@ -240,6 +242,7 @@ export default function CoachChat() {
         <h1>{t('Coach')}</h1>
         <div className={'chat-st' + (job ? ' live' : '')}>{status}</div>
       </div>
+      <CoachNotes />
       <button className="iconbtn" onClick={menu} aria-label={t('More')}><Icon name="more" /></button>
     </div>
 
