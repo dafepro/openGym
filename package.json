@@ -1,6 +1,7 @@
 {
   "devDependencies": {
     "js-yaml": "^4.1.0",
+    "miniflare": "5.20260926.0-alpha",
     "prettier": "3.9.9",
     "wrangler": "^4.143.0"
   },
@@ -12,6 +13,6 @@
     "build:worker": "VITE_LOCAL_ONLY=1 VITE_NO_MEDIA=1 npm --prefix frontend run build",
     "dev:worker": "WRANGLER_SEND_METRICS=false wrangler dev --local --port 8788",
     "check:worker": "WRANGLER_SEND_METRICS=false wrangler deploy --dry-run --outdir worker-dist",
-    "test:worker": "cd frontend && ./node_modules/.bin/vitest run --root .. --config frontend/vite.config.js worker/relay.test.ts worker/index.test.ts"
+    "test:worker": "node --test scripts/invited-coach-runtime.test.mjs && cd frontend && ./node_modules/.bin/vitest run --root .. --config frontend/vite.config.js worker/relay.test.ts worker/index.test.ts"
   }
 }
