@@ -2,10 +2,8 @@ import { validateAssignment, validateCatalog } from './content.js'
 const canonical = (value) =>
   JSON.stringify(value, (_, item) =>
     item && typeof item === 'object' && !Array.isArray(item)
-      ? Object.fromEntries(
-          Object.entries(item).sort(([a], [b]) => a.localeCompare(b)),
-        )
-      : item,
+      ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)))
+      : item
   )
 export function validateAdditions(value) {
   if (
@@ -37,10 +35,7 @@ export function validateAdditions(value) {
       assignment.drills.length > 12
     )
       throw new Error('Invalid published practice identity')
-    if (
-      !Array.isArray(entry.sources) ||
-      entry.sources.length !== assignment.drills.length
-    )
+    if (!Array.isArray(entry.sources) || entry.sources.length !== assignment.drills.length)
       throw new Error('Every drill requires reviewed sources')
     for (const [index, source] of entry.sources.entries()) {
       if (
@@ -67,7 +62,7 @@ export function appendPractice(collection, entry) {
     throw new Error('This practice is already published')
   return validateAdditions({
     schemaVersion: 1,
-    practices: [...collection.practices, entry],
+    practices: [...collection.practices, entry]
   })
 }
 export function assertAppendOnly(previous, next) {
@@ -77,9 +72,7 @@ export function assertAppendOnly(previous, next) {
     next.practices.length !== previous.practices.length + 1 ||
     canonical(next.practices.slice(0, -1)) !== canonical(previous.practices)
   )
-    throw new Error(
-      'A practice PR must append exactly one practice without changing published entries',
-    )
+    throw new Error('A practice PR must append exactly one practice without changing published entries')
 }
 export async function publicEdition(baseRevision, practices) {
   if (!practices.length) return baseRevision
@@ -92,30 +85,38 @@ export async function publicEdition(baseRevision, practices) {
   if (revision.length > 128) throw new Error('Catalog edition is too long')
   return revision
 }
-export async function extendCatalog(
-  base,
-  additions,
-  count = additions.practices.length,
-) {
+export async function extendCatalog(base, additions, count = additions.practices.length) {
   validateAdditions(additions)
-  if (
-    !Number.isInteger(count) ||
-    count < 0 ||
-    count > additions.practices.length
-  )
+  if (!Number.isInteger(count) || count < 0 || count > additions.practices.length)
     throw new Error('Unknown public practice edition')
   if (!count) return base
   const practices = additions.practices.slice(0, count)
   return validateCatalog({
     ...base,
     revision: await publicEdition(base.revision, practices),
-    assignments: [
-      ...base.assignments,
-      ...practices.map((item) => item.assignment),
-    ],
+    assignments: [...base.assignments, ...practices.map((item) => item.assignment)]
   })
 }
 export function splitPublicEdition(revision) {
   const match = /^(.+)--c([1-9]\d{0,2})-([a-f0-9]{16})$/.exec(revision)
   return match ? { baseRevision: match[1], count: Number(match[2]) } : null
+}
+
+// Featured selection is a current-library presentation choice. Published entries
+// and historical edition responses retain their original immutable snapshots.
+export function featurePractice(catalog, selection) {
+  if (!selection) return catalog
+  if (Object.keys(selection).sort().join(',') !== 'assignmentId,revision')
+    throw new Error('Invalid featured practice selection')
+  const selected = catalog.assignments.find((a) => a.id === selection.assignmentId && a.revision === selection.revision)
+  if (!selected) throw new Error('Featured practice is not in the published catalog')
+  return validateCatalog({
+    ...catalog,
+    currentAssignmentId: selected.id,
+    currentAssignmentRevision: selected.revision,
+    assignments: catalog.assignments.map((a) => ({
+      ...a,
+      status: a === selected ? 'current' : a.status === 'current' ? 'archived' : a.status
+    }))
+  })
 }

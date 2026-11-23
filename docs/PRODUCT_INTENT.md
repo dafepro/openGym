@@ -103,3 +103,7 @@ The soccer home leads with the next individual assignment and keeps feedback and
 previous submitted sessions with that practice. Completion offers explicit sharing
 after a successful local save. Practice, History and Coach form consistent navigation;
 creation tools follow the saved library. See ADR 020.
+
+The public soccer home can feature an explicitly selected published practice
+without replacing previous entries or active local sessions. Historical practice
+links retain their original edition. See ADR 022.
