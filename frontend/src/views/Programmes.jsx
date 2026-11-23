@@ -14,20 +14,13 @@ import { effortOf, modeOf, isBw } from '../lib/history.js'
 import { exOr } from '../lib/exercises.js'
 import { weightIncrement } from '../lib/progression.js'
 import { REST } from '../lib/rotation.js'
-import { starterProgrammeOptions, buildStarterProgramme } from '../lib/starter.js'
+import StarterProgrammeRows from '../components/StarterProgrammeRows.jsx'
 import { exView, viewTarget, exUnitOf } from '../lib/ex-unit.js'
 import {
   programmesOf, programmeById, programmeStatus, newProgramme, saveProgramme, deleteProgramme, resizeWeeks,
   stepWeek, cleanWeek, currentSchedule, startProgramme, pauseProgramme, resumeProgramme, endProgramme,
   repeatProgramme, programmeRoutineIds, pctWeight, rpeAs, cleanPct, programmeChip, MAX_WEEKS, REPEAT_BUMP,
 } from '../lib/programmes.js'
-
-// Names and blurbs as t() literals, for check-source-strings.mjs (see lib/starter.js).
-const STARTER_COPY = {
-  'strength-4': () => ({ name: t('Strength block, 4 weeks'), about: t('Three days on the 5×5 routines, a little heavier every week, then a light week to bounce back.') }),
-  'hypertrophy-6': () => ({ name: t('Upper / lower by effort, 6 weeks'), about: t('Four days. Your progression picks the weights, the effort climbs to RPE 9, then a deload.') }),
-  'linear-12': () => ({ name: t('Linear 5×5 style, 12 weeks'), about: t('Three days of plain linear progression, with a deload every fourth week.') }),
-}
 
 const RPES = [6, 7, 7.5, 8, 8.5, 9, 9.5, 10]
 const rpeText = (rpe, S) => { const r = rpeAs(rpe, effortOf(S)); return `${r.k} ${fmtNum(r.v)}` }
@@ -115,16 +108,6 @@ export default function Programmes() {
     update(s => { saveProgramme(s, p) })
     nav('/plan/prog/' + p.id)
   }
-  const addStarter = id => {
-    const built = buildStarterProgramme(id, STARTER_COPY[id]().name)
-    if (!built) return
-    update(s => {
-      s.routines = [...(s.routines || []), ...built.routines]
-      saveProgramme(s, built.programme)
-    })
-    useUI.getState().toast(tn('Added with {0} new routine.', 'Added with {0} new routines.', built.routines.length))
-    nav('/plan/prog/' + built.programme.id)
-  }
 
   return <div className="narrow">
     <div className="hdr">
@@ -143,11 +126,7 @@ export default function Programmes() {
     </Section>
     {list.length > 0 && <Button variant="tinted" icon="plus" onClick={create}>{t('New programme')}</Button>}
     <Section title={t('Starter programmes')} footer={t('Each adds its own routines, so your plan stays as it is until you start it.')}>
-      {starterProgrammeOptions().map(o => {
-        const c = STARTER_COPY[o.id]()
-        return <Row key={o.id} icon="clipboard" title={c.name} accessory="chevron"
-          subtitle={c.about + ' ' + tn('{0} day a week', '{0} days a week', o.days)} onClick={() => addStarter(o.id)} />
-      })}
+      <StarterProgrammeRows onOpen={nav} />
     </Section>
   </div>
 }
@@ -266,13 +245,21 @@ export function ProgrammeEdit() {
       <Row icon="download" title={t('Use my current plan')} subtitle={t('The schedule in your plan right now becomes this programme’s.')}
         onClick={() => edit(cur => { const { days, sequence, ...rest } = cur; return { ...rest, ...currentSchedule(S) } })} />
     </div>
+    <Section title={t('Routines')}>
+      {programmeRoutineIds(S, p).map(rid => {
+        const routine = S.routines.find(r => r.id === rid)
+        return <Row key={rid} title={routine.name} accessory="chevron"
+          subtitle={(routine.ex || []).map(e => exerciseNameText(exOr(e.id))).join(' · ')}
+          onClick={() => nav('/plan/prog/' + p.id + '/r/' + rid)} />
+      })}
+    </Section>
+    {!running && <Button variant="primary" icon="play" disabled={!summary} onClick={() => confirmStart(p)}>{t('Start programme')}</Button>}
     <Section title={t('Weeks')} footer={t('The week is the calendar week: week 1 is the one you start in. A pause holds it.')}>
       {p.weeks.map((w, i) => <Row key={i} title={t('Week {0}', i + 1)} subtitle={weekSummary(w, S)} accessory="chevron"
         icon={w.deload ? 'chartLineSlash' : 'chartLine'} iconTint={w.deload ? 'var(--orange)' : undefined}
         className={running && st.week === i + 1 && !st.done ? 'prog-now' : ''} onClick={() => weekSheet(id, i)} />)}
     </Section>
     <div className="prog-actions col">
-      {!running && <Button variant="primary" icon="play" disabled={!summary} onClick={() => confirmStart(p)}>{t('Start programme')}</Button>}
       <Button variant="tinted" icon="share" onClick={() => exportProgrammeFile(id)}>{t('Share programme')}</Button>
       <Button variant="danger" icon="trash" onClick={remove}>{t('Delete programme')}</Button>
     </div>

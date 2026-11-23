@@ -65,6 +65,24 @@ describe('the programme list', () => {
     expect(mocks.navs.at(-1)).toBe('/plan/prog/' + p.id)
   })
 
+  it('opens the routine editor from an SL draft and starts the rotation only after confirmation', () => {
+    render(<Programmes />)
+    click(button('StrongLifts 3×5'))
+    const [p] = Object.values(mocks.S.programmes)
+    mocks.params = { id: p.id }
+    render(<ProgrammeEdit />)
+    click(button('StrongLifts 3×5 B'))
+    expect(mocks.navs.at(-1)).toBe('/plan/prog/' + p.id + '/r/' + mocks.S.routines[2].id)
+    click(button('Start programme'))
+    expect(mocks.S.programme).toBeNull()
+    act(() => mocks.confirm.onConfirm())
+    expect(mocks.S.queue.ids).toEqual([mocks.S.routines[1].id])
+    render(<ProgrammeEdit />)
+    click(button('End programme'))
+    act(() => mocks.confirm.onConfirm())
+    expect(mocks.S.week).toEqual({ 1: ['r1'] })
+  })
+
   it('makes a new one from the plan you have', () => {
     render(<Programmes />)
     click(button('New programme'))

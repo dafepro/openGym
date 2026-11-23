@@ -193,7 +193,7 @@ describe('fitting a starter plan to equipment', () => {
 describe('starter programmes (#159)', () => {
   it('each builds routines and a programme over every one of them', () => {
     const opts = starterProgrammeOptions()
-    expect(opts.map(o => o.id)).toEqual(['strength-4', 'hypertrophy-6', 'linear-12'])
+    expect(opts.map(o => o.id)).toEqual(['sl-5x5', 'sl-3x5', 'strength-4', 'hypertrophy-6', 'linear-12'])
     for (const { id, weeks } of opts) {
       const { routines, programme } = buildStarterProgramme(id, 'X', 5)
       const p = normalizeProgramme(programme)

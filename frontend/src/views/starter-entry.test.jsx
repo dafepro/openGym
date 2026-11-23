@@ -43,9 +43,12 @@ describe.each([['Home', Home], ['Plan', Plan]])('%s empty state', (_name, View) 
     expect(starterPlanSheet).toHaveBeenCalledTimes(1)
   })
 
-  it('drops the offer once the user has routines', () => {
+  it('keeps the chooser on Plan after the first routine', () => {
     useStore.setState(s => ({ S: { ...s.S, routines: [{ id: 'r', name: 'Mine', emoji: 'star', ex: [] }] } }))
     act(() => root.render(<View />))
-    expect(starterButton()).toBeFalsy()
+    if (View === Plan) {
+      act(() => { starterButton().click() })
+      expect(starterPlanSheet).toHaveBeenCalledTimes(1)
+    } else expect(starterButton()).toBeFalsy()
   })
 })
