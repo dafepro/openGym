@@ -157,6 +157,7 @@ import {
 } from './lib/i18n.js'
 import { nameIn, said } from './lib/a11y-name.js'
 import { nav, closeThenNav, navToWorkout } from './lib/nav.js'
+import StarterProgrammeRows from './components/StarterProgrammeRows.jsx'
 import { buildStarterPlan, starterPlanDays, starterPlanOptions, AWAY_PLANS } from './lib/starter.js'
 import OwnExerciseMedia from './components/OwnExerciseMedia.jsx'
 import Media, { Thumb } from './components/Media.jsx'
@@ -196,6 +197,7 @@ import { BandChips } from './components/Bands.jsx'
 import {
   Button,
   Slider,
+  Section,
   Switch,
   Segmented,
   SelectRow,
@@ -741,6 +743,10 @@ function StarterPlanChooser({ close }) {
   return (
     <>
       <h3>{t('Choose starter plan')}</h3>
+      <Section title={t('Rotation')} footer={t('Each adds its own routines, so your plan stays as it is until you start it.')}>
+        <StarterProgrammeRows rotationsOnly onOpen={(path) => closeThenNav(close, path)} />
+      </Section>
+      <h4 className="sec">{t('Fixed Week')}</h4>
       {profiles.length > 0 ? (
         <div className="chips" style={{ margin: '0 0 10px' }}>
           <div className="small dim" style={{ width: '100%' }}>

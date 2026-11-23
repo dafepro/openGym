@@ -6,6 +6,7 @@
 // hang) is [exerciseId, sets, seconds, 'time'] (#964): three 40 s holds, not three reps. The key is what a plan's
 // schedule points at, so a weekday never depends on the position of a routine in the array.
 // Names stay canonical English — they become ordinary user routines, which are not translated.
+import { REST } from './rotation.js'
 import { uid } from './format.js'
 import { EXIDX } from './exercises.js'
 import { eqAvailable, ALL_EQUIPMENT } from './equipment.js'
@@ -119,13 +120,24 @@ export const buildStarterPlan = (id, equipment, machines) => {
   }
 }
 
-// Starter programmes (#159): a starter plan's routines run as a block, as data. Generic shapes
-// written for this app, not any published programme: the weeks are the numbers, the names and
-// descriptions live in t() calls in views/Programmes.jsx for the same reason as the plans'. A
-// target is keyed by exercise id (lib/programmes.js), a %1RM only on the barbell lifts.
+// Programme weeks hold optional intensity targets. A starter can use fixed weekdays or a rotation.
 const BARBELL = ['0043', '0025', '0027', '0085', '0047']
 const pcts = (pct, rpe) => ({ rpe, t: Object.fromEntries(BARBELL.map(id => [id, { pct }])) })
+// The six training days span two weeks so the next week starts with the other workout.
+function alternatingStrength(sets) {
+  const name = `StrongLifts ${sets}×5`
+  return {
+    name, days: 3, weeks: Array.from({ length: 12 }, () => ({})),
+    routines: [
+      ['a', name + ' A', 'barbell', [['0043', sets, 5], ['0025', sets, 5], ['0027', sets, 5]]],
+      ['b', name + ' B', 'barbell', [['0043', sets, 5], ['1162', sets, 5], ['0032', 1, 5]]]
+    ],
+    sequence: ['a', REST, 'b', REST, 'a', REST, REST, 'b', REST, 'a', REST, 'b', REST, REST]
+  }
+}
 const PROGRAMMES = {
+  'sl-5x5': alternatingStrength(5),
+  'sl-3x5': alternatingStrength(3),
   // Four weeks on the 5×5 routines: heavier each week, then a light one to come back fresh.
   'strength-4': { plan: '5x5', weeks: [pcts(72.5, 7), pcts(77.5, 8), pcts(82.5, 8.5), { ...pcts(60, 6), deload: true }] },
   // Six weeks of upper/lower by effort only: the policy keeps the weights, the RPE climbs.
@@ -136,7 +148,7 @@ const PROGRAMMES = {
 
 /** [{ id, weeks, days }] for the chooser. */
 export const starterProgrammeOptions = () =>
-  Object.entries(PROGRAMMES).map(([id, p]) => ({ id, weeks: p.weeks.length, days: PLANS[p.plan].schedule.length }))
+  Object.entries(PROGRAMMES).map(([id, p]) => ({ id, name: p.name, rotation: !!p.sequence, weeks: p.weeks.length, days: p.days ?? PLANS[p.plan].schedule.length }))
 
 /**
  * Fresh routines and the programme over them (not saved, not started), or null for an unknown id.
@@ -144,9 +156,15 @@ export const starterProgrammeOptions = () =>
  */
 export const buildStarterProgramme = (id, name, now = Date.now()) => {
   const def = PROGRAMMES[id]
-  const plan = def && buildStarterPlan(def.plan)
-  if (!plan) return null
+  if (!def) return null
+  const programme = { id: uid(), name, at: now, src: id, weeks: JSON.parse(JSON.stringify(def.weeks)) }
+  if (def.sequence) {
+    const routines = build(def.routines)
+    const byKey = Object.fromEntries(def.routines.map(([key], i) => [key, routines[i].id]))
+    return { routines, programme: { ...programme, sequence: def.sequence.map(key => key === REST ? REST : byKey[key]) } }
+  }
+  const plan = buildStarterPlan(def.plan)
   const days = {}
   for (const { day, routineId } of plan.schedule) (days[day] = days[day] || []).push(routineId)
-  return { routines: plan.routines, programme: { id: uid(), name, at: now, src: id, days, weeks: JSON.parse(JSON.stringify(def.weeks)) } }
+  return { routines: plan.routines, programme: { ...programme, days } }
 }

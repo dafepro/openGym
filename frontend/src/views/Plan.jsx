@@ -260,6 +260,9 @@ export default function Plan() {
           <div className="sub">{mode === 'rotation' ? t('Your routines in a loop') : t('Your weekly routine')}</div>
         </div>
         <div className="hdr-actions">
+          {S.routines.length > 0 && (
+            <Button size="sm" variant="tinted" onClick={starterPlanSheet}>{t('Load starter plan')}</Button>
+          )}
           {showCoach && (
             <Button size="sm" variant="tinted" icon="sparkles" onClick={() => nav('/coach')}>
               {t('Coach')}
