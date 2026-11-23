@@ -7,6 +7,8 @@
 // first, the same polling, the same failures in the app's voice.
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
+import InvitedCoachGate from './InvitedCoachGate.jsx'
+import { CoachNotes } from './CoachNotes.jsx'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
 import { fmtRest } from '../lib/duration.js'
@@ -134,9 +136,10 @@ export default function WorkoutCoachSheet({ entryIdx, reason: startReason = null
     } finally { setBusy(false) }
   }
 
-  if (mine) return <div className="workout-coach"><AdaptProposal p={mine} onDone={close} /></div>
+  if (mine) return <div className="workout-coach"><CoachNotes /><AdaptProposal p={mine} onDone={close} /></div>
   const name = entry ? exTitle(entry.id) : ''
   return <div className="workout-coach">
+    <CoachNotes />
     <div className="pcard-eyebrow"><Icon name="sparkles" /> {t('Ask the Coach')}</div>
     <h2 className="pcard-h" style={{ margin: '4px 0 12px' }}>{name}</h2>
     {job || (sent && !ended)
@@ -175,5 +178,5 @@ export default function WorkoutCoachSheet({ entryIdx, reason: startReason = null
 /** Opens the sheet for the exercise at `entryIdx` of the running session, `reason` picked already
  *  when it is known (the swap picker's "Ask the Coach for a swap" opens on "Machine's taken"). */
 export function workoutCoachSheet(entryIdx, reason = null) {
-  useUI.getState().openSheet(close => <WorkoutCoachSheet entryIdx={entryIdx} reason={reason} close={close} />)
+  useUI.getState().openSheet(close => <InvitedCoachGate><WorkoutCoachSheet entryIdx={entryIdx} reason={reason} close={close} /></InvitedCoachGate>)
 }

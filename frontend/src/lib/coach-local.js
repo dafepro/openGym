@@ -30,6 +30,7 @@ import openrouter from '../../../api/coach/core/adapters/openrouter.js'
 import compatible from '../../../api/coach/core/adapters/compatible.js'
 import { modelSubstitute, compatProfile, rememberCompatProfile } from '../../../api/coach/core/adapters/http.js'
 import { nativeFetch } from './capacitor-fetch.js'
+import { hostedCoach, hostedAttempt } from './invited-coach.js'
 import { getApiKey } from './coach-secrets.js'
 import { loadCoachDevice, saveCoachDevice, coachLimits } from './coach-device.js'
 import { planHash } from './coach.js'
@@ -100,7 +101,7 @@ async function bumpDaily() {
 export async function localStatus() {
   const d = await loadCoachDevice()
   if (d.pending && d.pending.expiresAt && d.pending.expiresAt < Date.now()) await saveCoachDevice({ pending: null })
-  return { job, pending: (await loadCoachDevice()).pending || null, cap: await capState(), lastError, last, maxMessageLen: coachLimits(d).maxMessageLen }
+  return { job, pending: (await loadCoachDevice()).pending || null, cap: hostedCoach() ? null : await capState(), lastError, last, maxMessageLen: coachLimits(d).maxMessageLen }
 }
 
 export const localReview = async (S, note, vitals) => {
@@ -146,7 +147,7 @@ export async function localScheduled(S, now = new Date()) {
   // A proposal nobody has answered is not replaced by the next one, as on the server.
   if (d.pending && !(d.pending.expiresAt && d.pending.expiresAt < now.getTime())) return null
   const cap = await capState()
-  if (cap.limit > 0 && cap.used >= cap.limit) return null
+  if (!hostedCoach() && cap.limit > 0 && cap.used >= cap.limit) return null
   const tz = deviceZone()
   if (!isDue(S.coach, S, wallClock(now), d.reviewedAt || 0, tz)) return null
   try { return await start(S, 'review', { scheduled: true }) } catch { return null }
@@ -167,6 +168,7 @@ export async function localForget() { job = null; lastError = null; await saveCo
 
 export async function localDisclosure() {
   const d = await loadCoachDevice()
+  if (hostedCoach()) return {provider:'openai',providerLabel:'OpenAI',categories:payloadLib.DATA_CATEGORIES,version:1,payer:'instance',host:'api.openai.com'}
   const meta = HTTP_PROVIDERS[d.provider] || {}
   const base = d.provider ? baseUrlFor(d.provider, cfgOf(d)) : ''
   return {
@@ -193,48 +195,32 @@ async function start(S, kind, opts) {
   if (!S?.coach?.consent?.agreedAt) throw Object.assign(new Error(t('The Coach needs your go-ahead first.')), { status: 403, code: 'consent' })
   const d = await loadCoachDevice()
   const adapter = ADAPTERS[d.provider]
-  if (d.mode !== 'byok' || !adapter) throw Object.assign(new Error(t('The Coach isn’t set up on this phone.')), { status: 503, code: 'off' })
+  if (!hostedCoach() && (d.mode !== 'byok' || !adapter)) throw Object.assign(new Error(t('The Coach isn’t set up on this phone.')), { status: 503, code: 'off' })
   const cap = await capState()
   // 0 is the documented "no limit" (the dial's own floor), same as the instance cap.
   if (cap.limit > 0 && cap.used >= cap.limit) throw Object.assign(new Error(t('The Coach is taking a breather. You’ve used today’s {0} runs on this phone.', cap.limit)), { status: 429, code: 'cap' })
 
-  await bumpDaily()
+  if (!hostedCoach()) await bumpDaily()
   job = { id: 'local-' + Date.now().toString(36), kind, state: 'running', startedAt: Date.now(), ...(opts.scheduled ? { trigger: 'scheduled' } : {}) }
   lastError = null
   // Not awaited: the screens poll, exactly as they do against a server.
-  run(S, kind, opts, d, adapter).catch(e => { lastError = { errorClass: 'internal', detail: String(e && e.message || e) } }).finally(() => { job = null })
+  const started = job
+  run(S, kind, opts, d, adapter, started).catch(e => {
+    if (job === started) lastError = { errorClass: 'internal', detail: String(e?.message || e) }
+  }).finally(() => { if (job === started) job = null })
   return { job }
 }
 
-async function run(S, kind, opts, d, adapter) {
-  const key = await getApiKey()
+async function run(S, kind, opts, d, adapter, started) {
   // Web research on a chat question, with a provider that can search and the person's switch on.
-  const useWeb = kind === 'ask' && !!HTTP_PROVIDERS[d.provider]?.web && S.coach?.web === true
+  const useWeb = !hostedCoach() && kind === 'ask' && !!HTTP_PROVIDERS[d.provider]?.web && S.coach?.web === true
   const payload = payloadLib.build(S, {
     handle: await handle(), kind, intake: opts.intake, note: opts.note, refine: opts.refine, previous: opts.previous, workoutId: opts.workoutId, today: opts.today, focus: opts.focus,
     vitals: opts.vitals || null, web: useWeb, routines: opts.routines || null,
-    lang: getLang()   // what the app shows, which a profile that never picked a language does not store (#303)
+    includeConversation: hostedCoach(), lang: getLang()   // what the app shows, which a profile that never picked a language does not store (#303)
   })
-  const model = d.model || HTTP_PROVIDERS[d.provider].defaultModel
-  // What this endpoint and model needed last time (#804), so a gateway that only takes a
-  // simpler request is asked that way first instead of paying for the same 400s every launch.
-  const base = baseUrlFor(d.provider, cfgOf(d))
-  if (d.compat && d.compat.provider === d.provider && d.compat.base === base && d.compat.model === model) rememberCompatProfile(d.provider, cfgOf(d), model, d.compat.steps)
-  const attempt = await runPipeline({
-    adapter, cfg: cfgOf(d), kind, payload,
-    model, timeoutMs: timeoutFor(d.provider),
-    invokeOpts: { env: envOf(d, key), fetch: guardedFetch, maxTokens: coachLimits(d).maxOutputTokens, ...(useWeb ? { web: true } : {}) }
-  })
-  // The saved model was refused and another one answered (#758): keep that one, so the next
-  // launch does not pay for the same 404 again. The setup screen shows the new name.
-  const swapped = model && modelSubstitute(d.provider, cfgOf(d), model)
-  if (swapped && swapped !== d.model) await saveCoachDevice({ model: swapped })
-  // …and the request shape that endpoint took, the same way. Only a job that got an answer
-  // teaches anything: compatProfile is cleared when every fallback was refused.
-  const used = swapped || model
-  const steps = compatProfile(d.provider, cfgOf(d), used)
-  const had = d.compat && d.compat.provider === d.provider && d.compat.base === base && d.compat.model === used ? d.compat.steps : null
-  if (JSON.stringify(steps || null) !== JSON.stringify(had || null)) await saveCoachDevice({ compat: steps ? { provider: d.provider, base, model: used, steps } : null })
+  const attempt = hostedCoach() ? await hostedAttempt(payload) : await byokAttempt(d, adapter, kind, payload, useWeb)
+  if (job !== started) return
   if (!attempt.ok) {
     // There is no admin card on a phone, so the reason has to reach the person holding it:
     // the provider's own words for a refusal, the validator's for an answer that did not fit.
@@ -285,3 +271,28 @@ function workoutMetaOf(S, workoutId) {
 
 // Test seam.
 export function _resetLocal() { job = null; lastError = null; last = null }
+
+async function byokAttempt(d, adapter, kind, payload, useWeb) {
+  const key = await getApiKey()
+  const model = d.model || HTTP_PROVIDERS[d.provider].defaultModel
+  // What this endpoint and model needed last time (#804), so a gateway that only takes a
+  // simpler request is asked that way first instead of paying for the same 400s every launch.
+  const base = baseUrlFor(d.provider, cfgOf(d))
+  if (d.compat && d.compat.provider === d.provider && d.compat.base === base && d.compat.model === model) rememberCompatProfile(d.provider, cfgOf(d), model, d.compat.steps)
+  const attempt = await runPipeline({
+    adapter, cfg: cfgOf(d), kind, payload,
+    model, timeoutMs: timeoutFor(d.provider),
+    invokeOpts: { env: envOf(d, key), fetch: guardedFetch, maxTokens: coachLimits(d).maxOutputTokens, ...(useWeb ? { web: true } : {}) }
+  })
+  // The saved model was refused and another one answered (#758): keep that one, so the next
+  // launch does not pay for the same 404 again. The setup screen shows the new name.
+  const swapped = model && modelSubstitute(d.provider, cfgOf(d), model)
+  if (swapped && swapped !== d.model) await saveCoachDevice({ model: swapped })
+  // …and the request shape that endpoint took, the same way. Only a job that got an answer
+  // teaches anything: compatProfile is cleared when every fallback was refused.
+  const used = swapped || model
+  const steps = compatProfile(d.provider, cfgOf(d), used)
+  const had = d.compat && d.compat.provider === d.provider && d.compat.base === base && d.compat.model === used ? d.compat.steps : null
+  if (JSON.stringify(steps || null) !== JSON.stringify(had || null)) await saveCoachDevice({ compat: steps ? { provider: d.provider, base, model: used, steps } : null })
+  return attempt
+}

@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { api } from './api.js'
 import { DEMO } from './demo.js'
+import { hostedCoach } from './invited-coach.js'
 import { MOBILE } from './mobile.js'
 import { t, tn, getLang } from './i18n.js'
 import { useStore } from '../store/useStore.js'
@@ -34,7 +35,8 @@ const S = () => useStore.getState().S
 // validator only ever load on a phone that chose this). A paired phone takes the api() branch
 // like the web app does; nothing on the web or demo builds reaches this.
 let localMod = null
-const LOCAL = () => MOBILE && useStore.getState().coachLocal?.mode === 'byok'
+const BYOK = () => MOBILE && useStore.getState().coachLocal?.mode === 'byok'
+const LOCAL = () => hostedCoach() || BYOK()
 const local = async () => {
   if (!localMod) {
     localMod = await import('./coach-local.js')
@@ -70,7 +72,7 @@ export const settleAwaited = id => { if (!id || awaited === id) awaited = null }
    provider and host on this device (lib/coach-consent.js). The demo answers locally and a model
    on your own network is not a third party, so neither asks. "Not now" rejects with code
    'declined' and `quiet`, which the screens let pass without a toast: you said no, you know. */
-export const coachVia = () => (DEMO ? 'demo' : LOCAL() ? 'device' : 'server')
+export const coachVia = () => (DEMO ? 'demo' : BYOK() ? 'device' : 'server')
 export const isDeclined = e => e?.code === 'declined'
 export async function ensureAiConsent() {
   if (DEMO) return true
@@ -133,7 +135,7 @@ export const requestAdapt = (...a) => asked(_requestAdapt)(...a).then(track)
 // question was asked when they were switched on, and nobody is there to ask it now: a "yes"
 // withdrawn since (Coach menu, AI data sharing) means no run, not a dialog out of nowhere.
 export async function scheduledReview() {
-  if (DEMO || !LOCAL()) return null
+  if (DEMO || !BYOK()) return null
   const { consentTarget, hasAiConsent } = await import('./coach-consent.js')
   const target = consentTarget(await disclosure(), 'device')
   if (target && !target.local && !await hasAiConsent(target)) return null
@@ -299,7 +301,7 @@ const PROVIDER_CLASSES = new Set(['auth', 'quota', 'schema', 'outage', 'cutoff',
  *  translated build keeps translating; the server's English is only the last resort.
  */
 export function jobErrorText(cls, detail, serverText) {
-  const own = LOCAL()
+  const own = BYOK()
   // On a phone with its own key the instance-owner lines for the provider causes would point at
   // somebody who isn't there: the provider line plus the provider's own words says it better.
   const base = own
