@@ -1,3 +1,4 @@
+vi.mock('../public/featured-practice.json', () => ({ default: null }))
 import { describe, expect, it, vi } from 'vitest'
 import worker, { handleRequest } from './index.js'
 import { COOKIE } from './auth.js'

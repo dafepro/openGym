@@ -22,11 +22,7 @@
             "metadata": {
               "version": 1,
               "registryVersion": 1,
-              "tags": [
-                "futbol:ball-control",
-                "futbol:footwork",
-                "futbol:toe-taps"
-              ]
+              "tags": ["futbol:ball-control", "futbol:footwork", "futbol:toe-taps"]
             },
             "media": {
               "id": "youtube-WWKGPlgLkk0",
@@ -50,11 +46,7 @@
             "metadata": {
               "version": 1,
               "registryVersion": 1,
-              "tags": [
-                "futbol:ball-control",
-                "futbol:dribbling",
-                "futbol:inside-outside"
-              ]
+              "tags": ["futbol:ball-control", "futbol:dribbling", "futbol:inside-outside"]
             },
             "media": {
               "id": "youtube-LfC-nTxvGV0",
@@ -76,11 +68,7 @@
             "metadata": {
               "version": 1,
               "registryVersion": 1,
-              "tags": [
-                "futbol:ball-control",
-                "futbol:dribbling",
-                "futbol:close-control"
-              ]
+              "tags": ["futbol:ball-control", "futbol:dribbling", "futbol:close-control"]
             },
             "media": {
               "id": "youtube-f8z6YyXrv4I",
@@ -110,6 +98,185 @@
           "url": "https://www.youtube.com/watch?v=f8z6YyXrv4I",
           "title": "Improve Your Close Control Dribbling with One Drill",
           "author": "Anytime Soccer Training"
+        }
+      ]
+    },
+    {
+      "requestId": "c80e9d83-d57c-4c1e-b1af-018569a53701",
+      "assignment": {
+        "id": "coach-c80e9d83-d57c-4c1e-b1af-018569a53701",
+        "revision": "v1",
+        "title": "Agility foundations",
+        "assignedOn": "2026-11-23",
+        "status": "archived",
+        "note": "Warm up for 4 minutes, then complete each exercise in order. Allow about 15–20 minutes including rests and an easy 2-minute finish. Springy contacts, trunk control and leg endurance support your agility work. Stop any exercise that causes pain.",
+        "drills": [
+          {
+            "id": "coach-c80e9d83-d57c-4c1e-b1af-018569a53701-1",
+            "title": "Glute bridges",
+            "instructions": "Setup: Use a mat on a firm floor. Before the session, warm up for 4 minutes with easy marching or jogging, ankle circles and comfortable bodyweight squats. Lie on your back, bend your knees and place both feet flat about hip-width apart.\nPress through your feet and raise your hips by squeezing your glutes. Pause for 2 seconds, then lower slowly. Keep your ribs settled rather than lifting higher by arching your back. One lift and lower is one rep. Finish both sets before moving on.\nFocus: Smooth, even hip lift. Leave a few good repetitions in reserve.",
+            "mode": "reps",
+            "sets": 2,
+            "reps": 10,
+            "side": "both",
+            "restSec": 30,
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": ["futbol:balance"],
+              "requirements": {
+                "settings": ["indoor", "outdoor"],
+                "equipment": ["mat"],
+                "participants": {
+                  "min": 1,
+                  "max": 1,
+                  "roles": []
+                },
+                "space": {
+                  "lengthM": 2,
+                  "widthM": 2
+                }
+              }
+            },
+            "media": {
+              "id": "youtube-SKOMwg1JLrU",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "SKOMwg1JLrU",
+              "portrait": false
+            }
+          },
+          {
+            "id": "coach-c80e9d83-d57c-4c1e-b1af-018569a53701-2",
+            "title": "Pogos",
+            "instructions": "Setup: Stand tall with feet hip-width apart on a level, non-slip surface with clear space overhead. Complete the warm-up before jumping.\nMake small two-foot hops, using a quick ankle spring and a soft knee bend. Land quietly in the same spot and keep the hops low. Count each landing as one rep. Pause and reset if the rhythm or landing control fades; do not chase height. Rest the full minute between sets.\nFocus: Light, quiet contacts. If hopping is uncomfortable, stop the set and use controlled calf raises instead.",
+            "mode": "reps",
+            "sets": 3,
+            "reps": 15,
+            "side": "both",
+            "restSec": 60,
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": ["futbol:agility", "futbol:coordination"],
+              "requirements": {
+                "settings": ["indoor", "outdoor"],
+                "equipment": [],
+                "participants": {
+                  "min": 1,
+                  "max": 1,
+                  "roles": []
+                },
+                "space": {
+                  "lengthM": 2,
+                  "widthM": 2
+                }
+              }
+            },
+            "media": {
+              "id": "youtube-8VddB27UkY4",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "8VddB27UkY4",
+              "portrait": false
+            }
+          },
+          {
+            "id": "coach-c80e9d83-d57c-4c1e-b1af-018569a53701-3",
+            "title": "Mountain climbers",
+            "instructions": "Setup: Use a firm, non-slip floor or mat. Start in a high plank with hands under your shoulders.\nBring one knee towards your chest, return that foot, then alternate legs. Begin with deliberate steps and build a steady rhythm only while your hips stay level. Keep breathing and avoid bouncing through your lower back. Work for 20 seconds, then rest for 40 seconds.\nFocus: Stable shoulders and trunk. Slow the steps if you start rocking.",
+            "mode": "time",
+            "sets": 3,
+            "durationSec": 20,
+            "side": "both",
+            "restSec": 40,
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": ["futbol:coordination", "futbol:endurance"],
+              "requirements": {
+                "settings": ["indoor", "outdoor"],
+                "equipment": ["mat"],
+                "participants": {
+                  "min": 1,
+                  "max": 1,
+                  "roles": []
+                },
+                "space": {
+                  "lengthM": 2,
+                  "widthM": 2
+                }
+              }
+            },
+            "media": {
+              "id": "youtube-J1VmhHODQ_E",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "J1VmhHODQ_E",
+              "portrait": false
+            }
+          },
+          {
+            "id": "coach-c80e9d83-d57c-4c1e-b1af-018569a53701-4",
+            "title": "Wall sits",
+            "instructions": "Setup: Use a solid wall and a non-slip floor. Place your back against the wall and walk your feet forward, about hip-width apart.\nSlide into a comfortable squat depth and hold with both feet flat and knees following your toes. A shallower position is fine; do not force a right angle. Keep breathing normally. Hold for up to 30 seconds, then stand and rest for 45 seconds before the next set.\nFocus: Steady position without breath-holding. After the final set, walk easily for 2 minutes.",
+            "mode": "time",
+            "sets": 2,
+            "durationSec": 30,
+            "side": "both",
+            "restSec": 45,
+            "metadata": {
+              "version": 1,
+              "registryVersion": 1,
+              "tags": ["futbol:endurance"],
+              "requirements": {
+                "settings": ["indoor", "outdoor"],
+                "equipment": ["wall"],
+                "participants": {
+                  "min": 1,
+                  "max": 1,
+                  "roles": []
+                },
+                "space": {
+                  "lengthM": 2,
+                  "widthM": 2
+                }
+              }
+            },
+            "media": {
+              "id": "youtube-RG7z0P9qrLk",
+              "status": "approved",
+              "provider": "youtube",
+              "youtubeId": "RG7z0P9qrLk",
+              "portrait": false
+            }
+          }
+        ]
+      },
+      "sources": [
+        {
+          "videoId": "SKOMwg1JLrU",
+          "url": "https://www.youtube.com/watch?v=SKOMwg1JLrU",
+          "title": "How to do a Glute bridge",
+          "author": "National Academy of Sports Medicine (NASM)"
+        },
+        {
+          "videoId": "8VddB27UkY4",
+          "url": "https://www.youtube.com/watch?v=8VddB27UkY4",
+          "title": "Pogo Jumps",
+          "author": "Hospital for Special Surgery"
+        },
+        {
+          "videoId": "J1VmhHODQ_E",
+          "url": "https://www.youtube.com/watch?v=J1VmhHODQ_E",
+          "title": "How To Mountain Climbers | Nuffield Health",
+          "author": "Nuffield Health"
+        },
+        {
+          "videoId": "RG7z0P9qrLk",
+          "url": "https://www.youtube.com/watch?v=RG7z0P9qrLk",
+          "title": "Wall Sit",
+          "author": "E3 Rehab Exercise Library"
         }
       ]
     }
