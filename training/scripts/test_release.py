@@ -42,9 +42,11 @@ class ReleaseTests(unittest.TestCase):
         return package(SHA, self.worker, self.assets, self.output)
 
     def test_offline_shell_round_trip_and_checksum(self):
+        (self.assets / 'featured-practice.json').write_text('{"assignmentId":"practice","revision":"v1"}')
         (self.assets / 'sw.js').write_bytes(b'self.addEventListener("fetch", () => {})')
         metadata = self.make_release()
         self.assertIn('assets/sw.js', metadata['files'])
+        self.assertIn('assets/featured-practice.json', metadata['files'])
         self.assertEqual(verify(self.output, SHA), metadata)
 
     def test_only_terminal_wrangler_debug_reference_is_removed(self):
