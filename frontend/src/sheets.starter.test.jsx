@@ -49,6 +49,20 @@ afterEach(() => {
 })
 
 describe('starter plan chooser', () => {
+  it.each(['StrongLifts 5×5', 'StrongLifts 3×5'])('adds an editable %s draft alongside an existing schedule', name => {
+    useStore.setState(s => ({ S: { ...s.S, programmes: {}, programme: null, week: { 1: ['mine'] } } }))
+    starterPlanSheet()
+    const host = renderTop()
+    const row = [...host.querySelectorAll('button')].find(b => b.querySelector('.lrow-t')?.textContent === name)
+    act(() => row.click())
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(S().week).toEqual({ 1: ['mine'] })
+    expect(S().programme).toBeNull()
+    const [draft] = Object.values(S().programmes)
+    expect(draft.name).toBe(name)
+    expect(S().routines.slice(1).map(r => r.name)).toEqual([name + ' A', name + ' B'])
+  })
+
   it('lists every plan with its day count', () => {
     starterPlanSheet()
     const host = renderTop()
