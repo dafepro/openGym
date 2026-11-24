@@ -10,6 +10,7 @@ const publicAsset = (path) =>
     '/sw.js',
     '/source.html',
     '/practice-additions.json',
+    '/featured-practice.json',
     '/fonts/barlow-condensed-latin-600.woff2',
     '/fonts/OFL.txt',
     '/licenses/AGPL-3.0.txt'
